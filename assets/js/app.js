@@ -1,6 +1,7 @@
 // assets/js/app.js
 import { computeSlicersLayout } from "./layout/computeSlicersLayout.js";
 import { computeVerticalLayout } from "./layout/computeVerticalLayout.js";
+import { renderWarnings } from "./ui/warnings.js";
 import * as state from "./state/state.js";
 
 const canvas = document.getElementById("canvas");
@@ -30,14 +31,6 @@ function addWarning(msg) {
   if (!state.warnings.includes(msg)) {
     state.setWarnings([...state.warnings, msg]);
   }
-}
-
-function renderWarnings() {
-  if (!state.warnings.length) {
-    warningsEl.textContent = "Žádná upozornění.";
-    return;
-  }
-  warningsEl.innerHTML = state.warnings.map(w => `<div>• ${w}</div>`).join("");
 }
 
 function setSelected(info) {

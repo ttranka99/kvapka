@@ -1,11 +1,5 @@
 import * as state from "../state/state.js";
-
-// temporarily moved from app.js – original function
-function addWarning(msg) {
-  if (!state.warnings.includes(msg)) {
-    state.setWarnings([...state.warnings, msg]);
-  }
-}
+import { addWarning } from "../ui/warnings.js";
 
 export function computeSlicerRowWidths(rowSlicers) {
   const n = rowSlicers.length;
