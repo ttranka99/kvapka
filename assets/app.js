@@ -194,14 +194,36 @@ function computeSlicerRowWidths(rowSlicers) {
 
 function computeSlicersLayout(v) {
   if (slicers.length === MAX_SLICERS) {
-    addWarning("Dosažen maximální počet slicerů. Další slicery budou umístěny na další řádek.");
+    addWarning("Dosaženo maximálního počtu slicerů na řádek. Další slicery budou umístěny na další řádek.");
+  }
+  // --- SPLIT INTO TWO ROWS ---
+  const row1 = slicers.slice(0, MAX_SLICERS);
+  const row2 = slicers.slice(MAX_SLICERS, MAX_SLICERS * 2);
+
+  // Hard limit: max 12 slicers
+  if (slicers.length > MAX_SLICERS * 2) {
+    addWarning("Bylo dosaženo maximálního počtu slicerů.");
+    return [];
   }
 
-  const row1 = slicers.slice(0, Math.min(MAX_SLICERS, slicers.length));
-  const row2 = slicers.length > MAX_SLICERS ? slicers.slice(MAX_SLICERS) : [];
-
+  // --- COMPUTE WIDTHS FOR ROW 1 ---
   const row1Widths = computeSlicerRowWidths(row1);
-  const row2Widths = computeSlicerRowWidths(row2);
+
+  // --- COMPUTE WIDTHS FOR ROW 2 ---
+  let row2Widths = [];
+  if (row2.length > 0) {
+    row2Widths = computeSlicerRowWidths(row2);
+
+    // Overflow check
+    const totalGaps2 = (row2.length - 1) * GAP_SMALL;
+    const totalWidth2 = row2Widths.reduce((s, w) => s + w, 0) + totalGaps2;
+
+    if (totalWidth2 > USABLE_WIDTH) {
+      addWarning("Slicery na druhém řádku se nevejdou – uprav šířky nebo odeber slicer.");
+      return [];
+    }
+  }
+
 
   const rows = [];
 
@@ -307,35 +329,72 @@ function computeKpiLayout(v) {
   // --- MIN WIDTH FOR ROW 2 = WIDTH OF FIRST KPI IN ROW 1 ---
   const minWidthForRow2 = widths1[0];
 
-  // --- ROW 2 WIDTHS (no overflow allowed) ---
+  // --- ROW 2 WIDTHS (adaptive to first row, max 6 KPI) ---
   let widths2 = [];
 
   if (row2.length > 0) {
-    const minWidth = widths1[0];
     const totalGaps2 = (row2.length - 1) * GAP_SMALL;
     const available = USABLE_WIDTH - totalGaps2;
 
-    // Start with minWidth for all
-    widths2 = Array(row2.length).fill(minWidth);
+    const anyLocked2 = row2.some(k => k.locked);
 
-    // Check if they fit
-    const totalNeeded = row2.length * minWidth + totalGaps2;
+    if (!anyLocked2) {
+      // --- If second row has fewer KPI than first row ---
+      if (row2.length < MAX_KPIS) {
+        const baseWidth = widths1[0]; // use first KPI width from row 1
+        const totalNeeded = row2.length * baseWidth + totalGaps2;
 
-    if (totalNeeded > USABLE_WIDTH) {
-      // Shrink proportionally
-      const scaleFactor = available / (row2.length * minWidth);
-      const adjustedWidth = Math.floor(minWidth * scaleFactor);
+        if (totalNeeded <= USABLE_WIDTH) {
+          // fits → use same width
+          widths2 = Array(row2.length).fill(baseWidth);
+        } else {
+          // doesn't fit → shrink proportionally
+          const scaleFactor = available / (row2.length * baseWidth);
+          const adjustedWidth = Math.floor(baseWidth * scaleFactor);
+          widths2 = Array(row2.length).fill(adjustedWidth);
+        }
+      } else {
+        // --- Standard logic for full second row (6 KPI) ---
+        const w = Math.floor((USABLE_WIDTH - totalGaps2) / row2.length);
+        widths2 = Array(row2.length).fill(w);
+      }
+    } else {
+      // --- Locked KPI logic (same as row1) ---
+      const lockedSum2 = row2
+        .filter(k => k.locked)
+        .reduce((sum, k) => sum + (k.width ?? 0), 0);
 
-      if (adjustedWidth < 50) {
-        addWarning("KPI na druhém řádku se nevejdou – uprav šířky nebo odeber KPI.");
-        return []; // stop rendering
+      let remaining2 = USABLE_WIDTH - totalGaps2 - lockedSum2;
+      if (remaining2 < 0) {
+        addWarning("Součet ručně nastavených šířek KPI na druhém řádku přesahuje dostupnou šířku.");
+        remaining2 = 0;
       }
 
-      widths2 = Array(row2.length).fill(adjustedWidth);
+      const unlocked2 = row2.filter(k => !k.locked);
+      const u2 = unlocked2.length;
+
+      if (u2 === 0) {
+        widths2 = row2.map(k => k.width);
+      } else {
+        const base = Math.floor(remaining2 / u2);
+        let remainder = remaining2 % u2;
+
+        widths2 = row2.map(k => {
+          if (k.locked) return k.width;
+          let w = base;
+          if (remainder > 0) { w += 1; remainder--; }
+          return w;
+        });
+      }
+    }
+
+    // --- Overflow check for second row ---
+    const totalWidthRow2 = widths2.reduce((s, w) => s + w, 0) + totalGaps2;
+    if (totalWidthRow2 > USABLE_WIDTH) {
+      addWarning("KPI na druhém řádku se nevejdou – uprav šířky nebo odeber KPI.");
+      return []; // stop rendering KPI
     }
   }
-
-
 
   const rows = [];
 
@@ -887,6 +946,13 @@ applyHeightBtn.addEventListener("click", () => {
 // ----------------------------------------------------
 
 function addSlicer() {
+  // Hard limit
+  if (slicers.length >= MAX_SLICERS * 2) {
+    addWarning("Bylo dosaženo maximálního počtu slicerů.");
+    renderWarnings();
+    return;
+  }
+
   slicers.push({ width: null, locked: false });
   renderLayout();
   renderWarnings();
