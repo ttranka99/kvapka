@@ -208,8 +208,9 @@ button:hover {
 
 /* Title bar */
 .canvas-element.title {
-  background: #b91c1c;
-  color: #ffffff;
+  background: #F8F8F8;
+  color: #1f2937;
+  border: 1px solid #DCDCDC;
   display: flex;
   align-items: center;
   padding-left: 8px;
@@ -261,7 +262,7 @@ button:hover {
 }
 
 .canvas-element.title .canvas-element-label {
-  color: #f3f4f6;
+  color: #1f2937;
 }
 
 /* ----------------------------------------------------
