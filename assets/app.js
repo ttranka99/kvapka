@@ -79,10 +79,16 @@ function setSelected(info) {
     inputWidth.value = info.width;
   }
 
-  if (info.kind === "chartRow" || info.kind === "kpi") {
+  if (info.kind === "chartRow") {
     editHeightEl.classList.remove("hidden");
     inputHeight.value = info.height;
   }
+
+  if (info.kind === "kpi") {
+    editWidthEl.classList.remove("hidden");
+    inputWidth.value = info.width;
+  }
+
 
   document.querySelectorAll(".canvas-element").forEach(el => el.classList.remove("selected"));
   if (info.domId) {
@@ -229,43 +235,106 @@ function computeKpiLayout(v) {
   if (kpis.length === MAX_KPIS) {
     addWarning("Dosažen maximální počet KPI. Další KPI budou umístěny na další řádek.");
   }
+  // Hard limit
+  if (kpis.length > MAX_KPIS * 2) {
+    addWarning("Dosaženo maximálního počtu KPI. Odeberte KPI.");
+    kpis = kpis.slice(0, MAX_KPIS * 2); // keep KPIs bellow limit
+  }
+
 
   const n = kpis.length;
   if (n === 0) return [];
 
   // Split KPI into two rows
-  const row1 = kpis.slice(0, Math.min(MAX_KPIS, n));
-  const row2 = n > MAX_KPIS ? kpis.slice(MAX_KPIS) : [];
+  const row1 = kpis.slice(0, MAX_KPIS);
+  const row2 = kpis.slice(MAX_KPIS, MAX_KPIS * 2);
+
 
   const totalGaps1 = (row1.length - 1) * GAP_SMALL;
   const totalGaps2 = (row2.length - 1) * GAP_SMALL;
 
-  // --- ROW 1 WIDTHS ---
+  // --- ROW 1 WIDTHS (no overflow allowed) ---
   let widths1;
-  if (row1.length <= 3) {
-    widths1 = Array(row1.length).fill(250);
+
+  const anyLocked1 = row1.some(k => k.locked);
+
+  if (!anyLocked1) {
+    // Original KPI logic
+    if (row1.length <= 3) {
+      widths1 = Array(row1.length).fill(250);
+    } else {
+      const w = Math.floor((USABLE_WIDTH - totalGaps1) / row1.length);
+      widths1 = Array(row1.length).fill(w);
+    }
   } else {
-    const w = Math.floor((USABLE_WIDTH - totalGaps1) / row1.length);
-    widths1 = Array(row1.length).fill(w);
+    // Locked KPI logic
+    const lockedSum = row1
+      .filter(k => k.locked)
+      .reduce((sum, k) => sum + (k.width ?? 0), 0);
+
+    let remaining = USABLE_WIDTH - totalGaps1 - lockedSum;
+
+    if (remaining < 0) {
+      addWarning("Součet ručně nastavených šířek KPI přesahuje dostupnou šířku.");
+      return []; // STOP RENDERING KPI
+    }
+
+    const unlocked = row1.filter(k => !k.locked);
+    const u = unlocked.length;
+
+    if (u === 0) {
+      widths1 = row1.map(k => k.width);
+    } else {
+      const base = Math.floor(remaining / u);
+      let remainder = remaining % u;
+
+      widths1 = row1.map(k => {
+        if (k.locked) return k.width;
+        let w = base;
+        if (remainder > 0) { w += 1; remainder--; }
+        return w;
+      });
+    }
+  }
+
+  // Overflow check row 1
+  const totalWidthRow1 = widths1.reduce((s, w) => s + w, 0) + totalGaps1;
+  if (totalWidthRow1 > USABLE_WIDTH) {
+    addWarning("KPI se nevejdou do dostupné šířky – uprav šířky nebo odeber KPI.");
+    return []; // STOP RENDERING KPI
   }
 
   // --- MIN WIDTH FOR ROW 2 = WIDTH OF FIRST KPI IN ROW 1 ---
   const minWidthForRow2 = widths1[0];
 
-  // --- ROW 2 WIDTHS ---
+  // --- ROW 2 WIDTHS (no overflow allowed) ---
   let widths2 = [];
+
   if (row2.length > 0) {
-    // Always use the same width as the first KPI in row 1
-    const fixedWidth = widths1[0];
+    const minWidth = widths1[0];
+    const totalGaps2 = (row2.length - 1) * GAP_SMALL;
+    const available = USABLE_WIDTH - totalGaps2;
 
-    // If total width would overflow → warning
-    const totalWidth = row2.length * fixedWidth + (row2.length - 1) * GAP_SMALL;
-    if (totalWidth > USABLE_WIDTH) {
-      addWarning("KPI na druhém řádku se nevejdou – uprav šířku KPI.");
+    // Start with minWidth for all
+    widths2 = Array(row2.length).fill(minWidth);
+
+    // Check if they fit
+    const totalNeeded = row2.length * minWidth + totalGaps2;
+
+    if (totalNeeded > USABLE_WIDTH) {
+      // Shrink proportionally
+      const scaleFactor = available / (row2.length * minWidth);
+      const adjustedWidth = Math.floor(minWidth * scaleFactor);
+
+      if (adjustedWidth < 50) {
+        addWarning("KPI na druhém řádku se nevejdou – uprav šířky nebo odeber KPI.");
+        return []; // stop rendering
+      }
+
+      widths2 = Array(row2.length).fill(adjustedWidth);
     }
-
-    widths2 = Array(row2.length).fill(fixedWidth);
   }
+
 
 
   const rows = [];
@@ -721,40 +790,36 @@ function renderLayout() {
   canvas.addEventListener("click", () => setSelected(null), { once: true });
   renderWarnings();
 }
-// Slicer width change
+// Width change
 applyWidthBtn.addEventListener("click", () => {
-  if (!selectedElement || selectedElement.kind !== "slicer") return;
+  if (!selectedElement) return;
 
   const val = parseInt(inputWidth.value, 10);
-  if (isNaN(val) || val < MIN_SLICER_WIDTH) {
-    addWarning(`Minimální šířka sliceru je ${MIN_SLICER_WIDTH}px.`);
+  if (isNaN(val) || val < 50) {
+    addWarning(`Minimální šířka je 50px.`);
     renderWarnings();
     return;
   }
 
-  const s = selectedElement.stateRef;
-  const originalWidth = s.width;
-  const originalLocked = s.locked;
-
-  s.width = val;
-  s.locked = true;
-
-  const v = computeVerticalLayout();
-  warnings = [];
-  computeSlicersLayout(v);
-
-  const overflow = warnings.some(w => w.includes("přesahuje") || w.includes("úzké"));
-
-  if (overflow) {
-    s.width = originalWidth;
-    s.locked = originalLocked;
-    addWarning("Zadaná šířka se nevejde — uprav hodnotu.");
-    renderWarnings();
+  // --- SLICER ---
+  if (selectedElement.kind === "slicer") {
+    const s = selectedElement.stateRef;
+    s.width = val;
+    s.locked = true;
+    renderLayout();
     return;
   }
 
-  renderLayout();
+  // --- KPI ---
+  if (selectedElement.kind === "kpi") {
+    const k = selectedElement.stateRef;
+    k.width = val;
+    k.locked = true;
+    renderLayout();
+    return;
+  }
 });
+
 
 // KPI or chart height change
 applyHeightBtn.addEventListener("click", () => {
