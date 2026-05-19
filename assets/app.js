@@ -10,6 +10,8 @@ const MIN_SLICER_WIDTH = 50;
 const MIN_CHART_ROW_HEIGHT = 150;
 const USABLE_WIDTH = CANVAS_WIDTH - 2 * MARGIN;
 const SCALE = 0.4;
+const MAX_SLICERS = 7;
+const MAX_KPIS = 6;
 
 let slicers = [];
 let kpis = [];
@@ -39,7 +41,12 @@ const addSlicerBtn = document.getElementById("add-slicer");
 
 function scale(v) { return v * SCALE; }
 function clearCanvas() { while (canvas.firstChild) canvas.removeChild(canvas.firstChild); }
-function addWarning(msg) { warnings.push(msg); }
+function addWarning(msg) {
+  // Prevent duplicate warnings
+  if (!warnings.includes(msg)) {
+    warnings.push(msg);
+  }
+}
 function renderWarnings() {
   if (!warnings.length) { warningsEl.textContent = "Žádná upozornění."; return; }
   warningsEl.innerHTML = warnings.map(w => `<div>• ${w}</div>`).join("");
@@ -83,12 +90,13 @@ function setSelected(info) {
     if (el) el.classList.add("selected");
   }
 }
+
 function computeVerticalLayout() {
   const TITLE_Y = MARGIN;
 
   const slicersTop = TITLE_Y + TITLE_HEIGHT + GAP_SMALL;
 
-  const hasRow2 = slicers.length > 7;
+  const hasRow2 = slicers.length > MAX_SLICERS;
   const slicersBottom =
     slicers.length === 0
       ? slicersTop
@@ -133,7 +141,6 @@ function computeVerticalLayout() {
     hasRow2
   };
 }
-
 function computeSlicerRowWidths(rowSlicers) {
   const n = rowSlicers.length;
   if (n === 0) return [];
@@ -169,8 +176,12 @@ function computeSlicerRowWidths(rowSlicers) {
 }
 
 function computeSlicersLayout(v) {
-  const row1 = slicers.slice(0, Math.min(7, slicers.length));
-  const row2 = slicers.length > 7 ? slicers.slice(7) : [];
+  if (slicers.length === MAX_SLICERS) {
+    addWarning("Dosažen maximální počet slicerů. Další slicery budou umístěny na další řádek.");
+  }
+
+  const row1 = slicers.slice(0, Math.min(MAX_SLICERS, slicers.length));
+  const row2 = slicers.length > MAX_SLICERS ? slicers.slice(MAX_SLICERS) : [];
 
   const row1Widths = computeSlicerRowWidths(row1);
   const row2Widths = computeSlicerRowWidths(row2);
@@ -192,7 +203,7 @@ function computeSlicersLayout(v) {
     let x = MARGIN;
     const items = row2.map((s, i) => {
       const w = row2Widths[i];
-      const globalIndex = 7 + i + 1;
+      const globalIndex = MAX_SLICERS + i + 1;
       const item = { type: "slicer", globalIndex, x, y: v.slicersTop + SLICER_HEIGHT + GAP_SMALL, width: w, height: SLICER_HEIGHT, stateRef: s };
       x += w + GAP_SMALL;
       return item;
@@ -204,31 +215,74 @@ function computeSlicersLayout(v) {
 }
 
 function computeKpiLayout(v) {
+  if (kpis.length === MAX_KPIS) {
+    addWarning("Dosažen maximální počet KPI. Další KPI budou umístěny na další řádek.");
+  }
   const n = kpis.length;
   if (n === 0) return [];
 
-  const y = v.kpiTop;
+  // Split KPI into two rows
+  const row1 = kpis.slice(0, Math.min(MAX_KPIS, n));
+  const row2 = n > MAX_KPIS ? kpis.slice(MAX_KPIS) : [];
 
-  let widths = [];
-  const totalGaps = (n - 1) * GAP_SMALL;
 
-  if (n <= 3) {
-    widths = Array(n).fill(250);
+  const totalGaps1 = (row1.length - 1) * GAP_SMALL;
+  const totalGaps2 = (row2.length - 1) * GAP_SMALL;
+
+  // Compute widths for row 1
+  let widths1;
+  if (row1.length <= 3) {
+    widths1 = Array(row1.length).fill(250);
   } else {
-    const w = Math.floor((USABLE_WIDTH - totalGaps) / n);
-    widths = Array(n).fill(w);
+    const w = Math.floor((USABLE_WIDTH - totalGaps1) / row1.length);
+    widths1 = Array(row1.length).fill(w);
   }
 
-  let x = MARGIN;
+  // Compute widths for row 2
+  let widths2 = [];
+  if (row2.length > 0) {
+    if (row2.length <= 3) {
+      widths2 = Array(row2.length).fill(250);
+    } else {
+      const w = Math.floor((USABLE_WIDTH - totalGaps2) / row2.length);
+      widths2 = Array(row2.length).fill(w);
+    }
+  }
 
-  return kpis.map((k, i) => {
-    const w = widths[i];
-    const h = k.height ?? KPI_MIN_HEIGHT;
-    const item = { x, y, width: w, height: h, index: i, stateRef: k };
-    x += w + GAP_SMALL;
-    return item;
-  });
+  const rows = [];
+
+  // Row 1 layout
+  if (row1.length > 0) {
+    let x = MARGIN;
+    const y = v.kpiTop;
+    const items = row1.map((k, i) => {
+      const w = widths1[i];
+      const h = k.height ?? KPI_MIN_HEIGHT;
+      const item = { x, y, width: w, height: h, index: i, stateRef: k };
+      x += w + GAP_SMALL;
+      return item;
+    });
+    rows.push(items);
+  }
+
+  // Row 2 layout
+  if (row2.length > 0) {
+    let x = MARGIN;
+    const y = v.kpiTop + (row1[0].height ?? KPI_MIN_HEIGHT) + GAP_SMALL;
+    const items = row2.map((k, i) => {
+      const w = widths2[i];
+      const h = k.height ?? KPI_MIN_HEIGHT;
+      const item = { x, y, width: w, height: h, index: MAX_KPIS + i, stateRef: k };
+      x += w + GAP_SMALL;
+      return item;
+    });
+    rows.push(items);
+  }
+
+  return rows;
 }
+
+
 function computeChartRowHeights(v) {
   const rows = chartRows;
   const n = rows.length;
@@ -328,12 +382,11 @@ function canAddChart(simulatedChartRows, vLayout) {
 }
 
 function renderLayout() {
-  warnings = [];
   clearCanvas();
 
   const v = computeVerticalLayout();
 
-  // Nadpis
+  // Title
   const titleId = "title-bar";
   const title = document.createElement("div");
   title.className = "canvas-element title";
@@ -363,7 +416,7 @@ function renderLayout() {
 
   canvas.appendChild(title);
 
-  // Slicery
+  // Slicers
   const slicerRowsLayout = computeSlicersLayout(v);
 
   slicerRowsLayout.forEach(row => {
@@ -400,8 +453,16 @@ function renderLayout() {
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         slicers.splice(item.globalIndex - 1, 1);
+
+        // Clear slicer-related warning only if we are back under the limit
+        if (slicers.length < MAX_SLICERS) {
+          warnings = warnings.filter(w => !w.includes("slicerů"));
+        }
+
         renderLayout();
+        renderWarnings();
       });
+
 
       controls.appendChild(addBtn);
       controls.appendChild(removeBtn);
@@ -427,67 +488,78 @@ function renderLayout() {
   });
 
   // KPI
-  const kpiLayout = computeKpiLayout(v);
+  const kpiRows = computeKpiLayout(v);
 
-  kpiLayout.forEach(item => {
-    const domId = `kpi-${item.index}`;
-    const el = document.createElement("div");
-    el.id = domId;
-    el.className = "canvas-element kpi";
-    el.style.left = scale(item.x) + "px";
-    el.style.top = scale(item.y) + "px";
-    el.style.width = scale(item.width) + "px";
-    el.style.height = scale(item.height) + "px";
+  kpiRows.forEach(row => {
+    row.forEach(item => {
+      const domId = `kpi-${item.index}`;
+      const el = document.createElement("div");
+      el.id = domId;
+      el.className = "canvas-element kpi";
+      el.style.left = scale(item.x) + "px";
+      el.style.top = scale(item.y) + "px";
+      el.style.width = scale(item.width) + "px";
+      el.style.height = scale(item.height) + "px";
 
-    const label = document.createElement("div");
-    label.className = "canvas-element-label";
-    label.textContent = `KPI ${item.index + 1}`;
-    el.appendChild(label);
+      const label = document.createElement("div");
+      label.className = "canvas-element-label";
+      label.textContent = `KPI ${item.index + 1}`;
+      el.appendChild(label);
 
-    const controls = document.createElement("div");
-    controls.className = "element-controls";
+      const controls = document.createElement("div");
+      controls.className = "element-controls";
 
-    const addBtn = document.createElement("button");
-    addBtn.textContent = "+";
-    addBtn.title = "Přidat KPI";
-    addBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      kpis.splice(item.index + 1, 0, { height: null, locked: false });
-      renderLayout();
-    });
-
-    const removeBtn = document.createElement("button");
-    removeBtn.textContent = "×";
-    removeBtn.title = "Odebrat KPI";
-    removeBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      kpis.splice(item.index, 1);
-      renderLayout();
-    });
-
-    controls.appendChild(addBtn);
-    controls.appendChild(removeBtn);
-    el.appendChild(controls);
-
-    el.addEventListener("click", (e) => {
-      e.stopPropagation();
-      setSelected({
-        kind: "kpi",
-        labelType: "KPI",
-        labelIndex: item.index + 1,
-        x: item.x,
-        y: item.y,
-        width: item.width,
-        height: item.height,
-        domId,
-        stateRef: item.stateRef
+      const addBtn = document.createElement("button");
+      addBtn.textContent = "+";
+      addBtn.title = "Add KPI";
+      addBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        kpis.splice(item.index + 1, 0, { height: null, locked: false });
+        renderLayout();
       });
-    });
 
-    canvas.appendChild(el);
+      const removeBtn = document.createElement("button");
+      removeBtn.textContent = "×";
+      removeBtn.title = "Remove KPI";
+      removeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        kpis.splice(item.index, 1);
+
+        // Clear KPI-related warning only if we are back under the limit
+        if (kpis.length < MAX_KPIS) {
+          warnings = warnings.filter(w => !w.includes("KPI"));
+        }
+
+        renderLayout();
+        renderWarnings();
+      });
+
+
+      controls.appendChild(addBtn);
+      controls.appendChild(removeBtn);
+      el.appendChild(controls);
+
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setSelected({
+          kind: "kpi",
+          labelType: "KPI",
+          labelIndex: item.index + 1,
+          x: item.x,
+          y: item.y,
+          width: item.width,
+          height: item.height,
+          domId,
+          stateRef: item.stateRef
+        });
+      });
+
+      canvas.appendChild(el);
+    });
   });
 
-  // Grafy
+
+  // Charts
   const chartsLayout = computeChartsLayout(v);
 
   chartsLayout.forEach((row, rowIndex) => {
@@ -597,8 +669,7 @@ function renderLayout() {
   canvas.addEventListener("click", () => setSelected(null), { once: true });
   renderWarnings();
 }
-
-// Aplikace změny šířky sliceru
+// Slicer width change
 applyWidthBtn.addEventListener("click", () => {
   if (!selectedElement || selectedElement.kind !== "slicer") return;
 
@@ -633,11 +704,11 @@ applyWidthBtn.addEventListener("click", () => {
   renderLayout();
 });
 
-// Aplikace změny výšky KPI nebo grafu
+// KPI or chart height change
 applyHeightBtn.addEventListener("click", () => {
   if (!selectedElement) return;
 
-  // KPI výška
+  // KPI height
   if (selectedElement.kind === "kpi") {
     const val = parseInt(inputHeight.value, 10);
     if (isNaN(val) || val < KPI_MIN_HEIGHT) {
@@ -654,7 +725,7 @@ applyHeightBtn.addEventListener("click", () => {
     return;
   }
 
-  // Výška řady grafů
+  // Chart row height
   if (selectedElement.kind === "chartRow") {
     const val = parseInt(inputHeight.value, 10);
     if (isNaN(val) || val < MIN_CHART_ROW_HEIGHT) {
@@ -694,26 +765,40 @@ applyHeightBtn.addEventListener("click", () => {
   }
 });
 
+// ----------------------------------------------------
+// LIMITED ADDITION OF SLICERS AND KPIS
+// ----------------------------------------------------
+
+function addSlicer() {
+  slicers.push({ width: null, locked: false });
+  renderLayout();
+  renderWarnings();
+}
+
+function addKPI() {
+  kpis.push({ height: null, locked: false });
+  renderLayout();
+  renderWarnings();
+}
+
+
 // Reset
 resetBtn.addEventListener("click", () => {
+  warnings = [];          // Clear all warnings
+  renderWarnings();       // Update warnings panel
   initState();
   renderLayout();
   setSelected(null);
 });
 
-// Přidat KPI
-addKpiBtn.addEventListener("click", () => {
-  kpis.push({ height: null, locked: false });
-  renderLayout();
-});
 
-// Přidat slicer
-addSlicerBtn.addEventListener("click", () => {
-  slicers.push({ width: null, locked: false });
-  renderLayout();
-});
+// Add KPI
+addKpiBtn.addEventListener("click", addKPI);
 
-// Inicializace
+// Add slicer
+addSlicerBtn.addEventListener("click", addSlicer);
+
+// Initialization
 function initState() {
   slicers = [];
   for (let i = 0; i < 3; i++) slicers.push({ width: null, locked: false });
@@ -728,3 +813,4 @@ function initState() {
 initState();
 renderLayout();
 setSelected(null);
+
