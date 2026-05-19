@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>KB Layout Asistent for Power BI</title>
+    <link rel="stylesheet" href="assets/style.css" />
+</head>
+
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <h1>KB Layout Asistent</h1>
+            <p class="subtitle">Power BI plátno 1920 × 1080</p>
+
+            <section class="panel">
+                <h2>Vybraný element</h2>
+
+                <div id="no-selection">Klikněte na element v náhledu.</div>
+
+                <div id="selection-details" class="hidden">
+
+                    <div><strong>Typ:</strong> <span id="sel-type"></span></div>
+                    <div><strong>Index:</strong> <span id="sel-index"></span></div>
+
+                    <div><strong>X:</strong> <span id="sel-x"></span> px</div>
+                    <div><strong>Y:</strong> <span id="sel-y"></span> px</div>
+                    <div><strong>Šířka:</strong> <span id="sel-width"></span> px</div>
+                    <div><strong>Výška:</strong> <span id="sel-height"></span> px</div>
+
+                    <div id="edit-width" class="edit-field hidden">
+                        <label>Upravit šířku sliceru:</label>
+                        <input id="input-width" type="number" />
+                        <button id="apply-width">Použít</button>
+                    </div>
+
+                    <div id="edit-height" class="edit-field hidden">
+                        <label>Upravit výšku řady grafů:</label>
+                        <input id="input-height" type="number" />
+                        <button id="apply-height">Použít</button>
+                    </div>
+                </div>
+            </section>
+
+
+            <section class="panel">
+                <h2>Upozornění</h2>
+                <div id="warnings"></div>
+            </section>
+
+            <section class="panel">
+                <h2>Rychlé akce</h2>
+                <button id="reset-layout">Reset layoutu</button>
+            </section>
+        </aside>
+
+        <main class="main">
+            <h2>Náhled layoutu</h2>
+            <p class="hint">
+                Najetím myší na element se zobrazí tlačítka <strong>+</strong> a <strong>×</strong>.
+                Kliknutím na element zobrazíte jeho parametry v levém panelu.
+            </p>
+
+            <div id="canvas-wrapper">
+                <div id="canvas"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="assets/app.js"></script>
+</body>
+
+</html>
