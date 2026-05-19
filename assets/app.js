@@ -109,10 +109,21 @@ function computeVerticalLayout() {
       ? slicersBottom + GAP_SMALL
       : slicersTop;
 
+  const kpiRow1 = kpis.slice(0, MAX_KPIS);
+  const kpiRow2 = kpis.length > MAX_KPIS ? kpis.slice(MAX_KPIS) : [];
+
+  const row1Height = kpiRow1.length
+    ? Math.max(...kpiRow1.map(k => k.height ?? KPI_MIN_HEIGHT))
+    : 0;
+
+  const row2Height = kpiRow2.length
+    ? Math.max(...kpiRow2.map(k => k.height ?? KPI_MIN_HEIGHT))
+    : 0;
+
   const kpiTotalHeight =
-    kpis.length > 0
-      ? Math.max(...kpis.map(k => k.height ?? KPI_MIN_HEIGHT))
-      : 0;
+    row1Height +
+    (row2Height > 0 ? GAP_SMALL + row2Height : 0);
+
 
   const kpiBottom =
     kpis.length > 0
@@ -456,7 +467,7 @@ function renderLayout() {
 
         // Clear slicer-related warning only if we are back under the limit
         if (slicers.length < MAX_SLICERS) {
-          warnings = warnings.filter(w => !w.includes("slicerů"));
+          warnings = warnings.filter(w => !w.includes("slicer"));
         }
 
         renderLayout();
