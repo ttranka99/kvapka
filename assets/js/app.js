@@ -1,23 +1,6 @@
-const CANVAS_WIDTH = 1920;
-const CANVAS_HEIGHT = 1080;
-const MARGIN = 30;
-const TITLE_HEIGHT = 50;
-const GAP_SMALL = 10;
-const GAP_KPI_TO_CHARTS = 30;
-const SLICER_HEIGHT = 80;
-const KPI_MIN_HEIGHT = 70;
-const MIN_SLICER_WIDTH = 50;
-const MIN_CHART_ROW_HEIGHT = 150;
-const USABLE_WIDTH = CANVAS_WIDTH - 2 * MARGIN;
-const SCALE = 0.4;
-const MAX_SLICERS = 7;
-const MAX_KPIS = 6;
-
-let slicers = [];
-let kpis = [];
-let chartRows = [];
-let selectedElement = null;
-let warnings = [];
+// assets/js/app.js
+import { computeVerticalLayout } from "./layout/computeVerticalLayout.js";
+import * as state from "./state/state.js";
 
 const canvas = document.getElementById("canvas");
 const warningsEl = document.getElementById("warnings");
@@ -39,21 +22,25 @@ const resetBtn = document.getElementById("reset-layout");
 const addKpiBtn = document.getElementById("add-kpi");
 const addSlicerBtn = document.getElementById("add-slicer");
 
-function scale(v) { return v * SCALE; }
+function scale(v) { return v * state.SCALE; }
 function clearCanvas() { while (canvas.firstChild) canvas.removeChild(canvas.firstChild); }
+
 function addWarning(msg) {
-  // Prevent duplicate warnings
-  if (!warnings.includes(msg)) {
-    warnings.push(msg);
+  if (!state.warnings.includes(msg)) {
+    state.setWarnings([...state.warnings, msg]);
   }
 }
+
 function renderWarnings() {
-  if (!warnings.length) { warningsEl.textContent = "Žádná upozornění."; return; }
-  warningsEl.innerHTML = warnings.map(w => `<div>• ${w}</div>`).join("");
+  if (!state.warnings.length) {
+    warningsEl.textContent = "Žádná upozornění.";
+    return;
+  }
+  warningsEl.innerHTML = state.warnings.map(w => `<div>• ${w}</div>`).join("");
 }
 
 function setSelected(info) {
-  selectedElement = info;
+  state.setSelectedElement(info);
   if (!info) {
     noSelectionEl.classList.remove("hidden");
     selectionDetailsEl.classList.add("hidden");
@@ -89,7 +76,6 @@ function setSelected(info) {
     inputWidth.value = info.width;
   }
 
-
   document.querySelectorAll(".canvas-element").forEach(el => el.classList.remove("selected"));
   if (info.domId) {
     const el = document.getElementById(info.domId);
@@ -97,76 +83,15 @@ function setSelected(info) {
   }
 }
 
-function computeVerticalLayout() {
-  const TITLE_Y = MARGIN;
-
-  const slicersTop = TITLE_Y + TITLE_HEIGHT + GAP_SMALL;
-
-  const hasRow2 = slicers.length > MAX_SLICERS;
-  const slicersBottom =
-    slicers.length === 0
-      ? slicersTop
-      : hasRow2
-        ? slicersTop + SLICER_HEIGHT * 2 + GAP_SMALL
-        : slicersTop + SLICER_HEIGHT;
-
-  const kpiTop =
-    slicers.length > 0
-      ? slicersBottom + GAP_SMALL
-      : slicersTop;
-
-  const kpiRow1 = kpis.slice(0, MAX_KPIS);
-  const kpiRow2 = kpis.length > MAX_KPIS ? kpis.slice(MAX_KPIS) : [];
-
-  const row1Height = kpiRow1.length
-    ? Math.max(...kpiRow1.map(k => k.height ?? KPI_MIN_HEIGHT))
-    : 0;
-
-  const row2Height = kpiRow2.length
-    ? Math.max(...kpiRow2.map(k => k.height ?? KPI_MIN_HEIGHT))
-    : 0;
-
-  const kpiTotalHeight =
-    row1Height +
-    (row2Height > 0 ? GAP_SMALL + row2Height : 0);
-
-
-  const kpiBottom =
-    kpis.length > 0
-      ? kpiTop + kpiTotalHeight
-      : kpiTop;
-
-  const chartsTop =
-    slicers.length === 0 && kpis.length === 0
-      ? slicersTop
-      : kpis.length > 0
-        ? kpiBottom + GAP_KPI_TO_CHARTS
-        : slicersBottom + GAP_KPI_TO_CHARTS;
-
-  const chartsBottom = CANVAS_HEIGHT - MARGIN;
-  const chartsHeight = chartsBottom - chartsTop;
-
-  return {
-    TITLE_Y,
-    slicersTop,
-    slicersBottom,
-    kpiTop,
-    kpiBottom,
-    chartsTop,
-    chartsBottom,
-    chartsHeight,
-    hasRow2
-  };
-}
 function computeSlicerRowWidths(rowSlicers) {
   const n = rowSlicers.length;
   if (n === 0) return [];
 
   if (n <= 3) return rowSlicers.map(s => s.locked ? s.width : 350);
 
-  const totalGaps = (n - 1) * GAP_SMALL;
+  const totalGaps = (n - 1) * state.GAP_SMALL;
   const lockedSum = rowSlicers.filter(s => s.locked).reduce((sum, s) => sum + (s.width ?? 0), 0);
-  let remaining = USABLE_WIDTH - totalGaps - lockedSum;
+  let remaining = state.USABLE_WIDTH - totalGaps - lockedSum;
 
   if (remaining < 0) {
     addWarning("Součet ručně nastavených šířek slicerů přesahuje dostupnou šířku.");
@@ -178,7 +103,7 @@ function computeSlicerRowWidths(rowSlicers) {
 
   if (m === 0) return rowSlicers.map(s => s.width);
 
-  if (remaining < m * MIN_SLICER_WIDTH)
+  if (remaining < m * state.MIN_SLICER_WIDTH)
     addWarning("Nedostatek místa – některé slicery mohou být příliš úzké.");
 
   const base = Math.floor(remaining / m);
@@ -193,58 +118,69 @@ function computeSlicerRowWidths(rowSlicers) {
 }
 
 function computeSlicersLayout(v) {
-  if (slicers.length === MAX_SLICERS) {
+  if (state.slicers.length === state.MAX_SLICERS) {
     addWarning("Dosaženo maximálního počtu slicerů na řádek. Další slicery budou umístěny na další řádek.");
   }
-  // --- SPLIT INTO TWO ROWS ---
-  const row1 = slicers.slice(0, MAX_SLICERS);
-  const row2 = slicers.slice(MAX_SLICERS, MAX_SLICERS * 2);
 
-  // Hard limit: max 12 slicers
-  if (slicers.length > MAX_SLICERS * 2) {
+  const row1 = state.slicers.slice(0, state.MAX_SLICERS);
+  const row2 = state.slicers.slice(state.MAX_SLICERS, state.MAX_SLICERS * 2);
+
+  if (state.slicers.length > state.MAX_SLICERS * 2) {
     addWarning("Bylo dosaženo maximálního počtu slicerů.");
     return [];
   }
 
-  // --- COMPUTE WIDTHS FOR ROW 1 ---
   const row1Widths = computeSlicerRowWidths(row1);
 
-  // --- COMPUTE WIDTHS FOR ROW 2 ---
   let row2Widths = [];
   if (row2.length > 0) {
     row2Widths = computeSlicerRowWidths(row2);
 
-    // Overflow check
-    const totalGaps2 = (row2.length - 1) * GAP_SMALL;
+    const totalGaps2 = (row2.length - 1) * state.GAP_SMALL;
     const totalWidth2 = row2Widths.reduce((s, w) => s + w, 0) + totalGaps2;
 
-    if (totalWidth2 > USABLE_WIDTH) {
+    if (totalWidth2 > state.USABLE_WIDTH) {
       addWarning("Slicery na druhém řádku se nevejdou – uprav šířky nebo odeber slicer.");
       return [];
     }
   }
 
-
   const rows = [];
 
   if (row1.length) {
-    let x = MARGIN;
+    let x = state.MARGIN;
     const items = row1.map((s, i) => {
       const w = row1Widths[i];
-      const item = { type: "slicer", globalIndex: i + 1, x, y: v.slicersTop, width: w, height: SLICER_HEIGHT, stateRef: s };
-      x += w + GAP_SMALL;
+      const item = {
+        type: "slicer",
+        globalIndex: i + 1,
+        x,
+        y: v.slicersTop,
+        width: w,
+        height: state.SLICER_HEIGHT,
+        stateRef: s
+      };
+      x += w + state.GAP_SMALL;
       return item;
     });
     rows.push(items);
   }
 
   if (row2.length) {
-    let x = MARGIN;
+    let x = state.MARGIN;
     const items = row2.map((s, i) => {
       const w = row2Widths[i];
-      const globalIndex = MAX_SLICERS + i + 1;
-      const item = { type: "slicer", globalIndex, x, y: v.slicersTop + SLICER_HEIGHT + GAP_SMALL, width: w, height: SLICER_HEIGHT, stateRef: s };
-      x += w + GAP_SMALL;
+      const globalIndex = state.MAX_SLICERS + i + 1;
+      const item = {
+        type: "slicer",
+        globalIndex,
+        x,
+        y: v.slicersTop + state.SLICER_HEIGHT + state.GAP_SMALL,
+        width: w,
+        height: state.SLICER_HEIGHT,
+        stateRef: s
+      };
+      x += w + state.GAP_SMALL;
       return item;
     });
     rows.push(items);
@@ -254,51 +190,44 @@ function computeSlicersLayout(v) {
 }
 
 function computeKpiLayout(v) {
-  if (kpis.length === MAX_KPIS) {
+  if (state.kpis.length === state.MAX_KPIS) {
     addWarning("Dosažen maximální počet KPI. Další KPI budou umístěny na další řádek.");
   }
-  // Hard limit
-  if (kpis.length > MAX_KPIS * 2) {
+
+  if (state.kpis.length > state.MAX_KPIS * 2) {
     addWarning("Dosaženo maximálního počtu KPI. Odeberte KPI.");
-    kpis = kpis.slice(0, MAX_KPIS * 2); // keep KPIs bellow limit
+    state.setKpis(state.kpis.slice(0, state.MAX_KPIS * 2));
   }
 
-
-  const n = kpis.length;
+  const n = state.kpis.length;
   if (n === 0) return [];
 
-  // Split KPI into two rows
-  const row1 = kpis.slice(0, MAX_KPIS);
-  const row2 = kpis.slice(MAX_KPIS, MAX_KPIS * 2);
+  const row1 = state.kpis.slice(0, state.MAX_KPIS);
+  const row2 = state.kpis.slice(state.MAX_KPIS, state.MAX_KPIS * 2);
 
+  const totalGaps1 = (row1.length - 1) * state.GAP_SMALL;
+  const totalGaps2 = (row2.length - 1) * state.GAP_SMALL;
 
-  const totalGaps1 = (row1.length - 1) * GAP_SMALL;
-  const totalGaps2 = (row2.length - 1) * GAP_SMALL;
-
-  // --- ROW 1 WIDTHS (no overflow allowed) ---
   let widths1;
-
   const anyLocked1 = row1.some(k => k.locked);
 
   if (!anyLocked1) {
-    // Original KPI logic
     if (row1.length <= 3) {
       widths1 = Array(row1.length).fill(250);
     } else {
-      const w = Math.floor((USABLE_WIDTH - totalGaps1) / row1.length);
+      const w = Math.floor((state.USABLE_WIDTH - totalGaps1) / row1.length);
       widths1 = Array(row1.length).fill(w);
     }
   } else {
-    // Locked KPI logic
     const lockedSum = row1
       .filter(k => k.locked)
       .reduce((sum, k) => sum + (k.width ?? 0), 0);
 
-    let remaining = USABLE_WIDTH - totalGaps1 - lockedSum;
+    let remaining = state.USABLE_WIDTH - totalGaps1 - lockedSum;
 
     if (remaining < 0) {
       addWarning("Součet ručně nastavených šířek KPI přesahuje dostupnou šířku.");
-      return []; // STOP RENDERING KPI
+      return [];
     }
 
     const unlocked = row1.filter(k => !k.locked);
@@ -319,52 +248,40 @@ function computeKpiLayout(v) {
     }
   }
 
-  // Overflow check row 1
   const totalWidthRow1 = widths1.reduce((s, w) => s + w, 0) + totalGaps1;
-  if (totalWidthRow1 > USABLE_WIDTH) {
+  if (totalWidthRow1 > state.USABLE_WIDTH) {
     addWarning("KPI se nevejdou do dostupné šířky – uprav šířky nebo odeber KPI.");
-    return []; // STOP RENDERING KPI
+    return [];
   }
 
-  // --- MIN WIDTH FOR ROW 2 = WIDTH OF FIRST KPI IN ROW 1 ---
-  const minWidthForRow2 = widths1[0];
-
-  // --- ROW 2 WIDTHS (adaptive to first row, max 6 KPI) ---
   let widths2 = [];
 
   if (row2.length > 0) {
-    const totalGaps2 = (row2.length - 1) * GAP_SMALL;
-    const available = USABLE_WIDTH - totalGaps2;
-
+    const available = state.USABLE_WIDTH - totalGaps2;
     const anyLocked2 = row2.some(k => k.locked);
 
     if (!anyLocked2) {
-      // --- If second row has fewer KPI than first row ---
-      if (row2.length < MAX_KPIS) {
-        const baseWidth = widths1[0]; // use first KPI width from row 1
+      if (row2.length < state.MAX_KPIS) {
+        const baseWidth = widths1[0];
         const totalNeeded = row2.length * baseWidth + totalGaps2;
 
-        if (totalNeeded <= USABLE_WIDTH) {
-          // fits → use same width
+        if (totalNeeded <= state.USABLE_WIDTH) {
           widths2 = Array(row2.length).fill(baseWidth);
         } else {
-          // doesn't fit → shrink proportionally
           const scaleFactor = available / (row2.length * baseWidth);
           const adjustedWidth = Math.floor(baseWidth * scaleFactor);
           widths2 = Array(row2.length).fill(adjustedWidth);
         }
       } else {
-        // --- Standard logic for full second row (6 KPI) ---
-        const w = Math.floor((USABLE_WIDTH - totalGaps2) / row2.length);
+        const w = Math.floor((state.USABLE_WIDTH - totalGaps2) / row2.length);
         widths2 = Array(row2.length).fill(w);
       }
     } else {
-      // --- Locked KPI logic (same as row1) ---
       const lockedSum2 = row2
         .filter(k => k.locked)
         .reduce((sum, k) => sum + (k.width ?? 0), 0);
 
-      let remaining2 = USABLE_WIDTH - totalGaps2 - lockedSum2;
+      let remaining2 = state.USABLE_WIDTH - totalGaps2 - lockedSum2;
       if (remaining2 < 0) {
         addWarning("Součet ručně nastavených šířek KPI na druhém řádku přesahuje dostupnou šířku.");
         remaining2 = 0;
@@ -388,24 +305,22 @@ function computeKpiLayout(v) {
       }
     }
 
-    // --- Overflow check for second row ---
     const totalWidthRow2 = widths2.reduce((s, w) => s + w, 0) + totalGaps2;
-    if (totalWidthRow2 > USABLE_WIDTH) {
+    if (totalWidthRow2 > state.USABLE_WIDTH) {
       addWarning("KPI na druhém řádku se nevejdou – uprav šířky nebo odeber KPI.");
-      return []; // stop rendering KPI
+      return [];
     }
   }
 
   const rows = [];
 
-  // --- LAYOUT ROW 1 ---
   if (row1.length > 0) {
-    let x = MARGIN;
+    let x = state.MARGIN;
     const y = v.kpiTop;
 
     const items = row1.map((k, i) => {
       const w = widths1[i];
-      const h = k.height ?? KPI_MIN_HEIGHT;
+      const h = k.height ?? state.KPI_MIN_HEIGHT;
 
       const item = {
         x,
@@ -416,44 +331,38 @@ function computeKpiLayout(v) {
         stateRef: k
       };
 
-      x += w + GAP_SMALL; // must be OUTSIDE return
-
+      x += w + state.GAP_SMALL;
       return item;
     });
-
 
     rows.push(items);
   }
 
-  // --- LAYOUT ROW 2 ---
   if (row2.length > 0) {
-    let x = MARGIN;
+    let x = state.MARGIN;
 
-    // Height of row 1 (max KPI height)
     const row1Height = row1.length
-      ? Math.max(...row1.map(k => k.height ?? KPI_MIN_HEIGHT))
-      : KPI_MIN_HEIGHT;
+      ? Math.max(...row1.map(k => k.height ?? state.KPI_MIN_HEIGHT))
+      : state.KPI_MIN_HEIGHT;
 
-    const y = v.kpiTop + row1Height + GAP_SMALL;
+    const y = v.kpiTop + row1Height + state.GAP_SMALL;
 
     const items = row2.map((k, i) => {
       const w = widths2[i];
-      const h = k.height ?? KPI_MIN_HEIGHT;
+      const h = k.height ?? state.KPI_MIN_HEIGHT;
 
       const item = {
         x,
         y,
         width: w,
         height: h,
-        index: MAX_KPIS + i,
+        index: state.MAX_KPIS + i,
         stateRef: k
       };
 
-      x += w + GAP_SMALL;
-
+      x += w + state.GAP_SMALL;
       return item;
     });
-
 
     rows.push(items);
   }
@@ -461,14 +370,12 @@ function computeKpiLayout(v) {
   return rows;
 }
 
-
-
 function computeChartRowHeights(v) {
-  const rows = chartRows;
+  const rows = state.chartRows;
   const n = rows.length;
   if (n === 0) return [];
 
-  const totalGaps = (n - 1) * GAP_SMALL;
+  const totalGaps = (n - 1) * state.GAP_SMALL;
   const lockedSum = rows.filter(r => r.locked).reduce((s, r) => s + (r.height ?? 0), 0);
 
   let remaining = v.chartsHeight - totalGaps - lockedSum;
@@ -480,7 +387,7 @@ function computeChartRowHeights(v) {
   const result = new Array(n);
 
   if (m === 0) {
-    rows.forEach((r, i) => result[i] = r.height ?? MIN_CHART_ROW_HEIGHT);
+    rows.forEach((r, i) => result[i] = r.height ?? state.MIN_CHART_ROW_HEIGHT);
     return result;
   }
 
@@ -492,7 +399,7 @@ function computeChartRowHeights(v) {
     else {
       let h = base;
       if (remainder > 0) { h += 1; remainder--; }
-      if (h < MIN_CHART_ROW_HEIGHT) h = MIN_CHART_ROW_HEIGHT;
+      if (h < state.MIN_CHART_ROW_HEIGHT) h = state.MIN_CHART_ROW_HEIGHT;
       result[i] = h;
     }
   });
@@ -505,18 +412,18 @@ function computeChartsLayout(v) {
   const rowsLayout = [];
   let currentY = v.chartsTop;
 
-  chartRows.forEach((row, rowIndex) => {
+  state.chartRows.forEach((row, rowIndex) => {
     const rowHeight = heights[rowIndex];
     const items = [];
     const n = row.items.length;
 
-    const totalGaps = (n - 1) * GAP_SMALL;
-    const remainingWidth = USABLE_WIDTH - totalGaps;
+    const totalGaps = (n - 1) * state.GAP_SMALL;
+    const remainingWidth = state.USABLE_WIDTH - totalGaps;
 
     const baseWidth = Math.floor(remainingWidth / n);
     let remainder = remainingWidth % n;
 
-    let x = MARGIN;
+    let x = state.MARGIN;
 
     row.items.forEach((item, i) => {
       let w = baseWidth;
@@ -532,30 +439,30 @@ function computeChartsLayout(v) {
         height: rowHeight
       });
 
-      x += w + GAP_SMALL;
+      x += w + state.GAP_SMALL;
     });
 
     rowsLayout.push(items);
-    currentY += rowHeight + GAP_SMALL;
+    currentY += rowHeight + state.GAP_SMALL;
   });
 
   return rowsLayout;
 }
 
 function canAddChart(simulatedChartRows, vLayout) {
-  const original = chartRows;
-  chartRows = simulatedChartRows;
+  const original = state.chartRows;
+  state.setChartRows(simulatedChartRows);
 
-  warnings = [];
+  state.setWarnings([]);
   const heights = computeChartRowHeights(vLayout);
 
-  chartRows = original;
+  state.setChartRows(original);
 
   const n = simulatedChartRows.length;
-  const totalGaps = (n - 1) * GAP_SMALL;
+  const totalGaps = (n - 1) * state.GAP_SMALL;
   const totalHeight = heights.reduce((s, h) => s + h, 0) + totalGaps;
 
-  if (heights.some(h => h < MIN_CHART_ROW_HEIGHT)) return false;
+  if (heights.some(h => h < state.MIN_CHART_ROW_HEIGHT)) return false;
   if (totalHeight > vLayout.chartsHeight) return false;
 
   return true;
@@ -566,15 +473,14 @@ function renderLayout() {
 
   const v = computeVerticalLayout();
 
-  // Title
   const titleId = "title-bar";
   const title = document.createElement("div");
   title.className = "canvas-element title";
   title.id = titleId;
-  title.style.left = scale(MARGIN) + "px";
+  title.style.left = scale(state.MARGIN) + "px";
   title.style.top = scale(v.TITLE_Y) + "px";
-  title.style.width = scale(USABLE_WIDTH) + "px";
-  title.style.height = scale(TITLE_HEIGHT) + "px";
+  title.style.width = scale(state.USABLE_WIDTH) + "px";
+  title.style.height = scale(state.TITLE_HEIGHT) + "px";
 
   const titleLabel = document.createElement("div");
   titleLabel.className = "canvas-element-label";
@@ -586,17 +492,16 @@ function renderLayout() {
     setSelected({
       kind: "title",
       labelType: "Nadpis",
-      x: MARGIN,
+      x: state.MARGIN,
       y: v.TITLE_Y,
-      width: USABLE_WIDTH,
-      height: TITLE_HEIGHT,
+      width: state.USABLE_WIDTH,
+      height: state.TITLE_HEIGHT,
       domId: titleId
     });
   });
 
   canvas.appendChild(title);
 
-  // Slicers
   const slicerRowsLayout = computeSlicersLayout(v);
 
   slicerRowsLayout.forEach(row => {
@@ -623,7 +528,9 @@ function renderLayout() {
       addBtn.title = "Přidat slicer";
       addBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        slicers.splice(item.globalIndex, 0, { width: null, locked: false });
+        const newSlicers = [...state.slicers];
+        newSlicers.splice(item.globalIndex, 0, { width: null, locked: false });
+        state.setSlicers(newSlicers);
         renderLayout();
       });
 
@@ -632,17 +539,17 @@ function renderLayout() {
       removeBtn.title = "Odebrat slicer";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        slicers.splice(item.globalIndex - 1, 1);
+        const newSlicers = [...state.slicers];
+        newSlicers.splice(item.globalIndex - 1, 1);
 
-        // Clear slicer-related warning only if we are back under the limit
-        if (slicers.length < MAX_SLICERS) {
-          warnings = warnings.filter(w => !w.includes("slicer"));
+        if (newSlicers.length < state.MAX_SLICERS) {
+          state.setWarnings(state.warnings.filter(w => !w.includes("slicer")));
         }
 
+        state.setSlicers(newSlicers);
         renderLayout();
         renderWarnings();
       });
-
 
       controls.appendChild(addBtn);
       controls.appendChild(removeBtn);
@@ -667,7 +574,6 @@ function renderLayout() {
     });
   });
 
-  // KPI
   const kpiRows = computeKpiLayout(v);
 
   kpiRows.forEach(row => {
@@ -694,7 +600,9 @@ function renderLayout() {
       addBtn.title = "Add KPI";
       addBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        kpis.splice(item.index + 1, 0, { height: null, locked: false });
+        const newKpis = [...state.kpis];
+        newKpis.splice(item.index + 1, 0, { height: null, locked: false });
+        state.setKpis(newKpis);
         renderLayout();
       });
 
@@ -703,17 +611,17 @@ function renderLayout() {
       removeBtn.title = "Remove KPI";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        kpis.splice(item.index, 1);
+        const newKpis = [...state.kpis];
+        newKpis.splice(item.index, 1);
 
-        // Clear KPI-related warning only if we are back under the limit
-        if (kpis.length < MAX_KPIS) {
-          warnings = warnings.filter(w => !w.includes("KPI"));
+        if (newKpis.length < state.MAX_KPIS) {
+          state.setWarnings(state.warnings.filter(w => !w.includes("KPI")));
         }
 
+        state.setKpis(newKpis);
         renderLayout();
         renderWarnings();
       });
-
 
       controls.appendChild(addBtn);
       controls.appendChild(removeBtn);
@@ -738,8 +646,6 @@ function renderLayout() {
     });
   });
 
-
-  // Charts
   const chartsLayout = computeChartsLayout(v);
 
   chartsLayout.forEach((row, rowIndex) => {
@@ -765,7 +671,7 @@ function renderLayout() {
       addLeftBtn.textContent = "←";
       addLeftBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const simulated = JSON.parse(JSON.stringify(chartRows));
+        const simulated = JSON.parse(JSON.stringify(state.chartRows));
         simulated[rowIndex].items.splice(i, 0, {});
         const vLayout = computeVerticalLayout();
         if (!canAddChart(simulated, vLayout)) {
@@ -773,7 +679,7 @@ function renderLayout() {
           renderWarnings();
           return;
         }
-        chartRows = simulated;
+        state.setChartRows(simulated);
         renderLayout();
       });
 
@@ -781,7 +687,7 @@ function renderLayout() {
       addRightBtn.textContent = "→";
       addRightBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const simulated = JSON.parse(JSON.stringify(chartRows));
+        const simulated = JSON.parse(JSON.stringify(state.chartRows));
         simulated[rowIndex].items.splice(i + 1, 0, {});
         const vLayout = computeVerticalLayout();
         if (!canAddChart(simulated, vLayout)) {
@@ -789,7 +695,7 @@ function renderLayout() {
           renderWarnings();
           return;
         }
-        chartRows = simulated;
+        state.setChartRows(simulated);
         renderLayout();
       });
 
@@ -797,7 +703,7 @@ function renderLayout() {
       addDownBtn.textContent = "↓";
       addDownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const simulated = JSON.parse(JSON.stringify(chartRows));
+        const simulated = JSON.parse(JSON.stringify(state.chartRows));
         simulated.splice(rowIndex + 1, 0, { height: null, locked: false, items: [{}] });
         const vLayout = computeVerticalLayout();
         if (!canAddChart(simulated, vLayout)) {
@@ -805,7 +711,7 @@ function renderLayout() {
           renderWarnings();
           return;
         }
-        chartRows = simulated;
+        state.setChartRows(simulated);
         renderLayout();
       });
 
@@ -817,9 +723,11 @@ function renderLayout() {
       removeBtn.textContent = "×";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const rowItems = chartRows[rowIndex].items;
+        const newRows = JSON.parse(JSON.stringify(state.chartRows));
+        const rowItems = newRows[rowIndex].items;
         if (rowItems.length > 1) rowItems.splice(i, 1);
-        else if (chartRows.length > 1) chartRows.splice(rowIndex, 1);
+        else if (newRows.length > 1) newRows.splice(rowIndex, 1);
+        state.setChartRows(newRows);
         renderLayout();
       });
 
@@ -849,9 +757,9 @@ function renderLayout() {
   canvas.addEventListener("click", () => setSelected(null), { once: true });
   renderWarnings();
 }
-// Width change
+
 applyWidthBtn.addEventListener("click", () => {
-  if (!selectedElement) return;
+  if (!state.selectedElement) return;
 
   const val = parseInt(inputWidth.value, 10);
   if (isNaN(val) || val < 50) {
@@ -860,18 +768,16 @@ applyWidthBtn.addEventListener("click", () => {
     return;
   }
 
-  // --- SLICER ---
-  if (selectedElement.kind === "slicer") {
-    const s = selectedElement.stateRef;
+  if (state.selectedElement.kind === "slicer") {
+    const s = state.selectedElement.stateRef;
     s.width = val;
     s.locked = true;
     renderLayout();
     return;
   }
 
-  // --- KPI ---
-  if (selectedElement.kind === "kpi") {
-    const k = selectedElement.stateRef;
+  if (state.selectedElement.kind === "kpi") {
+    const k = state.selectedElement.stateRef;
     k.width = val;
     k.locked = true;
     renderLayout();
@@ -879,21 +785,18 @@ applyWidthBtn.addEventListener("click", () => {
   }
 });
 
-
-// KPI or chart height change
 applyHeightBtn.addEventListener("click", () => {
-  if (!selectedElement) return;
+  if (!state.selectedElement) return;
 
-  // KPI height
-  if (selectedElement.kind === "kpi") {
+  if (state.selectedElement.kind === "kpi") {
     const val = parseInt(inputHeight.value, 10);
-    if (isNaN(val) || val < KPI_MIN_HEIGHT) {
-      addWarning(`Minimální výška KPI je ${KPI_MIN_HEIGHT}px.`);
+    if (isNaN(val) || val < state.KPI_MIN_HEIGHT) {
+      addWarning(`Minimální výška KPI je ${state.KPI_MIN_HEIGHT}px.`);
       renderWarnings();
       return;
     }
 
-    const k = selectedElement.stateRef;
+    const k = state.selectedElement.stateRef;
     k.height = val;
     k.locked = true;
 
@@ -901,16 +804,16 @@ applyHeightBtn.addEventListener("click", () => {
     return;
   }
 
-  // Chart row height
-  if (selectedElement.kind === "chartRow") {
+  if (state.selectedElement.kind === "chartRow") {
     const val = parseInt(inputHeight.value, 10);
-    if (isNaN(val) || val < MIN_CHART_ROW_HEIGHT) {
-      addWarning(`Minimální výška řady grafů je ${MIN_CHART_ROW_HEIGHT}px.`);
+    if (isNaN(val) || val < state.MIN_CHART_ROW_HEIGHT) {
+      addWarning(`Minimální výška řady grafů je ${state.MIN_CHART_ROW_HEIGHT}px.`);
       renderWarnings();
       return;
     }
 
-    const row = chartRows[selectedElement.rowIndex];
+    const rowsCopy = JSON.parse(JSON.stringify(state.chartRows));
+    const row = rowsCopy[state.selectedElement.rowIndex];
     const originalHeight = row.height;
     const originalLocked = row.locked;
 
@@ -918,15 +821,15 @@ applyHeightBtn.addEventListener("click", () => {
     row.locked = true;
 
     const v = computeVerticalLayout();
-    warnings = [];
+    state.setWarnings([]);
     const heights = computeChartRowHeights(v);
 
-    const n = chartRows.length;
-    const totalGaps = (n - 1) * GAP_SMALL;
+    const n = rowsCopy.length;
+    const totalGaps = (n - 1) * state.GAP_SMALL;
     const totalHeight = heights.reduce((s, h) => s + h, 0) + totalGaps;
 
     const overflow =
-      heights.some(h => h < MIN_CHART_ROW_HEIGHT) ||
+      heights.some(h => h < state.MIN_CHART_ROW_HEIGHT) ||
       totalHeight > v.chartsHeight;
 
     if (overflow) {
@@ -937,63 +840,61 @@ applyHeightBtn.addEventListener("click", () => {
       return;
     }
 
+    state.setChartRows(rowsCopy);
     renderLayout();
   }
 });
 
-// ----------------------------------------------------
-// LIMITED ADDITION OF SLICERS AND KPIS
-// ----------------------------------------------------
-
 function addSlicer() {
-  // Hard limit
-  if (slicers.length >= MAX_SLICERS * 2) {
+  if (state.slicers.length >= state.MAX_SLICERS * 2) {
     addWarning("Bylo dosaženo maximálního počtu slicerů.");
     renderWarnings();
     return;
   }
 
-  slicers.push({ width: null, locked: false });
+  state.setSlicers([...state.slicers, { width: null, locked: false }]);
   renderLayout();
   renderWarnings();
 }
 
 function addKPI() {
-  kpis.push({ height: null, locked: false });
+  state.setKpis([...state.kpis, { height: null, locked: false }]);
   renderLayout();
   renderWarnings();
 }
 
-
-// Reset
 resetBtn.addEventListener("click", () => {
-  warnings = [];          // Clear all warnings
-  renderWarnings();       // Update warnings panel
+  state.setWarnings([]);
+  renderWarnings();
   initState();
   renderLayout();
   setSelected(null);
 });
 
-
-// Add KPI
 addKpiBtn.addEventListener("click", addKPI);
-
-// Add slicer
 addSlicerBtn.addEventListener("click", addSlicer);
 
-// Initialization
 function initState() {
-  slicers = [];
-  for (let i = 0; i < 3; i++) slicers.push({ width: null, locked: false });
+  const initialSlicers = [];
+  for (let i = 0; i < 3; i++) initialSlicers.push({ width: null, locked: false });
 
-  kpis = [];
+  const initialKpis = [];
 
-  chartRows = [
+  const initialChartRows = [
     { height: null, locked: false, items: [{}, {}] }
   ];
+
+  state.setSlicers(initialSlicers);
+  state.setKpis(initialKpis);
+  state.setChartRows(initialChartRows);
+  state.setSelectedElement(null);
+  state.setWarnings([]);
 }
 
-initState();
-renderLayout();
-setSelected(null);
+function start() {
+  initState();
+  renderLayout();
+  setSelected(null);
+}
 
+window.addEventListener("DOMContentLoaded", start);
