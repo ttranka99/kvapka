@@ -229,6 +229,7 @@ function computeKpiLayout(v) {
   if (kpis.length === MAX_KPIS) {
     addWarning("Dosažen maximální počet KPI. Další KPI budou umístěny na další řádek.");
   }
+
   const n = kpis.length;
   if (n === 0) return [];
 
@@ -236,11 +237,10 @@ function computeKpiLayout(v) {
   const row1 = kpis.slice(0, Math.min(MAX_KPIS, n));
   const row2 = n > MAX_KPIS ? kpis.slice(MAX_KPIS) : [];
 
-
   const totalGaps1 = (row1.length - 1) * GAP_SMALL;
   const totalGaps2 = (row2.length - 1) * GAP_SMALL;
 
-  // Compute widths for row 1
+  // --- ROW 1 WIDTHS ---
   let widths1;
   if (row1.length <= 3) {
     widths1 = Array(row1.length).fill(250);
@@ -249,49 +249,90 @@ function computeKpiLayout(v) {
     widths1 = Array(row1.length).fill(w);
   }
 
-  // Compute widths for row 2
+  // --- MIN WIDTH FOR ROW 2 = WIDTH OF FIRST KPI IN ROW 1 ---
+  const minWidthForRow2 = widths1[0];
+
+  // --- ROW 2 WIDTHS ---
   let widths2 = [];
   if (row2.length > 0) {
-    if (row2.length <= 3) {
-      widths2 = Array(row2.length).fill(250);
-    } else {
-      const w = Math.floor((USABLE_WIDTH - totalGaps2) / row2.length);
-      widths2 = Array(row2.length).fill(w);
+    // Always use the same width as the first KPI in row 1
+    const fixedWidth = widths1[0];
+
+    // If total width would overflow → warning
+    const totalWidth = row2.length * fixedWidth + (row2.length - 1) * GAP_SMALL;
+    if (totalWidth > USABLE_WIDTH) {
+      addWarning("KPI na druhém řádku se nevejdou – uprav šířku KPI.");
     }
+
+    widths2 = Array(row2.length).fill(fixedWidth);
   }
+
 
   const rows = [];
 
-  // Row 1 layout
+  // --- LAYOUT ROW 1 ---
   if (row1.length > 0) {
     let x = MARGIN;
     const y = v.kpiTop;
+
     const items = row1.map((k, i) => {
       const w = widths1[i];
       const h = k.height ?? KPI_MIN_HEIGHT;
-      const item = { x, y, width: w, height: h, index: i, stateRef: k };
-      x += w + GAP_SMALL;
+
+      const item = {
+        x,
+        y,
+        width: w,
+        height: h,
+        index: i,
+        stateRef: k
+      };
+
+      x += w + GAP_SMALL; // must be OUTSIDE return
+
       return item;
     });
+
+
     rows.push(items);
   }
 
-  // Row 2 layout
+  // --- LAYOUT ROW 2 ---
   if (row2.length > 0) {
     let x = MARGIN;
-    const y = v.kpiTop + (row1[0].height ?? KPI_MIN_HEIGHT) + GAP_SMALL;
+
+    // Height of row 1 (max KPI height)
+    const row1Height = row1.length
+      ? Math.max(...row1.map(k => k.height ?? KPI_MIN_HEIGHT))
+      : KPI_MIN_HEIGHT;
+
+    const y = v.kpiTop + row1Height + GAP_SMALL;
+
     const items = row2.map((k, i) => {
       const w = widths2[i];
       const h = k.height ?? KPI_MIN_HEIGHT;
-      const item = { x, y, width: w, height: h, index: MAX_KPIS + i, stateRef: k };
+
+      const item = {
+        x,
+        y,
+        width: w,
+        height: h,
+        index: MAX_KPIS + i,
+        stateRef: k
+      };
+
       x += w + GAP_SMALL;
+
       return item;
     });
+
+
     rows.push(items);
   }
 
   return rows;
 }
+
 
 
 function computeChartRowHeights(v) {
