@@ -3,6 +3,7 @@ import { computeSlicersLayout } from "./layout/computeSlicersLayout.js";
 import { computeVerticalLayout } from "./layout/computeVerticalLayout.js";
 import { renderWarnings } from "./ui/warnings.js";
 import { computeKpiLayout } from "./layout/computeKpiLayout.js";
+import { computeChartRowHeights } from "./layout/computeChartRowHeights.js";
 import * as state from "./state/state.js";
 
 const canvas = document.getElementById("canvas");
@@ -76,44 +77,6 @@ function setSelected(info) {
     const el = document.getElementById(info.domId);
     if (el) el.classList.add("selected");
   }
-}
-
-
-function computeChartRowHeights(v) {
-  const rows = state.chartRows;
-  const n = rows.length;
-  if (n === 0) return [];
-
-  const totalGaps = (n - 1) * state.GAP_SMALL;
-  const lockedSum = rows.filter(r => r.locked).reduce((s, r) => s + (r.height ?? 0), 0);
-
-  let remaining = v.chartsHeight - totalGaps - lockedSum;
-  if (remaining < 0) remaining = 0;
-
-  const unlocked = rows.filter(r => !r.locked);
-  const m = unlocked.length;
-
-  const result = new Array(n);
-
-  if (m === 0) {
-    rows.forEach((r, i) => result[i] = r.height ?? state.MIN_CHART_ROW_HEIGHT);
-    return result;
-  }
-
-  const base = Math.floor(remaining / m);
-  let remainder = remaining % m;
-
-  rows.forEach((r, i) => {
-    if (r.locked) result[i] = r.height;
-    else {
-      let h = base;
-      if (remainder > 0) { h += 1; remainder--; }
-      if (h < state.MIN_CHART_ROW_HEIGHT) h = state.MIN_CHART_ROW_HEIGHT;
-      result[i] = h;
-    }
-  });
-
-  return result;
 }
 
 function computeChartsLayout(v) {
