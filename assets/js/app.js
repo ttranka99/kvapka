@@ -5,6 +5,7 @@ import { renderWarnings } from "./ui/warnings.js";
 import { computeKpiLayout } from "./layout/computeKpiLayout.js";
 import { computeChartRowHeights } from "./layout/computeChartRowHeights.js";
 import { computeChartsLayout } from "./layout/computeChartsLayout.js";
+import { setSelected } from "./ui/selection.js";
 import * as state from "./state/state.js";
 
 const canvas = document.getElementById("canvas");
@@ -36,49 +37,6 @@ function addWarning(msg) {
   }
 }
 
-function setSelected(info) {
-  state.setSelectedElement(info);
-  if (!info) {
-    noSelectionEl.classList.remove("hidden");
-    selectionDetailsEl.classList.add("hidden");
-    document.querySelectorAll(".canvas-element").forEach(el => el.classList.remove("selected"));
-    return;
-  }
-
-  noSelectionEl.classList.add("hidden");
-  selectionDetailsEl.classList.remove("hidden");
-
-  selTypeEl.textContent = info.labelType;
-  selIndexEl.textContent = info.labelIndex ?? "-";
-  selXEl.textContent = info.x;
-  selYEl.textContent = info.y;
-  selWidthEl.textContent = info.width;
-  selHeightEl.textContent = info.height;
-
-  editWidthEl.classList.add("hidden");
-  editHeightEl.classList.add("hidden");
-
-  if (info.kind === "slicer") {
-    editWidthEl.classList.remove("hidden");
-    inputWidth.value = info.width;
-  }
-
-  if (info.kind === "chartRow") {
-    editHeightEl.classList.remove("hidden");
-    inputHeight.value = info.height;
-  }
-
-  if (info.kind === "kpi") {
-    editWidthEl.classList.remove("hidden");
-    inputWidth.value = info.width;
-  }
-
-  document.querySelectorAll(".canvas-element").forEach(el => el.classList.remove("selected"));
-  if (info.domId) {
-    const el = document.getElementById(info.domId);
-    if (el) el.classList.add("selected");
-  }
-}
 function canAddChart(simulatedChartRows, vLayout) {
   const original = state.chartRows;
   state.setChartRows(simulatedChartRows);
