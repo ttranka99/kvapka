@@ -1,4 +1,6 @@
-/* Reset */
+/* ----------------------------------------------------
+   RESET
+-----------------------------------------------------*/
 *,
 *::before,
 *::after {
@@ -12,13 +14,17 @@ body {
   color: #1f2937;
 }
 
-/* Layout */
+/* ----------------------------------------------------
+   LAYOUT
+-----------------------------------------------------*/
 .app {
   display: flex;
   min-height: 100vh;
 }
 
-/* Sidebar */
+/* ----------------------------------------------------
+   SIDEBAR
+-----------------------------------------------------*/
 .sidebar {
   width: 280px;
   background: #f3f4f6;
@@ -42,16 +48,18 @@ body {
   color: #6b7280;
 }
 
-/* Panel */
+/* ----------------------------------------------------
+   PANELS (unified style)
+-----------------------------------------------------*/
 .panel {
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 16px 18px;
   font-size: 13px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-/* Panel headings */
+/* Unified panel headings */
 .panel h2 {
   margin: 0 0 10px;
   font-size: 14px;
@@ -75,23 +83,23 @@ body {
   font-weight: 500;
 }
 
-/* Separation of sections inside the panel */
+/* Separation inside panel */
 .panel-section {
   border-top: 1px solid #e5e7eb;
   margin-top: 12px;
   padding-top: 12px;
 }
 
-
-/* Edit field spacing */
+/* ----------------------------------------------------
+   EDIT FIELDS
+-----------------------------------------------------*/
 .edit-field {
   margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 10px; /* space between label, input, button */
+  gap: 10px;
 }
 
-/* Input */
 .edit-field input {
   width: 100%;
   padding: 10px;
@@ -102,21 +110,21 @@ body {
   font-size: 14px;
 }
 
-/* Button */
 .edit-field button {
   align-self: flex-start;
   margin-top: 4px;
 }
 
-
-/* Buttons */
+/* ----------------------------------------------------
+   BUTTONS (global)
+-----------------------------------------------------*/
 button {
   font-family: inherit;
   font-size: 14px;
   padding: 8px 12px;
   border-radius: 6px;
   border: none;
-  background: #b91c1c; /* KB červená */
+  background: #b91c1c; /* KB red */
   color: #ffffff;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -130,7 +138,9 @@ button:hover {
   display: none;
 }
 
-/* Main */
+/* ----------------------------------------------------
+   MAIN AREA
+-----------------------------------------------------*/
 .main {
   flex: 1;
   padding: 32px 40px;
@@ -144,10 +154,19 @@ button:hover {
   color: #6b7280;
 }
 
-/* Canvas wrapper */
+/* KPI block */
+.kpi {
+  background: #f8f8f8;
+  border: 2px solid #d8a24a;
+  border-radius: 6px;
+}
+
+/* ----------------------------------------------------
+   CANVAS WRAPPER
+-----------------------------------------------------*/
 #canvas-wrapper {
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 6px;
   padding: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   display: inline-block;
@@ -164,7 +183,9 @@ button:hover {
   overflow: hidden;
 }
 
-/* Elements */
+/* ----------------------------------------------------
+   CANVAS ELEMENTS
+-----------------------------------------------------*/
 .canvas-element {
   position: absolute;
   border-radius: 6px;
@@ -242,3 +263,48 @@ button:hover {
 .canvas-element.title .canvas-element-label {
   color: #f3f4f6;
 }
+
+/* ----------------------------------------------------
+   ADD ELEMENTS PANEL (Slicer + KPI)
+-----------------------------------------------------*/
+.add-elements {
+  /* inherits .panel styling */
+}
+
+.add-elements .button-group {
+  display: flex;
+  gap: 10px;
+}
+
+.add-elements button {
+  flex: 1;
+}
+
+/* ----------------------------------------------------
+   RESET LAYOUT BUTTON (separate section)
+-----------------------------------------------------*/
+/* Reset layout button aligned exactly with the white panel width */
+.reset-layout-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: -5px;
+}
+
+/* The button width matches the panel's inner width (280 px sidebar − 2×20 px sidebar padding) */
+.reset-layout-wrapper button {
+  width: calc(280px - 40px); /* same visual width as .panel */
+  background-color: #b91c1c;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.reset-layout-wrapper button:hover {
+  background-color: #a31414;
+}
+
+

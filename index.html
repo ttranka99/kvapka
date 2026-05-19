@@ -15,14 +15,11 @@
 
             <section class="panel">
                 <h2>Vybraný element</h2>
-
                 <div id="no-selection">Klikněte na element v náhledu.</div>
 
                 <div id="selection-details" class="hidden">
-
                     <div><strong>Typ:</strong> <span id="sel-type"></span></div>
                     <div><strong>Index:</strong> <span id="sel-index"></span></div>
-
                     <div><strong>X:</strong> <span id="sel-x"></span> px</div>
                     <div><strong>Y:</strong> <span id="sel-y"></span> px</div>
                     <div><strong>Šířka:</strong> <span id="sel-width"></span> px</div>
@@ -42,17 +39,24 @@
                 </div>
             </section>
 
-
             <section class="panel">
                 <h2>Upozornění</h2>
                 <div id="warnings"></div>
             </section>
 
-            <section class="panel">
-                <h2>Rychlé akce</h2>
-                <button id="reset-layout">Reset layoutu</button>
+            <section class="panel add-elements">
+                <h2>Přidání elementů</h2>
+                <button id="add-slicer" class="full-btn">Slicer</button>
+                <button id="add-kpi" class="full-btn">KPI</button>
             </section>
+
+            <div class="reset-layout-wrapper">
+                <button id="reset-layout" class="full-btn">Reset layoutu</button>
+            </div>
         </aside>
+
+
+
 
         <main class="main">
             <h2>Náhled layoutu</h2>
