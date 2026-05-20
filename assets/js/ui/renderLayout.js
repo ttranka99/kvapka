@@ -1,11 +1,9 @@
 import * as state from "../state/state.js";
-
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeSlicersLayout } from "../layout/computeSlicersLayout.js";
 import { computeKpiLayout } from "../layout/computeKpiLayout.js";
 import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
-
 import { handleAddSlicer, handleRemoveSlicer, handleSelectSlicer } from "../events/slicerEvents.js";
 import { handleAddKpi, handleRemoveKpi, handleSelectKpi } from "../events/kpiEvents.js";
 import {
@@ -15,7 +13,6 @@ import {
   handleRemoveChart,
   handleSelectChart
 } from "../events/chartEvents.js";
-
 import { setSelected } from "../ui/selection.js";
 import { renderWarnings } from "../ui/warnings.js";
 
