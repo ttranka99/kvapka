@@ -1,7 +1,6 @@
 import * as state from "../state/state.js";
 import { setSelected } from "../ui/selection.js";
 import { addWarning } from "../ui/warnings.js";
-
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { canAddChart } from "../layout/canAddChart.js";
 import { renderLayout } from "../ui/renderLayout.js";

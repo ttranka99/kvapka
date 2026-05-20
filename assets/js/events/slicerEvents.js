@@ -3,8 +3,6 @@ import { setSelected } from "../ui/selection.js";
 import { addWarning } from "../ui/warnings.js";
 import { renderLayout } from "../ui/renderLayout.js";
 
-
-
 // Handle adding a slicer at a specific index
 export function handleAddSlicer(globalIndex) {
   const newSlicers = [...state.slicers];
