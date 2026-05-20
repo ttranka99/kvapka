@@ -6,6 +6,7 @@ import { computeKpiLayout } from "./layout/computeKpiLayout.js";
 import { computeChartRowHeights } from "./layout/computeChartRowHeights.js";
 import { computeChartsLayout } from "./layout/computeChartsLayout.js";
 import { setSelected } from "./ui/selection.js";
+import { initState } from "./state/initState.js";
 import * as state from "./state/state.js";
 
 const canvas = document.getElementById("canvas");
@@ -461,23 +462,6 @@ resetBtn.addEventListener("click", () => {
 
 addKpiBtn.addEventListener("click", addKPI);
 addSlicerBtn.addEventListener("click", addSlicer);
-
-function initState() {
-  const initialSlicers = [];
-  for (let i = 0; i < 3; i++) initialSlicers.push({ width: null, locked: false });
-
-  const initialKpis = [];
-
-  const initialChartRows = [
-    { height: null, locked: false, items: [{}, {}] }
-  ];
-
-  state.setSlicers(initialSlicers);
-  state.setKpis(initialKpis);
-  state.setChartRows(initialChartRows);
-  state.setSelectedElement(null);
-  state.setWarnings([]);
-}
 
 function start() {
   initState();
