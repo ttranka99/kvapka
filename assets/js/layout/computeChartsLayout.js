@@ -19,12 +19,11 @@ export function computeChartsLayout(v) {
 
     let widths = Array(n).fill(baseWidth);
 
-    // Symmetric distribution for ANY even number of charts (4, 6, 8, ...)
+    // --- Symmetric distribution for even numbers of charts ---
     if (n % 2 === 0 && n >= 4) {
       let left = 0;
       let right = n - 1;
 
-      // distribute pairs of pixels symmetrically
       while (remainder > 1 && left < right) {
         widths[left]++;
         widths[right]++;
@@ -33,17 +32,39 @@ export function computeChartsLayout(v) {
         right--;
       }
 
-      // if 1 pixel remains → give it to the rightmost chart
       if (remainder === 1) {
         widths[n - 1]++;
       }
-    } else {
-      // default left-to-right distribution
+    }
+
+    // --- Middle chart larger for odd counts ---
+    else if (n % 2 === 1 && n >= 3) {
+      const center = Math.floor(n / 2);
+
+      let left = 0;
+      let right = n - 1;
+
+      while (remainder > 2 && left < right) {
+        widths[left]++;
+        widths[right]++;
+        remainder -= 2;
+        left++;
+        right--;
+      }
+
+      if (remainder === 1) {
+        widths[center]++;
+      }
+    }
+
+    // --- Default behavior for other cases ---
+    else {
       for (let i = 0; i < n && remainder > 0; i++) {
         widths[i]++;
         remainder--;
       }
     }
+
 
     let x = state.MARGIN;
 
