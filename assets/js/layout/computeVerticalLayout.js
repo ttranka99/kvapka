@@ -1,4 +1,3 @@
-// assets/js/layout/computeVerticalLayout.js
 import {
   getSlicers,
   getKpis,
@@ -19,8 +18,10 @@ export function computeVerticalLayout() {
   const kpis = getKpis();
   const chartRows = getChartRows();
 
+  // TITLE
   const TITLE_Y = MARGIN;
 
+  // SLICERS
   const slicersTop = TITLE_Y + TITLE_HEIGHT + GAP_SMALL;
 
   const hasRow2 = slicers.length > MAX_SLICERS;
@@ -32,6 +33,7 @@ export function computeVerticalLayout() {
         ? slicersTop + SLICER_HEIGHT * 2 + GAP_SMALL
         : slicersTop + SLICER_HEIGHT;
 
+  // KPI
   const kpiTop =
     slicers.length > 0
       ? slicersBottom + GAP_SMALL
@@ -57,6 +59,7 @@ export function computeVerticalLayout() {
       ? kpiTop + kpiTotalHeight
       : kpiTop;
 
+  // CHARTS
   const chartsTop =
     slicers.length === 0 && kpis.length === 0
       ? slicersTop
