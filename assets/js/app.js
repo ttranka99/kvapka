@@ -9,6 +9,14 @@ import { setSelected } from "./ui/selection.js";
 import { initState } from "./state/initState.js";
 import { handleAddSlicer, handleRemoveSlicer, handleSelectSlicer } from "./events/slicerEvents.js";
 import { handleAddKpi, handleRemoveKpi, handleSelectKpi } from "./events/kpiEvents.js";
+import {
+  handleAddChartLeft,
+  handleAddChartRight,
+  handleAddChartRow,
+  handleRemoveChart,
+  handleSelectChart
+} from "./events/chartEvents.js";
+import { canAddChart } from "./layout/canAddChart.js";
 import * as state from "./state/state.js";
 
 const canvas = document.getElementById("canvas");
@@ -40,26 +48,7 @@ function addWarning(msg) {
   }
 }
 
-function canAddChart(simulatedChartRows, vLayout) {
-  const original = state.chartRows;
-  state.setChartRows(simulatedChartRows);
-
-  state.setWarnings([]);
-  const heights = computeChartRowHeights(vLayout);
-
-  state.setChartRows(original);
-
-  const n = simulatedChartRows.length;
-  const totalGaps = (n - 1) * state.GAP_SMALL;
-  const totalHeight = heights.reduce((s, h) => s + h, 0) + totalGaps;
-
-  if (heights.some(h => h < state.MIN_CHART_ROW_HEIGHT)) return false;
-  if (totalHeight > vLayout.chartsHeight) return false;
-
-  return true;
-}
-
-function renderLayout() {
+export function renderLayout() {
   clearCanvas();
 
   const v = computeVerticalLayout();
@@ -219,48 +208,21 @@ function renderLayout() {
       addLeftBtn.textContent = "←";
       addLeftBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const simulated = JSON.parse(JSON.stringify(state.chartRows));
-        simulated[rowIndex].items.splice(i, 0, {});
-        const vLayout = computeVerticalLayout();
-        if (!canAddChart(simulated, vLayout)) {
-          addWarning("Nelze přidat další graf — uprav výšky řad grafů.");
-          renderWarnings();
-          return;
-        }
-        state.setChartRows(simulated);
-        renderLayout();
+        handleAddChartLeft(rowIndex, i);
       });
 
       const addRightBtn = document.createElement("button");
       addRightBtn.textContent = "→";
       addRightBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const simulated = JSON.parse(JSON.stringify(state.chartRows));
-        simulated[rowIndex].items.splice(i + 1, 0, {});
-        const vLayout = computeVerticalLayout();
-        if (!canAddChart(simulated, vLayout)) {
-          addWarning("Nelze přidat další graf — uprav výšky řad grafů.");
-          renderWarnings();
-          return;
-        }
-        state.setChartRows(simulated);
-        renderLayout();
+        handleAddChartRight(rowIndex, i);
       });
 
       const addDownBtn = document.createElement("button");
       addDownBtn.textContent = "↓";
       addDownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const simulated = JSON.parse(JSON.stringify(state.chartRows));
-        simulated.splice(rowIndex + 1, 0, { height: null, locked: false, items: [{}] });
-        const vLayout = computeVerticalLayout();
-        if (!canAddChart(simulated, vLayout)) {
-          addWarning("Nelze přidat další graf — uprav výšky řad grafů.");
-          renderWarnings();
-          return;
-        }
-        state.setChartRows(simulated);
-        renderLayout();
+        handleAddChartRow(rowIndex);
       });
 
       controls.appendChild(addLeftBtn);
@@ -271,12 +233,7 @@ function renderLayout() {
       removeBtn.textContent = "×";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const newRows = JSON.parse(JSON.stringify(state.chartRows));
-        const rowItems = newRows[rowIndex].items;
-        if (rowItems.length > 1) rowItems.splice(i, 1);
-        else if (newRows.length > 1) newRows.splice(rowIndex, 1);
-        state.setChartRows(newRows);
-        renderLayout();
+        handleRemoveChart(rowIndex, i);
       });
 
       controls.appendChild(removeBtn);
@@ -285,17 +242,7 @@ function renderLayout() {
       el.addEventListener("click", (e) => {
         e.stopPropagation();
         const heights = computeChartRowHeights(v);
-        setSelected({
-          kind: "chartRow",
-          labelType: "Řada grafů",
-          labelIndex: rowIndex + 1,
-          x: item.x,
-          y: item.y,
-          width: item.width,
-          height: heights[rowIndex],
-          domId,
-          rowIndex
-        });
+        handleSelectChart(item, rowIndex, domId, heights);
       });
 
       canvas.appendChild(el);
