@@ -17,6 +17,7 @@ import {
   handleSelectChart
 } from "./events/chartEvents.js";
 import { canAddChart } from "./layout/canAddChart.js";
+import { initResizeEvents } from "./events/resizeEvents.js";
 import * as state from "./state/state.js";
 
 const canvas = document.getElementById("canvas");
@@ -253,93 +254,6 @@ export function renderLayout() {
   renderWarnings();
 }
 
-applyWidthBtn.addEventListener("click", () => {
-  if (!state.selectedElement) return;
-
-  const val = parseInt(inputWidth.value, 10);
-  if (isNaN(val) || val < 50) {
-    addWarning(`Minimální šířka je 50px.`);
-    renderWarnings();
-    return;
-  }
-
-  if (state.selectedElement.kind === "slicer") {
-    const s = state.selectedElement.stateRef;
-    s.width = val;
-    s.locked = true;
-    renderLayout();
-    return;
-  }
-
-  if (state.selectedElement.kind === "kpi") {
-    const k = state.selectedElement.stateRef;
-    k.width = val;
-    k.locked = true;
-    renderLayout();
-    return;
-  }
-});
-
-applyHeightBtn.addEventListener("click", () => {
-  if (!state.selectedElement) return;
-
-  if (state.selectedElement.kind === "kpi") {
-    const val = parseInt(inputHeight.value, 10);
-    if (isNaN(val) || val < state.KPI_MIN_HEIGHT) {
-      addWarning(`Minimální výška KPI je ${state.KPI_MIN_HEIGHT}px.`);
-      renderWarnings();
-      return;
-    }
-
-    const k = state.selectedElement.stateRef;
-    k.height = val;
-    k.locked = true;
-
-    renderLayout();
-    return;
-  }
-
-  if (state.selectedElement.kind === "chartRow") {
-    const val = parseInt(inputHeight.value, 10);
-    if (isNaN(val) || val < state.MIN_CHART_ROW_HEIGHT) {
-      addWarning(`Minimální výška řady grafů je ${state.MIN_CHART_ROW_HEIGHT}px.`);
-      renderWarnings();
-      return;
-    }
-
-    const rowsCopy = JSON.parse(JSON.stringify(state.chartRows));
-    const row = rowsCopy[state.selectedElement.rowIndex];
-    const originalHeight = row.height;
-    const originalLocked = row.locked;
-
-    row.height = val;
-    row.locked = true;
-
-    const v = computeVerticalLayout();
-    state.setWarnings([]);
-    const heights = computeChartRowHeights(v);
-
-    const n = rowsCopy.length;
-    const totalGaps = (n - 1) * state.GAP_SMALL;
-    const totalHeight = heights.reduce((s, h) => s + h, 0) + totalGaps;
-
-    const overflow =
-      heights.some(h => h < state.MIN_CHART_ROW_HEIGHT) ||
-      totalHeight > v.chartsHeight;
-
-    if (overflow) {
-      row.height = originalHeight;
-      row.locked = originalLocked;
-      addWarning("Zadaná výška se nevejde — uprav hodnotu.");
-      renderWarnings();
-      return;
-    }
-
-    state.setChartRows(rowsCopy);
-    renderLayout();
-  }
-});
-
 function addSlicer() {
   if (state.slicers.length >= state.MAX_SLICERS * 2) {
     addWarning("Bylo dosaženo maximálního počtu slicerů.");
@@ -358,20 +272,13 @@ function addKPI() {
   renderWarnings();
 }
 
-resetBtn.addEventListener("click", () => {
-  state.setWarnings([]);
-  renderWarnings();
-  initState();
-  renderLayout();
-  setSelected(null);
-});
-
 addKpiBtn.addEventListener("click", addKPI);
 addSlicerBtn.addEventListener("click", addSlicer);
 
 function start() {
   initState();
   renderLayout();
+  initResizeEvents();
   setSelected(null);
 }
 
