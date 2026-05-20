@@ -8,6 +8,7 @@ import { computeChartsLayout } from "./layout/computeChartsLayout.js";
 import { setSelected } from "./ui/selection.js";
 import { initState } from "./state/initState.js";
 import { handleAddSlicer, handleRemoveSlicer, handleSelectSlicer } from "./events/slicerEvents.js";
+import { handleAddKpi, handleRemoveKpi, handleSelectKpi } from "./events/kpiEvents.js";
 import * as state from "./state/state.js";
 
 const canvas = document.getElementById("canvas");
@@ -169,10 +170,7 @@ function renderLayout() {
       addBtn.title = "Add KPI";
       addBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const newKpis = [...state.kpis];
-        newKpis.splice(item.index + 1, 0, { height: null, locked: false });
-        state.setKpis(newKpis);
-        renderLayout();
+        handleAddKpi(item.index);
       });
 
       const removeBtn = document.createElement("button");
@@ -180,16 +178,7 @@ function renderLayout() {
       removeBtn.title = "Remove KPI";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const newKpis = [...state.kpis];
-        newKpis.splice(item.index, 1);
-
-        if (newKpis.length < state.MAX_KPIS) {
-          state.setWarnings(state.warnings.filter(w => !w.includes("KPI")));
-        }
-
-        state.setKpis(newKpis);
-        renderLayout();
-        renderWarnings();
+        handleRemoveKpi(item.index);
       });
 
       controls.appendChild(addBtn);
@@ -198,17 +187,7 @@ function renderLayout() {
 
       el.addEventListener("click", (e) => {
         e.stopPropagation();
-        setSelected({
-          kind: "kpi",
-          labelType: "KPI",
-          labelIndex: item.index + 1,
-          x: item.x,
-          y: item.y,
-          width: item.width,
-          height: item.height,
-          domId,
-          stateRef: item.stateRef
-        });
+        handleSelectKpi(item, domId);
       });
 
       canvas.appendChild(el);
