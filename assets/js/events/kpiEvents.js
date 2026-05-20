@@ -1,9 +1,8 @@
 import * as state from "../state/state.js";
 import { setSelected } from "../ui/selection.js";
 import { addWarning } from "../ui/warnings.js";
+import { renderLayout } from "../ui/renderLayout.js";
 
-// Access renderLayout from global scope (temporary until renderLayout.js exists)
-const renderLayout = window.renderLayout;
 
 // Add KPI at index
 export function handleAddKpi(index) {

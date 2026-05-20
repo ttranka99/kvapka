@@ -1,5 +1,5 @@
 import * as state from "../state/state.js";
-import { renderLayout } from "../app.js";
+import { renderLayout } from "../ui/renderLayout.js";
 import { renderWarnings, addWarning } from "../ui/warnings.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";

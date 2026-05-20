@@ -1,8 +1,8 @@
 import * as state from "../state/state.js";
 import { setSelected } from "../ui/selection.js";
 import { addWarning } from "../ui/warnings.js";
-// temporary solution to access renderLayout from global scope (defined in app.js)
-const renderLayout = window.renderLayout;
+import { renderLayout } from "../ui/renderLayout.js";
+
 
 
 // Handle adding a slicer at a specific index
