@@ -27,14 +27,39 @@ export function computeSlicerRowWidths(rowSlicers) {
   if (remaining < m * state.MIN_SLICER_WIDTH) {
     addWarning("Nedostatek místa – některé slicery mohou být příliš úzké.");
   }
-
   const base = Math.floor(remaining / m);
   let remainder = remaining % m;
 
+  // Special symmetric distribution for 4 or 6 slicers (no locked slicers)
+  if (m === n && (n === 4 || n === 6)) {
+    const widths = Array(n).fill(base);
+
+    let left = 0;
+    let right = n - 1;
+
+    // Distribute remainder symmetrically
+    while (remainder > 1 && left < right) {
+      widths[left]++;
+      widths[right]++;
+      remainder -= 2;
+      left++;
+      right--;
+    }
+
+    // If 1 pixel remains → give it to the rightmost slicer
+    if (remainder === 1) {
+      widths[n - 1]++;
+    }
+
+    return widths;
+  }
+
+  // Default logic for all other cases
   return rowSlicers.map(s => {
     if (s.locked) return s.width;
     let w = base;
     if (remainder > 0) { w += 1; remainder--; }
     return w;
   });
+
 }
