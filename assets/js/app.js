@@ -7,6 +7,7 @@ import { computeChartRowHeights } from "./layout/computeChartRowHeights.js";
 import { computeChartsLayout } from "./layout/computeChartsLayout.js";
 import { setSelected } from "./ui/selection.js";
 import { initState } from "./state/initState.js";
+import { handleAddSlicer, handleRemoveSlicer, handleSelectSlicer } from "./events/slicerEvents.js";
 import * as state from "./state/state.js";
 
 const canvas = document.getElementById("canvas");
@@ -117,10 +118,7 @@ function renderLayout() {
       addBtn.title = "Přidat slicer";
       addBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const newSlicers = [...state.slicers];
-        newSlicers.splice(item.globalIndex, 0, { width: null, locked: false });
-        state.setSlicers(newSlicers);
-        renderLayout();
+        handleAddSlicer(item.globalIndex);
       });
 
       const removeBtn = document.createElement("button");
@@ -128,16 +126,7 @@ function renderLayout() {
       removeBtn.title = "Odebrat slicer";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const newSlicers = [...state.slicers];
-        newSlicers.splice(item.globalIndex - 1, 1);
-
-        if (newSlicers.length < state.MAX_SLICERS) {
-          state.setWarnings(state.warnings.filter(w => !w.includes("slicer")));
-        }
-
-        state.setSlicers(newSlicers);
-        renderLayout();
-        renderWarnings();
+        handleRemoveSlicer(item.globalIndex);
       });
 
       controls.appendChild(addBtn);
@@ -146,18 +135,9 @@ function renderLayout() {
 
       el.addEventListener("click", (e) => {
         e.stopPropagation();
-        setSelected({
-          kind: "slicer",
-          labelType: "Slicer",
-          labelIndex: item.globalIndex,
-          x: item.x,
-          y: item.y,
-          width: item.width,
-          height: item.height,
-          domId,
-          stateRef: item.stateRef
-        });
+        handleSelectSlicer(item, domId);
       });
+
 
       canvas.appendChild(el);
     });
