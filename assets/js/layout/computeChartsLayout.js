@@ -17,14 +17,38 @@ export function computeChartsLayout(v) {
     const baseWidth = Math.floor(remainingWidth / n);
     let remainder = remainingWidth % n;
 
+    let widths = Array(n).fill(baseWidth);
+
+    // Symmetric distribution for ANY even number of charts (4, 6, 8, ...)
+    if (n % 2 === 0 && n >= 4) {
+      let left = 0;
+      let right = n - 1;
+
+      // distribute pairs of pixels symmetrically
+      while (remainder > 1 && left < right) {
+        widths[left]++;
+        widths[right]++;
+        remainder -= 2;
+        left++;
+        right--;
+      }
+
+      // if 1 pixel remains → give it to the rightmost chart
+      if (remainder === 1) {
+        widths[n - 1]++;
+      }
+    } else {
+      // default left-to-right distribution
+      for (let i = 0; i < n && remainder > 0; i++) {
+        widths[i]++;
+        remainder--;
+      }
+    }
+
     let x = state.MARGIN;
 
     row.items.forEach((item, i) => {
-      let w = baseWidth;
-      if (remainder > 0) {
-        w += 1;
-        remainder--;
-      }
+      const w = widths[i];
 
       items.push({
         type: "chart",
@@ -38,6 +62,7 @@ export function computeChartsLayout(v) {
 
       x += w + state.GAP_SMALL;
     });
+
 
     rowsLayout.push(items);
     currentY += rowHeight + state.GAP_SMALL;
