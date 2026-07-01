@@ -11,7 +11,15 @@
     <div class="app">
         <aside class="sidebar">
             <h1>KB Layout Asistent</h1>
-            <p class="subtitle">Power BI plátno 1920 × 1080</p>
+            <p class="subtitle" id="canvas-size-label">Power BI plátno 1920 × 1080</p>
+
+            <section class="panel">
+                <h2>Šablona layoutu</h2>
+                <div class="template-selector" role="group" aria-label="Layout template">
+                    <button type="button" class="template-option active" data-template="FULL_HD">FULL HD</button>
+                    <button type="button" class="template-option" data-template="HD">HD</button>
+                </div>
+            </section>
 
             <section class="panel">
                 <h2>Vybraný element</h2>

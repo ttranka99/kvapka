@@ -39,6 +39,8 @@ const applyHeightBtn = document.getElementById("apply-height");
 const resetBtn = document.getElementById("reset-layout");
 const addKpiBtn = document.getElementById("add-kpi");
 const addSlicerBtn = document.getElementById("add-slicer");
+const templateButtons = document.querySelectorAll(".template-option");
+const canvasSizeLabel = document.getElementById("canvas-size-label");
 
 function addWarning(msg) {
   if (!state.warnings.includes(msg)) {
@@ -67,8 +69,33 @@ function addKPI() {
 addKpiBtn.addEventListener("click", addKPI);
 addSlicerBtn.addEventListener("click", addSlicer);
 
+function syncTemplateControls() {
+  templateButtons.forEach(button => {
+    button.classList.toggle("active", button.dataset.template === state.activeTemplate);
+  });
+
+  canvasSizeLabel.textContent = `Power BI plátno ${state.CANVAS_WIDTH} × ${state.CANVAS_HEIGHT}`;
+}
+
+function initTemplateControls() {
+  templateButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      if (button.dataset.template === state.activeTemplate) return;
+
+      state.setLayoutTemplate(button.dataset.template);
+      state.setWarnings([]);
+      setSelected(null);
+      syncTemplateControls();
+      renderLayout();
+      renderWarnings();
+    });
+  });
+}
+
 function start() {
   initState();
+  initTemplateControls();
+  syncTemplateControls();
   renderLayout();
   initResizeEvents();
   setSelected(null);

@@ -28,6 +28,8 @@ function clearCanvas() {
 
 export function renderLayout() {
   clearCanvas();
+  canvas.style.width = scale(state.CANVAS_WIDTH) + "px";
+  canvas.style.height = scale(state.CANVAS_HEIGHT) + "px";
 
   const v = computeVerticalLayout();
 
@@ -42,7 +44,7 @@ export function renderLayout() {
 
   const titleLabel = document.createElement("div");
   titleLabel.className = "canvas-element-label";
-  titleLabel.textContent = "Nadpis (1860 × 50)";
+  titleLabel.textContent = `Nadpis (${state.USABLE_WIDTH} × ${state.TITLE_HEIGHT})`;
   title.appendChild(titleLabel);
 
   title.addEventListener("click", (e) => {

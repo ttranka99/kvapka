@@ -90,6 +90,34 @@ body {
   padding-top: 12px;
 }
 
+.template-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.template-option {
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  font-weight: 600;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.template-option:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.template-option.active {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #ffffff;
+}
+
 /* ----------------------------------------------------
    EDIT FIELDS
 -----------------------------------------------------*/
@@ -178,8 +206,6 @@ button:hover {
   background: #f9fafb;
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  width: calc(1920px * 0.4);
-  height: calc(1080px * 0.4);
   overflow: hidden;
 }
 
