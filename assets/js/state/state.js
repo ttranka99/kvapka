@@ -6,7 +6,11 @@ export const LAYOUT_TEMPLATES = {
     canvasHeight: 1080,
     margin: 30,
     titleHeight: 50,
-    gapKpiToCharts: 30
+    gapKpiToCharts: 30,
+    slicerHeight: 80,
+    kpiMinHeight: 70,
+    minSlicerWidth: 50,
+    minChartRowHeight: 150
   },
   HD: {
     label: "HD",
@@ -14,7 +18,11 @@ export const LAYOUT_TEMPLATES = {
     canvasHeight: 720,
     margin: 20,
     titleHeight: 40,
-    gapKpiToCharts: 20
+    gapKpiToCharts: 20,
+    slicerHeight: 70,
+    kpiMinHeight: 70,
+    minSlicerWidth: 50,
+    minChartRowHeight: 150
   }
 };
 
@@ -25,10 +33,10 @@ export let MARGIN = LAYOUT_TEMPLATES.FULL_HD.margin;
 export let TITLE_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.titleHeight;
 export const GAP_SMALL = 10;
 export let GAP_KPI_TO_CHARTS = LAYOUT_TEMPLATES.FULL_HD.gapKpiToCharts;
-export const SLICER_HEIGHT = 80;
-export const KPI_MIN_HEIGHT = 70;
-export const MIN_SLICER_WIDTH = 50;
-export const MIN_CHART_ROW_HEIGHT = 150;
+export let SLICER_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.slicerHeight;
+export let KPI_MIN_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.kpiMinHeight;
+export let MIN_SLICER_WIDTH = LAYOUT_TEMPLATES.FULL_HD.minSlicerWidth;
+export let MIN_CHART_ROW_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.minChartRowHeight;
 export let USABLE_WIDTH = CANVAS_WIDTH - 2 * MARGIN;
 export const SCALE = 0.4;
 export const MAX_SLICERS = 7;
@@ -56,6 +64,10 @@ export function setLayoutTemplate(templateKey) {
   MARGIN = template.margin;
   TITLE_HEIGHT = template.titleHeight;
   GAP_KPI_TO_CHARTS = template.gapKpiToCharts;
+  SLICER_HEIGHT = template.slicerHeight;
+  KPI_MIN_HEIGHT = template.kpiMinHeight;
+  MIN_SLICER_WIDTH = template.minSlicerWidth;
+  MIN_CHART_ROW_HEIGHT = template.minChartRowHeight;
   USABLE_WIDTH = CANVAS_WIDTH - 2 * MARGIN;
 }
 
