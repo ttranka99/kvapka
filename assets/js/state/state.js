@@ -39,8 +39,11 @@ export let MIN_SLICER_WIDTH = LAYOUT_TEMPLATES.FULL_HD.minSlicerWidth;
 export let MIN_CHART_ROW_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.minChartRowHeight;
 export let USABLE_WIDTH = CANVAS_WIDTH - 2 * MARGIN;
 export const SCALE = 0.4;
-export const MAX_SLICERS = 7;
-export const MAX_KPIS = 6;
+export const MIN_COMPONENTS_PER_ROW = 4;
+export const MAX_COMPONENTS_PER_ROW = 7;
+export const SECOND_ROW_MAX_ITEMS = 7;
+export let MAX_SLICERS = 7;
+export let MAX_KPIS = 6;
 
 export let slicers = [];
 export let kpis = [];
@@ -53,6 +56,20 @@ export function setKpis(v) { kpis = v; }
 export function setChartRows(v) { chartRows = v; }
 export function setSelectedElement(v) { selectedElement = v; }
 export function setWarnings(v) { warnings = v; }
+
+function clampComponentsPerRow(v) {
+  const value = Number.parseInt(v, 10);
+  if (Number.isNaN(value)) return MAX_COMPONENTS_PER_ROW;
+  return Math.min(MAX_COMPONENTS_PER_ROW, Math.max(MIN_COMPONENTS_PER_ROW, value));
+}
+
+export function setMaxSlicers(v) {
+  MAX_SLICERS = clampComponentsPerRow(v);
+}
+
+export function setMaxKpis(v) {
+  MAX_KPIS = clampComponentsPerRow(v);
+}
 
 export function setLayoutTemplate(templateKey) {
   const template = LAYOUT_TEMPLATES[templateKey];

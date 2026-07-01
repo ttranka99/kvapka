@@ -118,6 +118,28 @@ body {
   color: #ffffff;
 }
 
+.row-limit-controls {
+  display: grid;
+  grid-template-columns: 1fr 64px;
+  align-items: center;
+  gap: 10px;
+}
+
+.row-limit-controls label {
+  color: #374151;
+  font-weight: 500;
+}
+
+.row-limit-controls select {
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f2937;
+  font: inherit;
+}
+
 /* ----------------------------------------------------
    EDIT FIELDS
 -----------------------------------------------------*/

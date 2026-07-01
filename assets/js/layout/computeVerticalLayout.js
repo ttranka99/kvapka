@@ -10,7 +10,8 @@ import {
   SLICER_HEIGHT,
   KPI_MIN_HEIGHT,
   MAX_SLICERS,
-  MAX_KPIS
+  MAX_KPIS,
+  SECOND_ROW_MAX_ITEMS
 } from "../state/state.js";
 
 export function computeVerticalLayout() {
@@ -40,7 +41,9 @@ export function computeVerticalLayout() {
       : slicersTop;
 
   const kpiRow1 = kpis.slice(0, MAX_KPIS);
-  const kpiRow2 = kpis.length > MAX_KPIS ? kpis.slice(MAX_KPIS) : [];
+  const kpiRow2 = kpis.length > MAX_KPIS
+    ? kpis.slice(MAX_KPIS, MAX_KPIS + SECOND_ROW_MAX_ITEMS)
+    : [];
 
   const row1Height = kpiRow1.length
     ? Math.max(...kpiRow1.map(k => k.height ?? KPI_MIN_HEIGHT))

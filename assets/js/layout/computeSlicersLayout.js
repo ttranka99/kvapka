@@ -3,16 +3,24 @@ import { addWarning } from "../ui/warnings.js";
 import { computeSlicerRowWidths } from "./computeSlicerRowWidths.js";
 
 export function computeSlicersLayout(v) {
+    const secondRowLimitWarning = "Druhý řádek slicerů překračuje vybraný limit.";
     if (state.slicers.length === state.MAX_SLICERS) {
         addWarning("Dosaženo maximálního počtu slicerů na řádek. Další slicery budou umístěny na další řádek.");
     }
 
     const row1 = state.slicers.slice(0, state.MAX_SLICERS);
-    const row2 = state.slicers.slice(state.MAX_SLICERS, state.MAX_SLICERS * 2);
+    const row2 = state.slicers.slice(
+        state.MAX_SLICERS,
+        state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS
+    );
 
-    if (state.slicers.length > state.MAX_SLICERS * 2) {
+    state.setWarnings(state.warnings.filter(w => w !== secondRowLimitWarning));
+    if (row2.length > state.MAX_SLICERS) {
+        addWarning(secondRowLimitWarning);
+    }
+
+    if (state.slicers.length > state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS) {
         addWarning("Bylo dosaženo maximálního počtu slicerů.");
-        return [];
     }
 
     const row1Widths = computeSlicerRowWidths(row1);

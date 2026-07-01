@@ -5,6 +5,12 @@ import { renderLayout } from "../ui/renderLayout.js";
 
 // Handle adding a slicer at a specific index
 export function handleAddSlicer(globalIndex) {
+  if (state.slicers.length >= state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS) {
+    addWarning("Bylo dosaženo maximálního počtu slicerů.");
+    renderLayout();
+    return;
+  }
+
   const newSlicers = [...state.slicers];
   newSlicers.splice(globalIndex, 0, { width: null, locked: false });
   state.setSlicers(newSlicers);

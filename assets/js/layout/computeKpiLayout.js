@@ -2,20 +2,30 @@ import * as state from "../state/state.js";
 import { addWarning } from "../ui/warnings.js";
 
 export function computeKpiLayout(v) {
+  const secondRowLimitWarning = "Druhý řádek KPI překračuje vybraný limit.";
+
   if (state.kpis.length === state.MAX_KPIS) {
     addWarning("Dosažen maximální počet KPI. Další KPI budou umístěny na další řádek.");
   }
 
-  if (state.kpis.length > state.MAX_KPIS * 2) {
+  if (state.kpis.length > state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS) {
     addWarning("Dosaženo maximálního počtu KPI. Odeberte KPI.");
-    state.setKpis(state.kpis.slice(0, state.MAX_KPIS * 2));
   }
+
+  state.setWarnings(state.warnings.filter(w => w !== secondRowLimitWarning));
 
   const n = state.kpis.length;
   if (n === 0) return [];
 
   const row1 = state.kpis.slice(0, state.MAX_KPIS);
-  const row2 = state.kpis.slice(state.MAX_KPIS, state.MAX_KPIS * 2);
+  const row2 = state.kpis.slice(
+    state.MAX_KPIS,
+    state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS
+  );
+
+  if (row2.length > state.MAX_KPIS) {
+    addWarning(secondRowLimitWarning);
+  }
 
   const totalGaps1 = (row1.length - 1) * state.GAP_SMALL;
   const totalGaps2 = (row2.length - 1) * state.GAP_SMALL;

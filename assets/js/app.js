@@ -41,6 +41,8 @@ const addKpiBtn = document.getElementById("add-kpi");
 const addSlicerBtn = document.getElementById("add-slicer");
 const templateButtons = document.querySelectorAll(".template-option");
 const canvasSizeLabel = document.getElementById("canvas-size-label");
+const slicersPerRowSelect = document.getElementById("slicers-per-row");
+const kpisPerRowSelect = document.getElementById("kpis-per-row");
 
 function addWarning(msg) {
   if (!state.warnings.includes(msg)) {
@@ -49,7 +51,7 @@ function addWarning(msg) {
 }
 
 function addSlicer() {
-  if (state.slicers.length >= state.MAX_SLICERS * 2) {
+  if (state.slicers.length >= state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS) {
     addWarning("Bylo dosaženo maximálního počtu slicerů.");
     renderWarnings();
     return;
@@ -61,6 +63,12 @@ function addSlicer() {
 }
 
 function addKPI() {
+  if (state.kpis.length >= state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS) {
+    addWarning("Bylo dosaženo maximálního počtu KPI.");
+    renderWarnings();
+    return;
+  }
+
   state.setKpis([...state.kpis, { height: null, locked: false }]);
   renderLayout();
   renderWarnings();
@@ -75,6 +83,11 @@ function syncTemplateControls() {
   });
 
   canvasSizeLabel.textContent = `Power BI plátno ${state.CANVAS_WIDTH} × ${state.CANVAS_HEIGHT}`;
+}
+
+function syncRowLimitControls() {
+  slicersPerRowSelect.value = String(state.MAX_SLICERS);
+  kpisPerRowSelect.value = String(state.MAX_KPIS);
 }
 
 function initTemplateControls() {
@@ -92,10 +105,32 @@ function initTemplateControls() {
   });
 }
 
+function initRowLimitControls() {
+  slicersPerRowSelect.addEventListener("change", () => {
+    state.setMaxSlicers(slicersPerRowSelect.value);
+    state.setWarnings([]);
+    setSelected(null);
+    syncRowLimitControls();
+    renderLayout();
+    renderWarnings();
+  });
+
+  kpisPerRowSelect.addEventListener("change", () => {
+    state.setMaxKpis(kpisPerRowSelect.value);
+    state.setWarnings([]);
+    setSelected(null);
+    syncRowLimitControls();
+    renderLayout();
+    renderWarnings();
+  });
+}
+
 function start() {
   initState();
   initTemplateControls();
+  initRowLimitControls();
   syncTemplateControls();
+  syncRowLimitControls();
   renderLayout();
   initResizeEvents();
   setSelected(null);
