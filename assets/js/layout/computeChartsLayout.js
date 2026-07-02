@@ -1,6 +1,8 @@
 import * as state from "../state/state.js";
 import { computeChartRowHeights } from "./computeChartRowHeights.js";
 
+const MIN_CHART_WIDTH = 150;
+
 export function computeChartsLayout(v) {
   const heights = computeChartRowHeights(v);
   const rowsLayout = [];
@@ -12,59 +14,78 @@ export function computeChartsLayout(v) {
     const n = row.items.length;
 
     const totalGaps = (n - 1) * state.GAP_SMALL;
-    const remainingWidth = state.USABLE_WIDTH - totalGaps;
+    const availableWidth = state.USABLE_WIDTH - totalGaps;
 
-    const baseWidth = Math.floor(remainingWidth / n);
-    let remainder = remainingWidth % n;
+    const fixedWidths = row.items.map(item => {
+      return item.locked && Number.isFinite(item.width) ? item.width : null;
+    });
 
-    let widths = Array(n).fill(baseWidth);
+    const lockedCount = fixedWidths.filter(w => w !== null).length;
+    const unlockedCount = n - lockedCount;
+    const lockedSum = fixedWidths.reduce((sum, w) => sum + (w || 0), 0);
+    let widths = [];
 
-    // --- Symmetric distribution for even numbers of charts ---
-    if (n % 2 === 0 && n >= 4) {
-      let left = 0;
-      let right = n - 1;
+    if (lockedCount === 0) {
+      const baseWidth = Math.floor(availableWidth / n);
+      let remainder = availableWidth % n;
+      widths = Array(n).fill(baseWidth);
 
-      while (remainder > 1 && left < right) {
-        widths[left]++;
-        widths[right]++;
-        remainder -= 2;
-        left++;
-        right--;
+      if (n % 2 === 0 && n >= 4) {
+        let left = 0;
+        let right = n - 1;
+
+        while (remainder > 1 && left < right) {
+          widths[left]++;
+          widths[right]++;
+          remainder -= 2;
+          left++;
+          right--;
+        }
+
+        if (remainder === 1) {
+          widths[n - 1]++;
+        }
+      } else if (n % 2 === 1 && n >= 3) {
+        const center = Math.floor(n / 2);
+        let left = 0;
+        let right = n - 1;
+
+        while (remainder > 2 && left < right) {
+          widths[left]++;
+          widths[right]++;
+          remainder -= 2;
+          left++;
+          right--;
+        }
+
+        if (remainder === 1) {
+          widths[center]++;
+        }
+      } else {
+        for (let i = 0; i < n && remainder > 0; i++) {
+          widths[i]++;
+          remainder--;
+        }
       }
+    } else {
+      let remainingWidth = availableWidth - lockedSum;
+      const baseWidth = unlockedCount > 0 ? Math.floor(remainingWidth / unlockedCount) : 0;
+      let remainder = unlockedCount > 0 ? remainingWidth % unlockedCount : 0;
 
-      if (remainder === 1) {
-        widths[n - 1]++;
-      }
+      widths = row.items.map((item, index) => {
+        if (fixedWidths[index] !== null) {
+          return fixedWidths[index];
+        }
+
+        let value = Math.max(baseWidth, MIN_CHART_WIDTH);
+        if (remainder > 0) {
+          value += 1;
+          remainder -= 1;
+        }
+
+        return value;
+      });
     }
-
-    // --- Middle chart larger for odd counts ---
-    else if (n % 2 === 1 && n >= 3) {
-      const center = Math.floor(n / 2);
-
-      let left = 0;
-      let right = n - 1;
-
-      while (remainder > 2 && left < right) {
-        widths[left]++;
-        widths[right]++;
-        remainder -= 2;
-        left++;
-        right--;
-      }
-
-      if (remainder === 1) {
-        widths[center]++;
-      }
-    }
-
-    // --- Default behavior for other cases ---
-    else {
-      for (let i = 0; i < n && remainder > 0; i++) {
-        widths[i]++;
-        remainder--;
-      }
-    }
-
 
     let x = state.MARGIN;
 
@@ -83,7 +104,6 @@ export function computeChartsLayout(v) {
 
       x += w + state.GAP_SMALL;
     });
-
 
     rowsLayout.push(items);
     currentY += rowHeight + state.GAP_SMALL;

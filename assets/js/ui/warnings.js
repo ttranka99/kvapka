@@ -3,6 +3,8 @@ import * as state from "../state/state.js";
 export function addWarning(msg) {
   if (!state.warnings.includes(msg)) {
     state.setWarnings([...state.warnings, msg]);
+    // Immediately update the warnings UI when a new warning is added
+    renderWarnings();
   }
 }
 

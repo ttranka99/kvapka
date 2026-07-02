@@ -228,7 +228,7 @@ button:hover {
   background: #f9fafb;
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* ----------------------------------------------------
@@ -252,6 +252,44 @@ button:hover {
 .canvas-element.chart {
   background: #ffffff;
   border: 1px solid #e5e7eb;
+  overflow: visible;
+  position: absolute;
+}
+
+.chart-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.canvas-element.chart:hover .chart-resize-handle {
+  opacity: 1;
+  pointer-events: auto;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.chart-resize-handle::before,
+.chart-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 14px;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 1px;
+}
+
+.chart-resize-handle::after {
+  transform: translate(-50%, -50%) translateX(4px);
 }
 
 /* Title bar */

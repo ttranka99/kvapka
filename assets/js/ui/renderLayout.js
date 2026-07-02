@@ -13,6 +13,7 @@ import {
   handleRemoveChart,
   handleSelectChart
 } from "../events/chartEvents.js";
+import { attachChartResizeHandle } from "../events/chartResizeEvents.js";
 import { setSelected } from "../ui/selection.js";
 import { renderWarnings } from "../ui/warnings.js";
 
@@ -217,6 +218,13 @@ export function renderLayout() {
 
       controls.appendChild(removeBtn);
       el.appendChild(controls);
+
+      if (i < row.length - 1) {
+        const resizeHandle = document.createElement("div");
+        resizeHandle.className = "chart-resize-handle";
+        attachChartResizeHandle(resizeHandle, rowIndex, i, renderLayout);
+        el.appendChild(resizeHandle);
+      }
 
       el.addEventListener("click", (e) => {
         e.stopPropagation();
