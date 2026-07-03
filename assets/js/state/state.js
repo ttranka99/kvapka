@@ -89,6 +89,17 @@ export function setLayoutTemplate(templateKey) {
   USABLE_WIDTH = CANVAS_WIDTH - 2 * MARGIN;
 }
 
+export function resetSizingLocks() {
+  slicers = slicers.map(s => ({ ...s, width: null, locked: false }));
+  kpis = kpis.map(k => ({ ...k, width: null, height: null, locked: false }));
+  chartRows = chartRows.map(row => ({
+    ...row,
+    height: null,
+    locked: false,
+    items: row.items.map(() => ({ width: null, locked: false }))
+  }));
+}
+
 // gettery pro computeVerticalLayout
 export function getSlicers() { return slicers; }
 export function getKpis() { return kpis; }

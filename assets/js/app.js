@@ -61,6 +61,7 @@ function initTemplateControls() {
       if (button.dataset.template === state.activeTemplate) return;
 
       state.setLayoutTemplate(button.dataset.template);
+      state.resetSizingLocks();
       state.setWarnings([]);
       setSelected(null);
       syncTemplateControls();
@@ -73,6 +74,7 @@ function initTemplateControls() {
 function initRowLimitControls() {
   slicersPerRowSelect.addEventListener("change", () => {
     state.setMaxSlicers(slicersPerRowSelect.value);
+    state.resetSizingLocks();
     state.setWarnings([]);
     setSelected(null);
     syncRowLimitControls();
@@ -82,6 +84,7 @@ function initRowLimitControls() {
 
   kpisPerRowSelect.addEventListener("change", () => {
     state.setMaxKpis(kpisPerRowSelect.value);
+    state.resetSizingLocks();
     state.setWarnings([]);
     setSelected(null);
     syncRowLimitControls();
