@@ -1,8 +1,6 @@
 import * as state from "../state/state.js";
 import { computeChartRowHeights } from "./computeChartRowHeights.js";
 
-const MIN_CHART_WIDTH = 150;
-
 export function canAddChart(simulatedChartRows, vLayout) {
   const original = state.chartRows;
   state.setChartRows(simulatedChartRows);
@@ -28,7 +26,7 @@ export function canAddChart(simulatedChartRows, vLayout) {
       .reduce((sum, item) => sum + item.width, 0);
     const unlockedCount = itemCount - row.items.filter(item => item.locked).length;
 
-    const minWidthNeeded = lockedSum + unlockedCount * MIN_CHART_WIDTH + gapsInRow;
+    const minWidthNeeded = lockedSum + unlockedCount * state.MIN_CHART_WIDTH + gapsInRow;
     if (minWidthNeeded > state.USABLE_WIDTH) {
       return false;
     }

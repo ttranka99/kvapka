@@ -146,10 +146,7 @@ export function computeKpiLayout(v) {
 
     // 2) No locked KPI → symmetric logic for 4/6 KPI + special handling for 1–3 KPI
     else {
-      const n2 = row2.length;
-      const usable2 = state.USABLE_WIDTH - totalGaps2;
       const halfUsable = usable2 / 2;
-      const baseWidth = widths1[0]; // width of the first KPI in the first row
 
       // --- A) If there are 4 or 6 KPI → use the same symmetric logic as row1 ---
       if (n2 >= 4) {

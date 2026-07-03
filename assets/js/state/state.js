@@ -37,6 +37,7 @@ export let SLICER_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.slicerHeight;
 export let KPI_MIN_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.kpiMinHeight;
 export let MIN_SLICER_WIDTH = LAYOUT_TEMPLATES.FULL_HD.minSlicerWidth;
 export let MIN_CHART_ROW_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.minChartRowHeight;
+export const MIN_CHART_WIDTH = 150;
 export let USABLE_WIDTH = CANVAS_WIDTH - 2 * MARGIN;
 export const SCALE = 0.4;
 export const MIN_COMPONENTS_PER_ROW = 4;

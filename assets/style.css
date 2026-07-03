@@ -358,11 +358,6 @@ button:hover {
   /* inherits .panel styling */
 }
 
-.add-elements .button-group {
-  display: flex;
-  gap: 10px;
-}
-
 .add-elements button {
   flex: 1;
 }
@@ -393,5 +388,3 @@ button:hover {
 .reset-layout-wrapper button:hover {
   background-color: #a31414;
 }
-
-

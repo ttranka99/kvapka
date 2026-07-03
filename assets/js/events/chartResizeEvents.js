@@ -3,7 +3,6 @@ import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { renderWarnings } from "../ui/warnings.js";
 
-const MIN_CHART_WIDTH = 150;
 let activeResize = null;
 
 function finishResize() {
@@ -25,8 +24,8 @@ function handlePointerMove(event) {
   const deltaPx = event.clientX - activeResize.startX;
   const delta = Math.round(deltaPx / state.SCALE);
   const totalWidth = activeResize.startWidth + activeResize.startNextWidth;
-  const minCurrent = MIN_CHART_WIDTH;
-  const minNext = MIN_CHART_WIDTH;
+  const minCurrent = state.MIN_CHART_WIDTH;
+  const minNext = state.MIN_CHART_WIDTH;
   let newCurrentWidth = activeResize.startWidth + delta;
   let newNextWidth = totalWidth - newCurrentWidth;
 

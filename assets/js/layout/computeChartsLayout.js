@@ -1,8 +1,6 @@
 import * as state from "../state/state.js";
 import { computeChartRowHeights } from "./computeChartRowHeights.js";
 
-const MIN_CHART_WIDTH = 150;
-
 export function computeChartsLayout(v) {
   const heights = computeChartRowHeights(v);
   const rowsLayout = [];
@@ -77,7 +75,7 @@ export function computeChartsLayout(v) {
           return fixedWidths[index];
         }
 
-        let value = Math.max(baseWidth, MIN_CHART_WIDTH);
+        let value = Math.max(baseWidth, state.MIN_CHART_WIDTH);
         if (remainder > 0) {
           value += 1;
           remainder -= 1;
