@@ -1,0 +1,706 @@
+/* ----------------------------------------------------
+   DESIGN TOKENS
+-----------------------------------------------------*/
+:root {
+  --color-primary: #d60032;
+  --color-primary-hover: #c1002d;
+  --color-primary-active: #a80027;
+  --color-primary-light: #fde8ed;
+
+  --bg-app: #f6f6f7;
+  --bg-secondary: #f2f3f5;
+  --bg-surface: #ffffff;
+
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-muted: #9aa0a6;
+  --text-disabled: #bdc1c6;
+  --text-white: #ffffff;
+
+  --border-light: #e8eaed;
+  --border-medium: #dadce0;
+  --border-divider: #eceff1;
+
+  --color-success: #2e9e44;
+  --color-warning: #f5a623;
+  --color-error: #d93025;
+  --color-info: #2f80ed;
+
+  --radius-card: 8px;
+  --radius-control: 6px;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+  /* Height of the sidebar's logo/title row. Shared with .main's top padding
+     below so the canvas preview heading lines up with the first sidebar
+     panel's top edge instead of the logo row. */
+  --sidebar-header-height: 24px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+}
+
+/* ----------------------------------------------------
+   RESET
+-----------------------------------------------------*/
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ----------------------------------------------------
+   LAYOUT
+-----------------------------------------------------*/
+.app {
+  display: flex;
+  min-height: 100vh;
+  align-items: flex-start;
+}
+
+/* ----------------------------------------------------
+   SIDEBAR
+-----------------------------------------------------*/
+.sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  padding: var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.brand-logo {
+  height: var(--sidebar-header-height);
+  width: auto;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.brand-text h1 {
+  margin: 0;
+  font-size: 16px;
+  line-height: var(--sidebar-header-height);
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.sidebar-panels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ----------------------------------------------------
+   PANELS (unified card style)
+-----------------------------------------------------*/
+.panel {
+  position: relative;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+  font-size: 14px;
+  box-shadow: var(--shadow-card);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.info-trigger {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--border-medium);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-style: italic;
+  font-weight: 700;
+  font-family: Georgia, "Times New Roman", serif;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  transition: border-color 0.15s ease-out, color 0.15s ease-out, background 0.15s ease-out;
+}
+
+.info-trigger:hover,
+.info-trigger:focus-visible {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  outline: none;
+}
+
+.info-trigger .tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--text-primary);
+  color: var(--text-white);
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 11px;
+  white-space: nowrap;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 6px;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  z-index: 5;
+}
+
+.info-trigger:hover .tooltip,
+.info-trigger:focus-visible .tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.panel h2 {
+  margin: 0 0 var(--space-3);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.panel-header h2 {
+  margin: 0;
+}
+
+.panel p {
+  margin: var(--space-2) 0;
+  line-height: 1.5;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.panel p strong {
+  display: inline-block;
+  width: 90px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.panel-section {
+  border-top: 1px solid var(--border-divider);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+}
+
+/* ----------------------------------------------------
+   TEMPLATE SELECTOR (segmented control / chips)
+-----------------------------------------------------*/
+.template-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.template-option {
+  min-height: 38px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 13px;
+  transition: background 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out;
+}
+
+.template-option:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.template-option:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.template-option.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--text-white);
+}
+
+/* ----------------------------------------------------
+   ROW LIMIT CONTROLS
+-----------------------------------------------------*/
+.row-limit-controls {
+  display: grid;
+  grid-template-columns: 1fr 68px;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.row-limit-controls label {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.row-limit-controls select {
+  width: 100%;
+  padding: var(--space-2) var(--space-2);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+}
+
+.row-limit-controls select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* ----------------------------------------------------
+   COLLAPSIBLE (smooth height animation instead of an
+   instant display:none/block jump). Works by animating
+   the grid row's fr size; the -inner wrapper clips the
+   content while collapsed. Keep code paths simple: any
+   block that toggles visibility uses this same pair of
+   classes instead of a one-off transition.
+-----------------------------------------------------*/
+.collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease-out;
+}
+
+.collapsible.expanded {
+  grid-template-rows: 1fr;
+}
+
+.collapsible-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+#selection-details > .collapsible-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ----------------------------------------------------
+   EDIT FIELDS
+-----------------------------------------------------*/
+.edit-field .collapsible-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+}
+
+.edit-field input {
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.edit-field input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+  border-color: var(--color-primary);
+}
+
+.edit-field button {
+  align-self: flex-start;
+}
+
+/* ----------------------------------------------------
+   BUTTONS (global)
+-----------------------------------------------------*/
+button {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  background: var(--color-primary);
+  color: var(--text-white);
+  cursor: pointer;
+  transition: background 0.18s ease-out, border-color 0.18s ease-out;
+}
+
+button:hover {
+  background: var(--color-primary-hover);
+}
+
+button:active {
+  background: var(--color-primary-active);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.hidden {
+  display: none;
+}
+
+/* ----------------------------------------------------
+   MAIN AREA
+-----------------------------------------------------*/
+.main {
+  flex: 1;
+  min-width: 0;
+  /* Top padding = sidebar padding-top + header row height + gap before the
+     first panel, so this heading lines up with the "Šablona layoutu" panel
+     rather than the logo row above it. */
+  padding-top: calc(var(--space-6) + var(--sidebar-header-height) + var(--space-6));
+  padding-right: var(--space-10);
+  padding-bottom: var(--space-8);
+  padding-left: var(--space-10);
+  background: var(--bg-app);
+}
+
+.main h2 {
+  margin: 0 0 var(--space-2);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.hint {
+  margin-top: 0;
+  margin-bottom: var(--space-4);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ----------------------------------------------------
+   CANVAS WRAPPER
+-----------------------------------------------------*/
+#canvas-wrapper {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-card);
+  display: inline-block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+#canvas {
+  position: relative;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  overflow: visible;
+  transition: width 0.25s ease-out, height 0.25s ease-out;
+}
+
+/* ----------------------------------------------------
+   CANVAS ELEMENTS
+-----------------------------------------------------*/
+.canvas-element {
+  position: absolute;
+  border-radius: 6px;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease-out, transform 0.15s ease-out;
+}
+
+.canvas-element.slicer {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+}
+
+.canvas-element.chart {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  overflow: visible;
+  position: absolute;
+}
+
+.canvas-element.kpi {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+}
+
+.chart-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease-out, background 0.12s ease-out;
+}
+
+.canvas-element.chart:hover .chart-resize-handle {
+  opacity: 1;
+  pointer-events: auto;
+  background: rgba(32, 33, 36, 0.06);
+}
+
+.chart-resize-handle::before,
+.chart-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 14px;
+  background: rgba(32, 33, 36, 0.4);
+  border-radius: 1px;
+}
+
+.chart-resize-handle::after {
+  transform: translate(-50%, -50%) translateX(4px);
+}
+
+.canvas-element.title {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1.5px solid var(--border-medium);
+  display: flex;
+  align-items: center;
+  padding-left: var(--space-2);
+  font-weight: 500;
+}
+
+.canvas-element.selected {
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.element-controls {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+
+.canvas-element:hover .element-controls {
+  opacity: 1;
+}
+
+.element-controls button {
+  padding: 2px 6px;
+  font-size: 10px;
+  line-height: 16px;
+  border-radius: 4px;
+  border: none;
+  background: rgba(214, 0, 50, 0.92);
+  color: var(--text-white);
+}
+
+.element-controls button:hover {
+  background: var(--color-primary);
+}
+
+.canvas-element-label {
+  position: absolute;
+  bottom: 4px;
+  left: 6px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.85;
+}
+
+.canvas-element.title .canvas-element-label {
+  color: var(--text-primary);
+}
+
+/* ----------------------------------------------------
+   ADD ELEMENTS PANEL
+-----------------------------------------------------*/
+.add-elements .button-group {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.add-elements button {
+  flex: 1;
+}
+
+/* ----------------------------------------------------
+   RESET LAYOUT BUTTON
+-----------------------------------------------------*/
+.reset-layout-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.reset-layout-wrapper button {
+  width: 100%;
+  background: var(--bg-surface);
+  color: var(--color-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  padding: var(--space-3) var(--space-4);
+  font-weight: 600;
+}
+
+.reset-layout-wrapper button:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+/* ----------------------------------------------------
+   TOASTS
+-----------------------------------------------------*/
+.toast-container {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 360px;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-left: 3px solid var(--color-warning);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-3) var(--space-4);
+  animation: toast-in 0.2s ease-out;
+}
+
+.toast-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--color-warning);
+}
+
+.toast-message {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.toast-leaving {
+  animation: toast-out 0.18s ease-in forwards;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast-leaving,
+  .canvas-element,
+  .template-option,
+  .collapsible,
+  #canvas,
+  button {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ----------------------------------------------------
+   RESPONSIVE
+-----------------------------------------------------*/
+@media (max-width: 900px) {
+  .app {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+
+  .sidebar-panels {
+    flex-direction: row;
+    align-items: stretch;
+    overflow-x: auto;
+    padding-bottom: var(--space-1);
+  }
+
+  .sidebar-panels .panel {
+    flex: 1 1 220px;
+    min-width: 220px;
+  }
+
+  .main {
+    padding: var(--space-6) var(--space-4) var(--space-10);
+  }
+
+  .toast-container {
+    left: var(--space-4);
+    right: var(--space-4);
+    max-width: none;
+  }
+}

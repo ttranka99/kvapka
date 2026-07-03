@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KB Report Layout Designer</title>
+
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="96x96" href="assets/img/favicon/favicon-96x96.png" />
+    <link rel="shortcut icon" href="assets/img/favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/img/favicon/apple-touch-icon.png" />
+    <link rel="manifest" href="assets/img/favicon/site.webmanifest" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/style.css" />
+</head>
+
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="assets/img/kb-logo.svg" alt="Komerční banka" class="brand-logo" />
+                <div class="brand-text">
+                    <h1>Report Layout Designer</h1>
+                </div>
+            </div>
+
+            <div class="sidebar-panels">
+                <section class="panel">
+                    <div class="panel-header">
+                        <h2>Šablona layoutu</h2>
+                        <button type="button" class="info-trigger" aria-label="Rozměry plátna">
+                            i
+                            <span class="tooltip" id="canvas-size-label" role="tooltip">Power BI plátno 1920 × 1080</span>
+                        </button>
+                    </div>
+                    <div class="template-selector" role="group" aria-label="Layout template">
+                        <button type="button" class="template-option active" data-template="FULL_HD">FULL HD</button>
+                        <button type="button" class="template-option" data-template="HD">HD</button>
+                    </div>
+
+                    <div class="panel-section row-limit-controls">
+                        <label for="slicers-per-row">Slicery na řádek</label>
+                        <select id="slicers-per-row">
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7" selected>7</option>
+                        </select>
+
+                        <label for="kpis-per-row">KPI na řádek</label>
+                        <select id="kpis-per-row">
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6" selected>6</option>
+                            <option value="7">7</option>
+                        </select>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <h2>Vybraný element</h2>
+                    <div id="no-selection" class="collapsible expanded">
+                        <div class="collapsible-inner">Klikněte na element v náhledu.</div>
+                    </div>
+
+                    <div id="selection-details" class="collapsible">
+                        <div class="collapsible-inner">
+                            <div><strong>Typ:</strong> <span id="sel-type"></span></div>
+                            <div><strong>Index:</strong> <span id="sel-index"></span></div>
+                            <div><strong>X:</strong> <span id="sel-x"></span> px</div>
+                            <div><strong>Y:</strong> <span id="sel-y"></span> px</div>
+                            <div><strong>Šířka:</strong> <span id="sel-width"></span> px</div>
+                            <div><strong>Výška:</strong> <span id="sel-height"></span> px</div>
+
+                            <div id="edit-width" class="edit-field collapsible">
+                                <div class="collapsible-inner">
+                                    <label>Upravit šířku: </label>
+                                    <input id="input-width" type="number" />
+                                    <button id="apply-width">Použít</button>
+                                </div>
+                            </div>
+
+                            <div id="edit-height" class="edit-field collapsible">
+                                <div class="collapsible-inner">
+                                    <label>Upravit výšku řady grafů:</label>
+                                    <input id="input-height" type="number" />
+                                    <button id="apply-height">Použít</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel add-elements">
+                    <h2>Přidání elementů</h2>
+                    <div class="button-group">
+                        <button id="add-slicer" class="full-btn">Slicer</button>
+                        <button id="add-kpi" class="full-btn">KPI</button>
+                    </div>
+                </section>
+            </div>
+
+            <div class="reset-layout-wrapper">
+                <button id="reset-layout" class="full-btn">Reset layoutu</button>
+            </div>
+        </aside>
+
+        <main class="main">
+            <h2>Náhled layoutu</h2>
+            <p class="hint">
+                Najetím myší na element se zobrazí tlačítka <strong>+</strong> a <strong>×</strong>.
+                Kliknutím na element zobrazíte jeho parametry v levém panelu.
+            </p>
+
+            <div id="canvas-wrapper">
+                <div id="canvas"></div>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+    <script type="module" src="assets/js/app.js"></script>
+</body>
+
+</html>
