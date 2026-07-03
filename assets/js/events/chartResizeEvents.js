@@ -22,7 +22,7 @@ function handlePointerMove(event) {
   if (!activeResize) return;
 
   const deltaPx = event.clientX - activeResize.startX;
-  const delta = Math.round(deltaPx / state.SCALE);
+  const delta = Math.round(deltaPx / state.EFFECTIVE_SCALE);
   const totalWidth = activeResize.startWidth + activeResize.startNextWidth;
   const minCurrent = state.MIN_CHART_WIDTH;
   const minNext = state.MIN_CHART_WIDTH;

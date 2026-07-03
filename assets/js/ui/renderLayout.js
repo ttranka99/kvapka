@@ -19,8 +19,30 @@ import { renderWarnings } from "../ui/warnings.js";
 
 const canvas = document.getElementById("canvas");
 
+// Clicking the empty canvas background deselects the current element.
+// Registered once here (not inside renderLayout) since the #canvas element
+// itself persists across renders — only its children are cleared and rebuilt.
+canvas.addEventListener("click", () => setSelected(null));
+
 function scale(v) {
-  return v * state.SCALE;
+  return v * state.EFFECTIVE_SCALE;
+}
+
+// Shrinks the render scale down from the base SCALE, if needed, so the canvas
+// fits within the available width of the .main content area. Never scales up
+// beyond the base SCALE. Floors at 0.12 so extremely narrow viewports still
+// render something usable (with horizontal scroll as a fallback).
+function computeEffectiveScale() {
+  const main = document.querySelector(".main");
+  if (!main) return state.SCALE;
+
+  const styles = getComputedStyle(main);
+  const paddingX = parseFloat(styles.paddingLeft || 0) + parseFloat(styles.paddingRight || 0);
+  const available = main.clientWidth - paddingX;
+  if (available <= 0) return state.SCALE;
+
+  const fitScale = available / state.CANVAS_WIDTH;
+  return Math.min(state.SCALE, Math.max(0.12, fitScale));
 }
 
 function clearCanvas() {
@@ -28,6 +50,7 @@ function clearCanvas() {
 }
 
 export function renderLayout() {
+  state.setEffectiveScale(computeEffectiveScale());
   clearCanvas();
   canvas.style.width = scale(state.CANVAS_WIDTH) + "px";
   canvas.style.height = scale(state.CANVAS_HEIGHT) + "px";
@@ -45,14 +68,14 @@ export function renderLayout() {
 
   const titleLabel = document.createElement("div");
   titleLabel.className = "canvas-element-label";
-  titleLabel.textContent = `Nadpis (${state.USABLE_WIDTH} × ${state.TITLE_HEIGHT})`;
+  titleLabel.textContent = `Hlavička (${state.USABLE_WIDTH} × ${state.TITLE_HEIGHT})`;
   title.appendChild(titleLabel);
 
   title.addEventListener("click", (e) => {
     e.stopPropagation();
     setSelected({
       kind: "title",
-      labelType: "Nadpis",
+      labelType: "Hlavička",
       x: state.MARGIN,
       y: v.TITLE_Y,
       width: state.USABLE_WIDTH,
@@ -236,6 +259,5 @@ export function renderLayout() {
     });
   });
 
-  canvas.addEventListener("click", () => setSelected(null), { once: true });
   renderWarnings();
 }

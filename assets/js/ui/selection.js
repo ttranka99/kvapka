@@ -17,14 +17,14 @@ export function setSelected(info) {
   state.setSelectedElement(info);
 
   if (!info) {
-    noSelectionEl.classList.remove("hidden");
-    selectionDetailsEl.classList.add("hidden");
+    noSelectionEl.classList.add("expanded");
+    selectionDetailsEl.classList.remove("expanded");
     document.querySelectorAll(".canvas-element").forEach(el => el.classList.remove("selected"));
     return;
   }
 
-  noSelectionEl.classList.add("hidden");
-  selectionDetailsEl.classList.remove("hidden");
+  noSelectionEl.classList.remove("expanded");
+  selectionDetailsEl.classList.add("expanded");
 
   selTypeEl.textContent = info.labelType;
   selIndexEl.textContent = info.labelIndex ?? "-";
@@ -33,21 +33,21 @@ export function setSelected(info) {
   selWidthEl.textContent = info.width;
   selHeightEl.textContent = info.height;
 
-  editWidthEl.classList.add("hidden");
-  editHeightEl.classList.add("hidden");
+  editWidthEl.classList.remove("expanded");
+  editHeightEl.classList.remove("expanded");
 
   if (info.kind === "slicer") {
-    editWidthEl.classList.remove("hidden");
+    editWidthEl.classList.add("expanded");
     inputWidth.value = info.width;
   }
 
   if (info.kind === "chartRow") {
-    editHeightEl.classList.remove("hidden");
+    editHeightEl.classList.add("expanded");
     inputHeight.value = info.height;
   }
 
   if (info.kind === "kpi") {
-    editWidthEl.classList.remove("hidden");
+    editWidthEl.classList.add("expanded");
     inputWidth.value = info.width;
   }
 

@@ -93,6 +93,14 @@ function initRowLimitControls() {
   });
 }
 
+function debounce(fn, waitMs) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), waitMs);
+  };
+}
+
 function start() {
   initState();
   initTemplateControls();
@@ -102,6 +110,7 @@ function start() {
   renderLayout();
   initResizeEvents();
   setSelected(null);
+  window.addEventListener("resize", debounce(renderLayout, 150));
 }
 
 window.addEventListener("DOMContentLoaded", start);

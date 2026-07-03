@@ -40,6 +40,11 @@ export let MIN_CHART_ROW_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.minChartRowHeight;
 export const MIN_CHART_WIDTH = 150;
 export let USABLE_WIDTH = CANVAS_WIDTH - 2 * MARGIN;
 export const SCALE = 0.4;
+// The scale actually used for rendering, after shrinking SCALE down (if needed)
+// to fit the canvas within the available viewport width. Kept in sync with
+// SCALE unless the viewport is too narrow. Read by renderLayout.js (drawing)
+// and chartResizeEvents.js (converting pointer drag deltas back to px).
+export let EFFECTIVE_SCALE = SCALE;
 export const MIN_COMPONENTS_PER_ROW = 4;
 export const MAX_COMPONENTS_PER_ROW = 7;
 export const SECOND_ROW_MAX_ITEMS = 7;
@@ -57,6 +62,7 @@ export function setKpis(v) { kpis = v; }
 export function setChartRows(v) { chartRows = v; }
 export function setSelectedElement(v) { selectedElement = v; }
 export function setWarnings(v) { warnings = v; }
+export function setEffectiveScale(v) { EFFECTIVE_SCALE = v; }
 
 function clampComponentsPerRow(v) {
   const value = Number.parseInt(v, 10);
@@ -89,6 +95,13 @@ export function setLayoutTemplate(templateKey) {
   USABLE_WIDTH = CANVAS_WIDTH - 2 * MARGIN;
 }
 
+// Clears manually-locked absolute pixel sizes (slicer/KPI widths, KPI heights,
+// chart widths, chart row heights). Locked sizes are absolute pixel values tied
+// to the canvas geometry at the time they were set (USABLE_WIDTH, CANVAS_HEIGHT,
+// per-row item counts). If the geometry changes afterwards — switching template,
+// or changing how many slicers/KPIs fit per row — those old absolute values can
+// exceed the new available space and render outside the canvas. Call this
+// whenever geometry changes so sizes recompute proportionally instead.
 export function resetSizingLocks() {
   slicers = slicers.map(s => ({ ...s, width: null, locked: false }));
   kpis = kpis.map(k => ({ ...k, width: null, height: null, locked: false }));
