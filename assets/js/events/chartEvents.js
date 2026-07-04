@@ -2,28 +2,29 @@ import * as state from "../state/state.js";
 import { setSelected } from "../ui/selection.js";
 import { addWarning } from "../ui/warnings.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
+import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { canAddChart } from "../layout/canAddChart.js";
 import { renderLayout } from "../ui/renderLayout.js";
 import { renderWarnings } from "../ui/warnings.js";
 
 // Add chart to the left
 export function handleAddChartLeft(rowIndex, itemIndex) {
-  // Simulate: unlock all charts, insert new chart
+  // Simulate: keep existing width-locked charts as-is; only the newly
+  // inserted chart starts unlocked. Unlocked charts (including the new one)
+  // redistribute the space left over after locked charts' widths are
+  // subtracted — see computeChartsLayout.js / canAddChart.js.
   const simulated = JSON.parse(JSON.stringify(state.chartRows));
   const simulatedRow = simulated[rowIndex];
-  
-  // Unlock all items in this row so they redistribute
-  simulatedRow.items = simulatedRow.items.map(item => ({ ...item, width: null, locked: false }));
-  
-  // Insert new chart
-  simulatedRow.items.splice(itemIndex, 0, {});
-  
+
+  // Insert new chart (unlocked)
+  simulatedRow.items.splice(itemIndex, 0, { width: null, locked: false });
+
   const vLayout = computeVerticalLayout();
   if (!canAddChart(simulated, vLayout)) {
     addWarning("Nedostatek prostoru pro přidání grafu");
     return;
   }
-  
+
   state.chartRows[rowIndex] = simulatedRow;
   state.setChartRows([...state.chartRows]);
   // Clear previous warnings and update UI since layout changed
@@ -34,22 +35,22 @@ export function handleAddChartLeft(rowIndex, itemIndex) {
 
 // Add chart to the right
 export function handleAddChartRight(rowIndex, itemIndex) {
-  // Simulate: unlock all charts, insert new chart
+  // Simulate: keep existing width-locked charts as-is; only the newly
+  // inserted chart starts unlocked. Unlocked charts (including the new one)
+  // redistribute the space left over after locked charts' widths are
+  // subtracted — see computeChartsLayout.js / canAddChart.js.
   const simulated = JSON.parse(JSON.stringify(state.chartRows));
   const simulatedRow = simulated[rowIndex];
-  
-  // Unlock all items in this row so they redistribute
-  simulatedRow.items = simulatedRow.items.map(item => ({ ...item, width: null, locked: false }));
-  
-  // Insert new chart
-  simulatedRow.items.splice(itemIndex + 1, 0, {});
-  
+
+  // Insert new chart (unlocked)
+  simulatedRow.items.splice(itemIndex + 1, 0, { width: null, locked: false });
+
   const vLayout = computeVerticalLayout();
   if (!canAddChart(simulated, vLayout)) {
     addWarning("Nelze přidat graf — všechny grafy by byly příliš malé.");
     return;
   }
-  
+
   state.chartRows[rowIndex] = simulatedRow;
   state.setChartRows([...state.chartRows]);
   // Clear previous warnings and update UI since layout changed
@@ -97,6 +98,33 @@ export function handleRemoveChart(rowIndex, itemIndex) {
 
   state.setChartRows(newRows);
   // Clear warnings after removal (previous warning may no longer apply)
+  state.setWarnings([]);
+  renderLayout();
+  renderWarnings();
+}
+
+// Toggle width-lock for a single chart. Locking freezes the chart's current
+// computed width so it's excluded from auto-redistribution when charts are
+// added/removed elsewhere in the row. This is independent of the chart row's
+// height lock (a separate, row-level concern handled in resizeEvents.js).
+// Unlocking clears the width back to auto so it resumes resizing with the row.
+export function handleToggleChartLock(rowIndex, itemIndex) {
+  const row = state.chartRows[rowIndex];
+  const item = row?.items?.[itemIndex];
+  if (!item) return;
+
+  if (item.locked) {
+    item.width = null;
+    item.locked = false;
+  } else {
+    const v = computeVerticalLayout();
+    const rowsLayout = computeChartsLayout(v);
+    const currentWidth = rowsLayout[rowIndex]?.[itemIndex]?.width;
+    item.width = currentWidth;
+    item.locked = true;
+  }
+
+  state.setChartRows([...state.chartRows]);
   state.setWarnings([]);
   renderLayout();
   renderWarnings();

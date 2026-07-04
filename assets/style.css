@@ -460,6 +460,13 @@ button:focus-visible {
   position: absolute;
 }
 
+/* Width-locked charts get a dashed brand-colored border so it's visible at a
+   glance which charts are excluded from auto width redistribution, without
+   needing to hover or select them first. */
+.canvas-element.chart.width-locked {
+  border: 1.5px dashed var(--color-primary);
+}
+
 .canvas-element.kpi {
   background: var(--bg-surface);
   border: 1px solid var(--border-light);
@@ -541,6 +548,60 @@ button:focus-visible {
 
 .element-controls button:hover {
   background: var(--color-primary);
+}
+
+/* Icon-based controls (currently just the chart width lock/unlock toggle).
+   Text-based controls (+/-/arrows) size themselves via font-size + line-height,
+   but an inline SVG needs explicit width/height or it renders at the SVG's
+   own intrinsic size. color: var(--text-white) feeds the icon's stroke via
+   currentColor so it matches the other controls without hardcoding it twice.
+
+   Shows the chart's *current* lock state by default; on hover, swaps to a
+   preview of what clicking will do (the opposite icon), so the button never
+   shows an icon that doesn't match reality until the user is about to act. */
+.element-controls button.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  color: var(--text-white);
+}
+
+.element-controls button.icon-btn svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.icon-btn .icon-default,
+.icon-btn .icon-hover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn .icon-hover {
+  display: none;
+}
+
+.icon-btn:hover .icon-default {
+  display: none;
+}
+
+.icon-btn:hover .icon-hover {
+  display: flex;
+}
+
+/* Applied right after a click causes a re-render while the cursor is still
+   resting on the (freshly-created) button — see renderLayout.js. Keeps
+   showing the current-state icon even though :hover matches, until the
+   user actually moves the cursor away and back (real mouseleave clears it). */
+.icon-btn.suppress-hover:hover .icon-default {
+  display: flex;
+}
+
+.icon-btn.suppress-hover:hover .icon-hover {
+  display: none;
 }
 
 .canvas-element-label {
