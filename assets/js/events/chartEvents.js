@@ -9,12 +9,18 @@ import { renderWarnings } from "../ui/warnings.js";
 
 // Add chart to the left
 export function handleAddChartLeft(rowIndex, itemIndex) {
-  // Simulate: keep existing width-locked charts as-is; only the newly
-  // inserted chart starts unlocked. Unlocked charts (including the new one)
-  // redistribute the space left over after locked charts' widths are
-  // subtracted — see computeChartsLayout.js / canAddChart.js.
+  // Simulate: keep truly locked charts as-is; every unlocked chart —
+  // including ones that were unlocked earlier and are still holding onto
+  // their old width (see handleToggleChartLock) — gets freed back to auto
+  // width here, at the moment of an actual structural change, so it can
+  // shrink and make room for the newly inserted chart. Unlocking alone
+  // never does this; only a real add/remove does.
   const simulated = JSON.parse(JSON.stringify(state.chartRows));
   const simulatedRow = simulated[rowIndex];
+
+  simulatedRow.items = simulatedRow.items.map(item =>
+    item.locked ? item : { ...item, width: null }
+  );
 
   // Insert new chart (unlocked)
   simulatedRow.items.splice(itemIndex, 0, { width: null, locked: false });
@@ -35,12 +41,18 @@ export function handleAddChartLeft(rowIndex, itemIndex) {
 
 // Add chart to the right
 export function handleAddChartRight(rowIndex, itemIndex) {
-  // Simulate: keep existing width-locked charts as-is; only the newly
-  // inserted chart starts unlocked. Unlocked charts (including the new one)
-  // redistribute the space left over after locked charts' widths are
-  // subtracted — see computeChartsLayout.js / canAddChart.js.
+  // Simulate: keep truly locked charts as-is; every unlocked chart —
+  // including ones that were unlocked earlier and are still holding onto
+  // their old width (see handleToggleChartLock) — gets freed back to auto
+  // width here, at the moment of an actual structural change, so it can
+  // shrink and make room for the newly inserted chart. Unlocking alone
+  // never does this; only a real add/remove does.
   const simulated = JSON.parse(JSON.stringify(state.chartRows));
   const simulatedRow = simulated[rowIndex];
+
+  simulatedRow.items = simulatedRow.items.map(item =>
+    item.locked ? item : { ...item, width: null }
+  );
 
   // Insert new chart (unlocked)
   simulatedRow.items.splice(itemIndex + 1, 0, { width: null, locked: false });
@@ -83,14 +95,27 @@ export function handleRemoveChart(rowIndex, itemIndex) {
   const rowItems = newRows[rowIndex].items;
 
   if (rowItems.length > 1) {
+    const remainingAfterRemoval = rowItems.filter((_, i) => i !== itemIndex);
+    const anyUnlockedRemaining = remainingAfterRemoval.some(item => !item.locked);
+
+    // If every chart left in the row would be locked, there'd be nothing
+    // flexible left to absorb the space the removed chart leaves behind —
+    // it would just sit there as a dead gap instead of the row filling back
+    // up. Block the removal and ask the user to unlock something first,
+    // rather than silently leaving that gap.
+    if (!anyUnlockedRemaining) {
+      addWarning("Nelze odebrat graf — nejprve odemkněte alespoň jeden graf v řadě.", "error");
+      return;
+    }
+
     // remove the item
     rowItems.splice(itemIndex, 1);
-    // Unlock all remaining charts in this row so they redistribute evenly
-    newRows[rowIndex].items = newRows[rowIndex].items.map(item => ({
-      ...item,
-      width: null,
-      locked: false
-    }));
+    // Free only the still-unlocked charts so they redistribute into the
+    // space left behind; truly locked charts keep their fixed width and
+    // position untouched.
+    newRows[rowIndex].items = newRows[rowIndex].items.map(item =>
+      item.locked ? item : { ...item, width: null, locked: false }
+    );
   } else if (newRows.length > 1) {
     // remove the whole row; other rows will recompute their widths
     newRows.splice(rowIndex, 1);
@@ -107,14 +132,22 @@ export function handleRemoveChart(rowIndex, itemIndex) {
 // computed width so it's excluded from auto-redistribution when charts are
 // added/removed elsewhere in the row. This is independent of the chart row's
 // height lock (a separate, row-level concern handled in resizeEvents.js).
-// Unlocking clears the width back to auto so it resumes resizing with the row.
+// Unlocking leaves the current width in place — it does not immediately
+// resume auto-resizing. It only rejoins the flexible pool the next time an
+// actual add/remove happens in its row (see handleAddChartLeft/Right/Row and
+// handleRemoveChart), which is what freshly frees up unlocked charts' widths.
 export function handleToggleChartLock(rowIndex, itemIndex) {
   const row = state.chartRows[rowIndex];
   const item = row?.items?.[itemIndex];
   if (!item) return;
 
   if (item.locked) {
-    item.width = null;
+    // Unlocking deliberately keeps the current width in place rather than
+    // nulling it — the chart's position/size shouldn't visibly jump just
+    // because it was unlocked. It stays put until something actually changes
+    // the row's item count (add/remove), which is what explicitly nulls
+    // every item's width in that row to force a fresh even redistribution
+    // (see handleAddChartLeft/Right/Row and handleRemoveChart above).
     item.locked = false;
   } else {
     const v = computeVerticalLayout();

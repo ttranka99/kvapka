@@ -14,8 +14,15 @@ export function computeChartsLayout(v) {
     const totalGaps = (n - 1) * state.GAP_SMALL;
     const availableWidth = state.USABLE_WIDTH - totalGaps;
 
+    // A chart keeps its current width if one is stored, whether or not it's
+    // still "locked" — unlocking a chart intentionally leaves its width in
+    // place (see handleToggleChartLock in chartEvents.js) so it doesn't
+    // visibly jump just from being unlocked. Only an explicit add/remove
+    // nulls out a row's widths to force a fresh even redistribution, so by
+    // the time this runs, "has a stored width" and "should stay fixed" are
+    // the same thing regardless of the locked flag.
     const fixedWidths = row.items.map(item => {
-      return item.locked && Number.isFinite(item.width) ? item.width : null;
+      return Number.isFinite(item.width) ? item.width : null;
     });
 
     const lockedCount = fixedWidths.filter(w => w !== null).length;

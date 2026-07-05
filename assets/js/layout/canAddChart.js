@@ -21,10 +21,17 @@ export function canAddChart(simulatedChartRows, vLayout) {
   for (const row of simulatedChartRows) {
     const itemCount = row.items.length;
     const gapsInRow = (itemCount - 1) * state.GAP_SMALL;
+
+    // Mirrors computeChartsLayout.js: any chart with a stored width is
+    // treated as fixed/reserved space, whether or not it's still "locked" —
+    // an unlocked-but-still-sized chart (see handleToggleChartLock in
+    // chartEvents.js) keeps its width until an actual add/remove nulls it
+    // out, so it can't be assumed to shrink down to MIN_CHART_WIDTH like a
+    // truly free chart can.
     const lockedSum = row.items
-      .filter(item => item.locked && Number.isFinite(item.width))
+      .filter(item => Number.isFinite(item.width))
       .reduce((sum, item) => sum + item.width, 0);
-    const unlockedCount = itemCount - row.items.filter(item => item.locked).length;
+    const unlockedCount = itemCount - row.items.filter(item => Number.isFinite(item.width)).length;
 
     const minWidthNeeded = lockedSum + unlockedCount * state.MIN_CHART_WIDTH + gapsInRow;
     if (minWidthNeeded > state.USABLE_WIDTH) {
