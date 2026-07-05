@@ -95,22 +95,55 @@ export function setLayoutTemplate(templateKey) {
   USABLE_WIDTH = CANVAS_WIDTH - 2 * MARGIN;
 }
 
-// Clears manually-locked absolute pixel sizes (slicer/KPI widths, KPI heights,
-// chart widths, chart row heights). Locked sizes are absolute pixel values tied
-// to the canvas geometry at the time they were set (USABLE_WIDTH, CANVAS_HEIGHT,
-// per-row item counts). If the geometry changes afterwards — switching template,
-// or changing how many slicers/KPIs fit per row — those old absolute values can
-// exceed the new available space and render outside the canvas. Call this
-// whenever geometry changes so sizes recompute proportionally instead.
-export function resetSizingLocks() {
+// --- Granular sizing-lock resets ---
+//
+// Historically there was a single resetSizingLocks() that wiped every
+// locked size (slicers, KPIs, chart widths, chart row heights) at once.
+// That's correct for a template switch, since it changes both CANVAS_WIDTH
+// (affecting horizontal locks: slicer/KPI/chart widths) and CANVAS_HEIGHT
+// (affecting chart row height locks) at the same time.
+//
+// But changing just "slicers per row" or "KPIs per row" only ever affects
+// MAX_SLICERS/MAX_KPIS — USABLE_WIDTH is untouched, so chart *widths* can
+// never overflow because of it. It can shift the vertical layout though
+// (more/fewer slicer or KPI rows changes chartsTop/chartsHeight), so chart
+// *row heights* can still legitimately need resetting. Calling the old
+// blanket resetSizingLocks() for a mere per-row-limit change was therefore
+// wiping chart width locks (and the charts' visual sizes) for no reason —
+// this split lets each caller reset only what its change could actually
+// invalidate.
+
+export function resetSlicerSizingLocks() {
   slicers = slicers.map(s => ({ ...s, width: null, locked: false }));
+}
+
+export function resetKpiSizingLocks() {
   kpis = kpis.map(k => ({ ...k, width: null, height: null, locked: false }));
+}
+
+export function resetChartWidthLocks() {
+  chartRows = chartRows.map(row => ({
+    ...row,
+    items: row.items.map(() => ({ width: null, locked: false }))
+  }));
+}
+
+export function resetChartRowHeightLocks() {
   chartRows = chartRows.map(row => ({
     ...row,
     height: null,
-    locked: false,
-    items: row.items.map(() => ({ width: null, locked: false }))
+    locked: false
   }));
+}
+
+// Full reset — use when CANVAS_WIDTH and/or CANVAS_HEIGHT themselves changed
+// (i.e. a template switch), since that can invalidate every kind of locked
+// size at once.
+export function resetSizingLocks() {
+  resetSlicerSizingLocks();
+  resetKpiSizingLocks();
+  resetChartWidthLocks();
+  resetChartRowHeightLocks();
 }
 
 // gettery pro computeVerticalLayout

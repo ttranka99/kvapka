@@ -515,6 +515,22 @@ button:focus-visible {
   transform: translate(-50%, -50%) translateX(4px);
 }
 
+/* Vertical alignment guide shown while a chart-width drag is "strong"
+   snapped to a slicer/KPI edge (see chartResizeEvents.js). Spans the full
+   canvas height so the alignment is unambiguous at a glance, Figma-style.
+   Deliberately a light, dotted grey hint rather than a bold solid line —
+   it's a subtle confirmation of alignment, not something that should compete
+   visually with the chart content itself. */
+.chart-snap-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px dotted var(--text-muted);
+  pointer-events: none;
+  z-index: 50;
+}
+
 .canvas-element.title {
   background: var(--bg-secondary);
   color: var(--text-primary);

@@ -74,7 +74,13 @@ function initTemplateControls() {
 function initRowLimitControls() {
   slicersPerRowSelect.addEventListener("change", () => {
     state.setMaxSlicers(slicersPerRowSelect.value);
-    state.resetSizingLocks();
+    // Only slicer widths and chart row heights can actually be invalidated
+    // by a slicers-per-row change (it can shift how much vertical space the
+    // slicer area takes, and therefore chartsHeight) — chart widths are
+    // unaffected since USABLE_WIDTH doesn't change, so their locks are left
+    // alone here.
+    state.resetSlicerSizingLocks();
+    state.resetChartRowHeightLocks();
     state.setWarnings([]);
     setSelected(null);
     syncRowLimitControls();
@@ -84,7 +90,9 @@ function initRowLimitControls() {
 
   kpisPerRowSelect.addEventListener("change", () => {
     state.setMaxKpis(kpisPerRowSelect.value);
-    state.resetSizingLocks();
+    // Same reasoning as above, for KPIs.
+    state.resetKpiSizingLocks();
+    state.resetChartRowHeightLocks();
     state.setWarnings([]);
     setSelected(null);
     syncRowLimitControls();
