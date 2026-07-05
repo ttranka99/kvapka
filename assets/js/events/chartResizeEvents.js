@@ -92,6 +92,7 @@ function finishResize() {
   window.removeEventListener("pointerup", activeResize.upHandler);
   window.removeEventListener("pointercancel", activeResize.upHandler);
   document.body.style.cursor = "default";
+  document.body.classList.remove("is-resizing-chart");
   updateSnapGuide(null);
   // Clear any stale warnings that may have been resolved by the resize
   state.setWarnings([]);
@@ -207,5 +208,14 @@ export function attachChartResizeHandle(handle, rowIndex, itemIndex, onResize) {
     window.addEventListener("pointerup", activeResize.upHandler);
     window.addEventListener("pointercancel", activeResize.upHandler);
     document.body.style.cursor = "ew-resize";
+    // #canvas is fully torn down and rebuilt on every width change during
+    // the drag (see project render model), which briefly removes and
+    // recreates every chart's hover controls each tick even though the
+    // cursor never actually left the chart — reading as a flicker. Since
+    // showing add/remove/lock controls mid-drag isn't useful anyway, this
+    // class just forces them hidden for the whole drag instead of letting
+    // them flash in and out on every rebuild (see .is-resizing-chart in
+    // style.css).
+    document.body.classList.add("is-resizing-chart");
   });
 }

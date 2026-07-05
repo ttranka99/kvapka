@@ -45,6 +45,31 @@ const UNLOCK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.5 0 25 
 <path d="M17 9.32001V7.32001C17 5.99392 16.4732 4.72217 15.5355 3.78448C14.5978 2.8468 13.3261 2.32001 12 2.32001" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
+// Directional arrow icons for the chart add-left/add-right/add-row-below
+// controls. Same thin-stroke, currentColor style as the lock icons above
+// (stroke-width 2.2, round caps/joins) so all icon-based controls read as
+// one consistent set instead of mixing plain unicode glyphs (←/→/↓) with a
+// hand-drawn lock icon.
+const ARROW_LEFT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+<path d="M19 12H5M11 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+const ARROW_RIGHT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+<path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+const ARROW_DOWN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+<path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+const REMOVE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+const ADD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
 // Clicking the empty canvas background deselects the current element.
 // Registered once here (not inside renderLayout) since the #canvas element
 // itself persists across renders — only its children are cleared and rebuilt.
@@ -134,7 +159,8 @@ export function renderLayout() {
       controls.className = "element-controls";
 
       const addBtn = document.createElement("button");
-      addBtn.textContent = "+";
+      addBtn.className = "icon-btn";
+      addBtn.innerHTML = ADD_ICON;
       addBtn.title = "Přidat slicer";
       addBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -142,7 +168,8 @@ export function renderLayout() {
       });
 
       const removeBtn = document.createElement("button");
-      removeBtn.textContent = "×";
+      removeBtn.className = "icon-btn";
+      removeBtn.innerHTML = REMOVE_ICON;
       removeBtn.title = "Odebrat slicer";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -184,7 +211,8 @@ export function renderLayout() {
       controls.className = "element-controls";
 
       const addBtn = document.createElement("button");
-      addBtn.textContent = "+";
+      addBtn.className = "icon-btn";
+      addBtn.innerHTML = ADD_ICON;
       addBtn.title = "Add KPI";
       addBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -192,7 +220,8 @@ export function renderLayout() {
       });
 
       const removeBtn = document.createElement("button");
-      removeBtn.textContent = "×";
+      removeBtn.className = "icon-btn";
+      removeBtn.innerHTML = REMOVE_ICON;
       removeBtn.title = "Remove KPI";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -239,7 +268,8 @@ export function renderLayout() {
       controls.className = "element-controls";
 
       const addLeftBtn = document.createElement("button");
-      addLeftBtn.textContent = "←";
+      addLeftBtn.className = "icon-btn";
+      addLeftBtn.innerHTML = ARROW_LEFT_ICON;
       addLeftBtn.title = "Přidat graf vlevo";
       addLeftBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -247,7 +277,8 @@ export function renderLayout() {
       });
 
       const addRightBtn = document.createElement("button");
-      addRightBtn.textContent = "→";
+      addRightBtn.className = "icon-btn";
+      addRightBtn.innerHTML = ARROW_RIGHT_ICON;
       addRightBtn.title = "Přidat graf vpravo";
       addRightBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -255,7 +286,8 @@ export function renderLayout() {
       });
 
       const addDownBtn = document.createElement("button");
-      addDownBtn.textContent = "↓";
+      addDownBtn.className = "icon-btn";
+      addDownBtn.innerHTML = ARROW_DOWN_ICON;
       addDownBtn.title = "Přidat řadu grafů pod";
       addDownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -291,7 +323,8 @@ export function renderLayout() {
       controls.appendChild(lockBtn);
 
       const removeBtn = document.createElement("button");
-      removeBtn.textContent = "×";
+      removeBtn.className = "icon-btn";
+      removeBtn.innerHTML = REMOVE_ICON;
       removeBtn.title = "Odebrat graf";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();

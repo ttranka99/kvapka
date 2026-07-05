@@ -559,6 +559,19 @@ button:focus-visible {
   opacity: 1;
 }
 
+/* While actively dragging a chart's resize handle, #canvas is rebuilt from
+   scratch on every tick (see project render model), which briefly clears
+   and recreates every chart's hover controls even though the cursor never
+   left the chart — reading as a flicker. Controls aren't useful mid-drag
+   anyway, so force them hidden for the whole drag instead (class toggled in
+   chartResizeEvents.js). !important is needed here since it must override
+   the :hover rule above, which would otherwise still apply to the chart
+   currently under the cursor. */
+body.is-resizing-chart .element-controls {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 .element-controls button {
   padding: 2px 6px;
   font-size: 10px;
