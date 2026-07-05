@@ -7,7 +7,7 @@ import { renderLayout } from "../ui/renderLayout.js";
 // Add KPI at index
 export function handleAddKpi(index) {
   if (state.kpis.length >= state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS) {
-    addWarning("Bylo dosaženo maximálního počtu KPI.");
+    addWarning("Bylo dosaženo maximálního počtu KPI.", "error");
     renderLayout();
     return;
   }

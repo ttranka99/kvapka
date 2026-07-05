@@ -1,6 +1,28 @@
 import * as state from "../state/state.js";
 import { addWarning } from "../ui/warnings.js";
 
+const MANUAL_WIDTH_SUM_ERROR = "Součet ručně nastavených šířek slicerů přesahuje dostupnou šířku.";
+const TIGHT_FIT_WARNING = "Nedostatek místa – některé slicery mohou být příliš úzké.";
+
+// Tracks which conditions this module has already surfaced a notification
+// for, independent of the toast's own 5s panel-timeout — see the identical
+// comment in computeKpiLayout.js / computeSlicersLayout.js.
+const activeConditions = new Set();
+
+function syncWarning(condition, msg, type) {
+  const trackedActive = activeConditions.has(msg) && state.warnings.includes(msg);
+
+  if (condition && !trackedActive) {
+    addWarning(msg, type);
+    activeConditions.add(msg);
+  } else if (!condition) {
+    if (state.warnings.includes(msg)) {
+      state.setWarnings(state.warnings.filter(w => w !== msg));
+    }
+    activeConditions.delete(msg);
+  }
+}
+
 export function computeSlicerRowWidths(rowSlicers) {
   const n = rowSlicers.length;
   if (n === 0) return [];
@@ -14,19 +36,22 @@ export function computeSlicerRowWidths(rowSlicers) {
 
   let remaining = state.USABLE_WIDTH - totalGaps - lockedSum;
 
-  if (remaining < 0) {
-    addWarning("Součet ručně nastavených šířek slicerů přesahuje dostupnou šířku.");
+  const manualWidthSumExceeded = remaining < 0;
+  syncWarning(manualWidthSumExceeded, MANUAL_WIDTH_SUM_ERROR, "error");
+  if (manualWidthSumExceeded) {
     remaining = 0;
   }
 
   const unlocked = rowSlicers.filter(s => !s.locked);
   const m = unlocked.length;
 
-  if (m === 0) return rowSlicers.map(s => s.width);
-
-  if (remaining < m * state.MIN_SLICER_WIDTH) {
-    addWarning("Nedostatek místa – některé slicery mohou být příliš úzké.");
+  if (m === 0) {
+    syncWarning(false, TIGHT_FIT_WARNING, "warning");
+    return rowSlicers.map(s => s.width);
   }
+
+  syncWarning(remaining < m * state.MIN_SLICER_WIDTH, TIGHT_FIT_WARNING, "warning");
+
   const base = Math.floor(remaining / m);
   let remainder = remaining % m;
 

@@ -21,7 +21,7 @@ export function handleAddChartLeft(rowIndex, itemIndex) {
 
   const vLayout = computeVerticalLayout();
   if (!canAddChart(simulated, vLayout)) {
-    addWarning("Nedostatek prostoru pro přidání grafu");
+    addWarning("Nedostatek prostoru pro přidání grafu", "error");
     return;
   }
 
@@ -47,7 +47,7 @@ export function handleAddChartRight(rowIndex, itemIndex) {
 
   const vLayout = computeVerticalLayout();
   if (!canAddChart(simulated, vLayout)) {
-    addWarning("Nelze přidat graf — všechny grafy by byly příliš malé.");
+    addWarning("Nelze přidat graf — všechny grafy by byly příliš malé.", "error");
     return;
   }
 
@@ -66,7 +66,7 @@ export function handleAddChartRow(rowIndex) {
 
   const vLayout = computeVerticalLayout();
   if (!canAddChart(simulated, vLayout)) {
-    addWarning("Nelze přidat další graf — uprav výšky řad grafů.");
+    addWarning("Nelze přidat další graf — uprav výšky řad grafů.", "error");
     return;
   }
 

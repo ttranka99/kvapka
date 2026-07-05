@@ -26,6 +26,13 @@
   --color-error: #d93025;
   --color-info: #2f80ed;
 
+  /* Light tints used as solid toast backgrounds, paired with the saturated
+     color above used for icon/text — lighter and easier on the eye than a
+     fully saturated fill, while still reading clearly per type at a glance. */
+  --color-warning-light: #fdf1dc;
+  --color-error-light: #fbe9e7;
+  --color-info-light: #e8f1fd;
+
   --radius-card: 8px;
   --radius-control: 6px;
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -654,15 +661,194 @@ button:focus-visible {
 }
 
 /* ----------------------------------------------------
+   NOTIFICATION BELL
+-----------------------------------------------------*/
+/* Icon-only by default — no visible button chrome (background/border/shadow)
+   until the user interacts with it, so it reads as a plain icon sitting in
+   the corner rather than a persistent button. */
+.notification-bell {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 1100;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.notification-bell svg {
+  width: 20px;
+  height: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Rounded button chrome only appears on hover/focus, or while the panel is
+   open (menu-open class, toggled in warnings.js) so it stays visibly
+   "pressed" for as long as the panel is showing. */
+.notification-bell:hover,
+.notification-bell:focus-visible,
+.notification-bell.menu-open {
+  background: var(--bg-surface);
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-card);
+  color: var(--color-primary);
+  outline: none;
+}
+
+/* While at least one notification is actively showing as a toast (not yet
+   resolved or moved into the panel), the bell gets a solid colored circle
+   with a white icon so a new push is hard to miss — then automatically
+   reverts to its normal resting color once nothing is actively showing
+   (renderBell() in warnings.js toggles this class). Takes precedence over
+   the plain hover/focus styling above. */
+.notification-bell.pulse-active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--text-white);
+  box-shadow: var(--shadow-card);
+}
+
+/* Small red dot shown on the bell when at least one notification exists.
+   Positioned to sit slightly over the bell icon's own strokes (not just in
+   the button's corner), so it reads as attached to the bell glyph itself
+   rather than floating in the button's empty padding. Hidden via
+   opacity/scale rather than removed from the DOM, so it can transition in/out
+   smoothly. */
+.notification-dot {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-error);
+  border: 1.5px solid var(--bg-app);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  z-index: 2;
+}
+
+.notification-bell.has-notifications .notification-dot {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ----------------------------------------------------
+   NOTIFICATION PANEL (opened by clicking the bell)
+-----------------------------------------------------*/
+.notification-panel {
+  position: fixed;
+  top: calc(var(--space-4) + 48px);
+  right: var(--space-4);
+  z-index: 1099;
+  width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+}
+
+.notification-panel.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.notification-panel-header {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-divider);
+}
+
+.notification-panel-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.notification-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-empty {
+  padding: var(--space-4);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-divider);
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notification-message {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+/* Type-specific icon colors, shared between toasts and the panel */
+.notification-info .notification-icon {
+  color: var(--color-info);
+}
+
+.notification-warning .notification-icon {
+  color: var(--color-warning);
+}
+
+.notification-error .notification-icon {
+  color: var(--color-error);
+}
+
+/* ----------------------------------------------------
    TOASTS
 -----------------------------------------------------*/
+/* Deliberately anchored at the exact same top/right coordinates as
+   .notification-bell. The bell sits on top (higher z-index), so the topmost
+   toast's right edge is visually tucked behind the bell — like the
+   notification pill is emerging from underneath it. Each toast reserves
+   enough right-side padding to stay clear of that hidden area, so its text
+   always renders in the visible left portion regardless of stack position. */
 .toast-container {
   position: fixed;
   top: var(--space-4);
   right: var(--space-4);
-  z-index: 1000;
+  z-index: 1050;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: var(--space-2);
   max-width: 360px;
   pointer-events: none;
@@ -671,33 +857,62 @@ button:focus-visible {
 .toast {
   pointer-events: auto;
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-left: 3px solid var(--color-warning);
-  border-radius: var(--radius-control);
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 40px;
+  box-sizing: border-box;
+  /* Extra right padding reserves space equal to roughly the bell's width so
+     text never sits underneath it, even for toasts stacked below the first. */
+  padding: 0 52px 0 var(--space-4);
+  border-radius: 20px;
   box-shadow: var(--shadow-card);
-  padding: var(--space-3) var(--space-4);
+  background: var(--color-warning-light);
+  color: var(--color-warning);
   animation: toast-in 0.2s ease-out;
+  transform-origin: top right;
 }
 
 .toast-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
-  margin-top: 1px;
-  color: var(--color-warning);
+  color: currentColor;
 }
 
 .toast-message {
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
-  line-height: 1.5;
+  font-weight: 500;
+  line-height: 1.4;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .toast-leaving {
-  animation: toast-out 0.18s ease-in forwards;
+  animation: toast-out 0.22s ease-in forwards;
+}
+
+/* Type variants — light tinted background per type (easier on the eye than
+   a fully saturated fill) with the saturated color reserved for the icon,
+   so each type still reads clearly at a glance. Message text stays a neutral
+   dark color across all types for readability. */
+.toast-info {
+  background: var(--color-info-light);
+  color: var(--color-info);
+}
+
+.toast-warning {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.toast-error {
+  background: var(--color-error-light);
+  color: var(--color-error);
 }
 
 @keyframes toast-in {
@@ -711,10 +926,12 @@ button:focus-visible {
   }
 }
 
+/* Shrinks/slides up-and-right toward the bell's position, so a resolved or
+   timed-out toast reads as sliding into the button rather than just fading. */
 @keyframes toast-out {
   to {
     opacity: 0;
-    transform: translateX(12px);
+    transform: scale(0.4) translateY(-10px);
   }
 }
 
@@ -724,6 +941,9 @@ button:focus-visible {
   .canvas-element,
   .template-option,
   .collapsible,
+  .notification-bell,
+  .notification-dot,
+  .notification-panel,
   #canvas,
   button {
     animation: none !important;
@@ -763,5 +983,11 @@ button:focus-visible {
     left: var(--space-4);
     right: var(--space-4);
     max-width: none;
+  }
+
+  .notification-panel {
+    left: var(--space-4);
+    right: var(--space-4);
+    width: auto;
   }
 }

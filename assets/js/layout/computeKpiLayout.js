@@ -1,21 +1,67 @@
 import * as state from "../state/state.js";
 import { addWarning } from "../ui/warnings.js";
 
+const MAX_PER_ROW_INFO = "Dosažen maximální počet KPI. Další KPI budou umístěny na další řádek.";
+const HARD_LIMIT_ERROR = "Dosaženo maximálního počtu KPI. Odeberte KPI.";
+const SECOND_ROW_LIMIT_WARNING = "Druhý řádek KPI překračuje vybraný limit.";
+const ROW1_MANUAL_WIDTH_SUM_ERROR = "The sum of manually set KPI widths exceeds the available width.";
+const ROW1_OVERFLOW_ERROR = "KPI se nevejdou do dostupné šířky – uprav šířky nebo odeber KPI.";
+const ROW2_MANUAL_WIDTH_SUM_ERROR = "The sum of manually set KPI widths on the second row exceeds the available width.";
+const ROW2_OVERFLOW_ERROR = "KPI se nevejdou do dostupné šířky – upravte šířku nebo odeberte KPI.";
+
+// Tracks which conditions this module has already surfaced a notification
+// for, independent of whether that notification has since timed out into the
+// bell's panel. This is the key difference from calling addWarning() every
+// render while a condition holds: addWarning() alone can't tell "this
+// condition just recurred after genuinely going away" apart from "this
+// condition never stopped being true, its toast simply timed out to the
+// panel on its own 5s schedule, and now some unrelated render happened to run
+// again" — both look identical from state.warnings' point of view (message
+// present, already moved to panel). Without this tracking, any unrelated
+// re-render (e.g. removing a different KPI) would re-call addWarning() for a
+// still-true condition and incorrectly pop its toast back up. With it, a
+// message is only (re-)added at the actual false→true transition.
+const activeConditions = new Set();
+
+function syncWarning(condition, msg, type) {
+  // Treat as "already accounted for" only if both our own tracking AND
+  // state.warnings agree it's still there — if something else (e.g. the
+  // Reset Layout button) wiped state.warnings directly, this falls back to
+  // false so the message can be freshly re-added instead of being silently
+  // considered handled.
+  const trackedActive = activeConditions.has(msg) && state.warnings.includes(msg);
+
+  if (condition && !trackedActive) {
+    addWarning(msg, type);
+    activeConditions.add(msg);
+  } else if (!condition) {
+    if (state.warnings.includes(msg)) {
+      state.setWarnings(state.warnings.filter(w => w !== msg));
+    }
+    activeConditions.delete(msg);
+  }
+  // condition && trackedActive → already surfaced for this occurrence and
+  // still true; deliberately do nothing, whatever state its toast/panel
+  // entry is currently in.
+}
+
 export function computeKpiLayout(v) {
-  const secondRowLimitWarning = "Druhý řádek KPI překračuje vybraný limit.";
-
-  if (state.kpis.length === state.MAX_KPIS) {
-    addWarning("Dosažen maximální počet KPI. Další KPI budou umístěny na další řádek.");
-  }
-
-  if (state.kpis.length > state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS) {
-    addWarning("Dosaženo maximálního počtu KPI. Odeberte KPI.");
-  }
-
-  state.setWarnings(state.warnings.filter(w => w !== secondRowLimitWarning));
+  syncWarning(state.kpis.length === state.MAX_KPIS, MAX_PER_ROW_INFO, "info");
+  syncWarning(
+    state.kpis.length > state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS,
+    HARD_LIMIT_ERROR,
+    "error"
+  );
 
   const n = state.kpis.length;
-  if (n === 0) return [];
+  if (n === 0) {
+    syncWarning(false, SECOND_ROW_LIMIT_WARNING, "warning");
+    syncWarning(false, ROW1_MANUAL_WIDTH_SUM_ERROR, "error");
+    syncWarning(false, ROW1_OVERFLOW_ERROR, "error");
+    syncWarning(false, ROW2_MANUAL_WIDTH_SUM_ERROR, "error");
+    syncWarning(false, ROW2_OVERFLOW_ERROR, "error");
+    return [];
+  }
 
   const row1 = state.kpis.slice(0, state.MAX_KPIS);
   const row2 = state.kpis.slice(
@@ -23,14 +69,13 @@ export function computeKpiLayout(v) {
     state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS
   );
 
-  if (row2.length > state.MAX_KPIS) {
-    addWarning(secondRowLimitWarning);
-  }
+  syncWarning(row2.length > state.MAX_KPIS, SECOND_ROW_LIMIT_WARNING, "warning");
 
   const totalGaps1 = (row1.length - 1) * state.GAP_SMALL;
   const totalGaps2 = (row2.length - 1) * state.GAP_SMALL;
 
   let widths1;
+  let row1ManualWidthSumExceeded = false;
   const anyLocked1 = row1.some(k => k.locked);
 
   // 0) If KPI count is 3 or fewer → fixed width 250
@@ -47,25 +92,25 @@ export function computeKpiLayout(v) {
     let remaining = state.USABLE_WIDTH - totalGaps1 - lockedSum;
 
     if (remaining < 0) {
-      addWarning("The sum of manually set KPI widths exceeds the available width.");
-      return [];
-    }
-
-    const unlocked = row1.filter(k => !k.locked);
-    const u = unlocked.length;
-
-    if (u === 0) {
-      widths1 = row1.map(k => k.width);
+      row1ManualWidthSumExceeded = true;
+      widths1 = [];
     } else {
-      const base = Math.floor(remaining / u);
-      let remainder = remaining % u;
+      const unlocked = row1.filter(k => !k.locked);
+      const u = unlocked.length;
 
-      widths1 = row1.map(k => {
-        if (k.locked) return k.width;
-        let w = base;
-        if (remainder > 0) { w += 1; remainder--; }
-        return w;
-      });
+      if (u === 0) {
+        widths1 = row1.map(k => k.width);
+      } else {
+        const base = Math.floor(remaining / u);
+        let remainder = remaining % u;
+
+        widths1 = row1.map(k => {
+          if (k.locked) return k.width;
+          let w = base;
+          if (remainder > 0) { w += 1; remainder--; }
+          return w;
+        });
+      }
     }
   }
 
@@ -98,14 +143,25 @@ export function computeKpiLayout(v) {
     }
   }
 
+  syncWarning(row1ManualWidthSumExceeded, ROW1_MANUAL_WIDTH_SUM_ERROR, "error");
+  if (row1ManualWidthSumExceeded) {
+    syncWarning(false, ROW1_OVERFLOW_ERROR, "error");
+    syncWarning(false, ROW2_MANUAL_WIDTH_SUM_ERROR, "error");
+    syncWarning(false, ROW2_OVERFLOW_ERROR, "error");
+    return [];
+  }
 
   const totalWidthRow1 = widths1.reduce((s, w) => s + w, 0) + totalGaps1;
-  if (totalWidthRow1 > state.USABLE_WIDTH) {
-    addWarning("KPI se nevejdou do dostupné šířky – uprav šířky nebo odeber KPI.");
+  const row1Overflows = totalWidthRow1 > state.USABLE_WIDTH;
+  syncWarning(row1Overflows, ROW1_OVERFLOW_ERROR, "error");
+  if (row1Overflows) {
+    syncWarning(false, ROW2_MANUAL_WIDTH_SUM_ERROR, "error");
+    syncWarning(false, ROW2_OVERFLOW_ERROR, "error");
     return [];
   }
 
   let widths2 = [];
+  let row2ManualWidthSumExceeded = false;
 
   if (row2.length > 0) {
     const n2 = row2.length;
@@ -122,7 +178,7 @@ export function computeKpiLayout(v) {
       let remaining2 = usable2 - lockedSum2;
 
       if (remaining2 < 0) {
-        addWarning("The sum of manually set KPI widths on the second row exceeds the available width.");
+        row2ManualWidthSumExceeded = true;
         remaining2 = 0;
       }
 
@@ -207,12 +263,12 @@ export function computeKpiLayout(v) {
     }
   }
 
-  const totalWidthRow2 = widths2.reduce((s, w) => s + w, 0) + totalGaps2;
-  if (totalWidthRow2 > state.USABLE_WIDTH) {
-    addWarning("KPI se nevejdou do dostupné šířky – upravte šířku nebo odeberte KPI.");
-    return [];
-  }
+  syncWarning(row2ManualWidthSumExceeded, ROW2_MANUAL_WIDTH_SUM_ERROR, "error");
 
+  const totalWidthRow2 = widths2.reduce((s, w) => s + w, 0) + totalGaps2;
+  const row2Overflows = totalWidthRow2 > state.USABLE_WIDTH;
+  syncWarning(row2Overflows, ROW2_OVERFLOW_ERROR, "error");
+  if (row2Overflows) return [];
 
   const rows = [];
 

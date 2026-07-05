@@ -18,7 +18,7 @@ const kpisPerRowSelect = document.getElementById("kpis-per-row");
 // in events/slicerEvents.js, used by the "+" controls on the canvas.
 function addSlicer() {
   if (state.slicers.length >= state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS) {
-    addWarning("Bylo dosaženo maximálního počtu slicerů.");
+    addWarning("Bylo dosaženo maximálního počtu slicerů.", "error");
     return;
   }
 
@@ -31,7 +31,7 @@ function addSlicer() {
 // in events/kpiEvents.js, used by the "+" controls on the canvas.
 function addKPI() {
   if (state.kpis.length >= state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS) {
-    addWarning("Bylo dosaženo maximálního počtu KPI.");
+    addWarning("Bylo dosaženo maximálního počtu KPI.", "error");
     return;
   }
 

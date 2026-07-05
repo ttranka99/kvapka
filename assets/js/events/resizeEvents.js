@@ -19,7 +19,7 @@ export function handleApplyWidth() {
 
   const val = parseInt(inputWidth.value, 10);
   if (isNaN(val) || val < 50) {
-    addWarning("Minimální šířka je 50px.");
+    addWarning("Minimální šířka je 50px.", "error");
     renderWarnings();
     return;
   }
@@ -48,7 +48,7 @@ export function handleApplyHeight() {
   if (state.selectedElement.kind === "kpi") {
     const val = parseInt(inputHeight.value, 10);
     if (isNaN(val) || val < state.KPI_MIN_HEIGHT) {
-      addWarning(`Minimální výška KPI je ${state.KPI_MIN_HEIGHT}px.`);
+      addWarning(`Minimální výška KPI je ${state.KPI_MIN_HEIGHT}px.`, "error");
       renderWarnings();
       return;
     }
@@ -64,7 +64,7 @@ export function handleApplyHeight() {
   if (state.selectedElement.kind === "chartRow") {
     const val = parseInt(inputHeight.value, 10);
     if (isNaN(val) || val < state.MIN_CHART_ROW_HEIGHT) {
-      addWarning(`Minimální výška řady grafů je ${state.MIN_CHART_ROW_HEIGHT}px.`);
+      addWarning(`Minimální výška řady grafů je ${state.MIN_CHART_ROW_HEIGHT}px.`, "error");
       renderWarnings();
       return;
     }
@@ -92,7 +92,7 @@ export function handleApplyHeight() {
     if (overflow) {
       row.height = originalHeight;
       row.locked = originalLocked;
-      addWarning("Zadaná výška se nevejde — uprav hodnotu.");
+      addWarning("Zadaná výška se nevejde — uprav hodnotu.", "error");
       renderWarnings();
       return;
     }
