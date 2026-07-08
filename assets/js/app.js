@@ -3,6 +3,7 @@ import { setSelected, initSelectionCopyButtons, initSelectionInlineEditing } fro
 import { addWarning, renderWarnings } from "./ui/warnings.js";
 import { initState } from "./state/initState.js";
 import { initResizeEvents } from "./events/resizeEvents.js";
+import { initExportEvents } from "./export/exportPowerBI.js";
 import { renderLayout } from "./ui/renderLayout.js";
 import * as state from "./state/state.js";
 
@@ -117,6 +118,7 @@ function start() {
   syncRowLimitControls();
   renderLayout();
   initResizeEvents();
+  initExportEvents();
   initSelectionCopyButtons();
   initSelectionInlineEditing();
   setSelected(null);
