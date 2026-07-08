@@ -44,6 +44,8 @@ export function setSelected(info) {
   if (info.kind === "chartRow") {
     editHeightEl.classList.add("expanded");
     inputHeight.value = info.height;
+    editWidthEl.classList.add("expanded");
+    inputWidth.value = info.width;
   }
 
   if (info.kind === "kpi") {

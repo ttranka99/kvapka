@@ -3,8 +3,10 @@ import { renderLayout } from "../ui/renderLayout.js";
 import { renderWarnings, addWarning } from "../ui/warnings.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
+import { canAddChart } from "../layout/canAddChart.js";
 import { setSelected } from "../ui/selection.js";
 import { initState } from "../state/initState.js";
+import { refreshSelectedChartAfterResize } from "./chartEvents.js";
 
 // DOM references
 const inputWidth = document.getElementById("input-width");
@@ -39,6 +41,47 @@ export function handleApplyWidth() {
     renderLayout();
     return;
   }
+
+  if (state.selectedElement.kind === "chartRow") {
+    if (val < state.MIN_CHART_WIDTH) {
+      addWarning(`Minimální šířka grafu je ${state.MIN_CHART_WIDTH}px.`, "error");
+      renderWarnings();
+      return;
+    }
+
+    const match = /^chart-(\d+)-(\d+)$/.exec(state.selectedElement.domId);
+    if (!match) return;
+    const rowIndex = Number(match[1]);
+    const itemIndex = Number(match[2]);
+
+    const rowsCopy = JSON.parse(JSON.stringify(state.chartRows));
+    const row = rowsCopy[rowIndex];
+    const otherItems = row.items.filter((_, i) => i !== itemIndex);
+
+    if (otherItems.length > 0 && !otherItems.some(item => !item.locked)) {
+      addWarning("Nelze upravit šířku grafu — nejprve odemkněte alespoň jeden další graf v řadě.", "error");
+      renderWarnings();
+      return;
+    }
+
+    row.items = row.items.map((item, i) => {
+      if (i === itemIndex) return { ...item, width: val, locked: true };
+      return item.locked ? item : { ...item, width: null, locked: false };
+    });
+
+    const vLayout = computeVerticalLayout();
+    if (!canAddChart(rowsCopy, vLayout)) {
+      addWarning("Zadaná šířka se nevejde — uprav hodnotu.", "error");
+      renderWarnings();
+      return;
+    }
+
+    state.setChartRows(rowsCopy);
+    state.setWarnings([]);
+    renderLayout();
+    refreshSelectedChartAfterResize();
+    return;
+  }
 }
 
 // Apply height
@@ -65,6 +108,20 @@ export function handleApplyHeight() {
     const val = parseInt(inputHeight.value, 10);
     if (isNaN(val) || val < state.MIN_CHART_ROW_HEIGHT) {
       addWarning(`Minimální výška řady grafů je ${state.MIN_CHART_ROW_HEIGHT}px.`, "error");
+      renderWarnings();
+      return;
+    }
+
+    const otherRows = state.chartRows.filter((_, i) => i !== state.selectedElement.rowIndex);
+
+    if (otherRows.length === 0) {
+      addWarning("Nelze upravit výšku — jediná řada grafů vždy vyplňuje celý dostupný prostor.", "error");
+      renderWarnings();
+      return;
+    }
+
+    if (!otherRows.some(r => !r.locked)) {
+      addWarning("Nelze upravit výšku řady — nejprve odemkněte alespoň jednu další řadu grafů.", "error");
       renderWarnings();
       return;
     }
