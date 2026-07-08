@@ -2,6 +2,7 @@ import * as state from "../state/state.js";
 import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { renderWarnings } from "../ui/warnings.js";
+import { refreshSelectedChartAfterResize } from "./chartEvents.js";
 
 let activeResize = null;
 
@@ -148,7 +149,11 @@ function handlePointerMove(event) {
 
   if (snappedEdge !== null) {
     // The chart's edge lands exactly on the slicer/KPI edge — flush, exact.
-    newCurrentWidth = snappedEdge - activeResize.itemStartX;
+    // Rounded because snappedEdge is derived from real DOM getBoundingClientRect()
+    // measurements divided by EFFECTIVE_SCALE, which can leave a sub-pixel
+    // float remainder (e.g. 710.0000762939453) that would otherwise get baked
+    // into state as a non-integer width.
+    newCurrentWidth = Math.round(snappedEdge - activeResize.itemStartX);
     isStrongSnapped = true;
   } else {
     const rounded = nearestMultipleOf5(newCurrentWidth);
@@ -199,6 +204,7 @@ function handlePointerMove(event) {
   // widths — only now can the two chart elements' real positions be read
   // back out to find the true gap midpoint.
   updateSnapGuide(isStrongSnapped ? computeGapMidpointScreen(activeResize.rowIndex, activeResize.itemIndex) : null);
+  refreshSelectedChartAfterResize();
 }
 
 function handlePointerUp() {

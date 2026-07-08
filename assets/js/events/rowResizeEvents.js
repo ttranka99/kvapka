@@ -2,6 +2,7 @@ import * as state from "../state/state.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
 import { renderWarnings } from "../ui/warnings.js";
+import { refreshSelectedChartAfterResize } from "./chartEvents.js";
 
 let activeRowResize = null;
 
@@ -76,6 +77,7 @@ function handleRowPointerMove(event) {
   rowB.locked = true;
 
   activeRowResize.onResize();
+  refreshSelectedChartAfterResize();
 }
 
 function handleRowPointerUp() {

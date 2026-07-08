@@ -3,6 +3,7 @@ import { setSelected } from "../ui/selection.js";
 import { addWarning } from "../ui/warnings.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartsLayout } from "../layout/computeChartsLayout.js";
+import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
 import { canAddChart } from "../layout/canAddChart.js";
 import { renderLayout } from "../ui/renderLayout.js";
 import { renderWarnings } from "../ui/warnings.js";
@@ -201,4 +202,31 @@ export function handleSelectChart(item, rowIndex, domId, heights) {
     domId,
     rowIndex
   });
+}
+
+// Re-syncs the selection panel (and the "selected" highlight) to a chart's
+// current geometry mid-drag. Resize handlers call this after mutating
+// state and re-rendering, so if the chart being dragged is also the one
+// currently selected, the panel doesn't go stale until the user re-clicks
+// it. Keys off the selected domId rather than the resize in progress, so
+// the same helper works for both width drags (own width changes) and
+// row-height drags (own row's height changes) without needing to know
+// which kind of resize triggered it.
+export function refreshSelectedChartAfterResize() {
+  const selected = state.selectedElement;
+  if (!selected || selected.kind !== "chartRow" || !selected.domId) return;
+
+  const match = /^chart-(\d+)-(\d+)$/.exec(selected.domId);
+  if (!match) return;
+
+  const rowIndex = Number(match[1]);
+  const itemIndex = Number(match[2]);
+
+  const v = computeVerticalLayout();
+  const chartsLayout = computeChartsLayout(v);
+  const heights = computeChartRowHeights(v);
+  const item = chartsLayout[rowIndex]?.[itemIndex];
+  if (!item) return;
+
+  handleSelectChart(item, rowIndex, selected.domId, heights);
 }
