@@ -540,6 +540,57 @@ button:focus-visible {
   opacity: 1;
 }
 
+/* Row-height resize handle — the vertical-axis counterpart to
+   .chart-resize-handle above, created only between adjacent chart rows (see
+   renderLayout.js), and only when a second row actually exists. Unlike the
+   chart-width handle, this one's hitbox spans the *entire* usable width
+   (left/width set inline to state.MARGIN/state.USABLE_WIDTH) so it can be
+   grabbed anywhere along the row boundary — but the visible grip icon is
+   still centered horizontally within that span via left:50% on the
+   pseudo-elements below, matching how the chart-width handle's grip is
+   centered within its own (much narrower) strip. */
+.row-resize-handle {
+  position: absolute;
+  height: 16px;
+  transform: translateY(-50%);
+  cursor: ns-resize;
+  background: transparent;
+  border-radius: 4px;
+  pointer-events: auto;
+  z-index: 40;
+  transition: background 0.12s ease-out;
+}
+
+.row-resize-handle:hover {
+  background: rgba(32, 33, 36, 0.12);
+}
+
+.row-resize-handle::before,
+.row-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 2px;
+  background: rgba(32, 33, 36, 0.55);
+  border-radius: 1px;
+  /* Symmetric around true center (-2px / +2px on the Y axis this time),
+     same reasoning as the chart-width handle's two dots. */
+  transform: translate(-50%, calc(-50% - 2px));
+  opacity: 0;
+  transition: opacity 0.12s ease-out;
+}
+
+.row-resize-handle::after {
+  transform: translate(-50%, calc(-50% + 2px));
+}
+
+.row-resize-handle:hover::before,
+.row-resize-handle:hover::after {
+  opacity: 1;
+}
+
 /* Vertical alignment guide shown while a chart-width drag is "strong"
    snapped to a slicer/KPI edge (see chartResizeEvents.js). Spans the full
    canvas height so the alignment is unambiguous at a glance, Figma-style.

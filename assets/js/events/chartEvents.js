@@ -74,6 +74,20 @@ export function handleAddChartRight(rowIndex, itemIndex) {
 // Add new chart row below
 export function handleAddChartRow(rowIndex) {
   const simulated = JSON.parse(JSON.stringify(state.chartRows));
+
+  // Free every existing row's height lock before inserting the new one.
+  // There's currently no way for the user to manually unlock a row's height
+  // (unlike chart width, which has a dedicated lock/unlock control) — so
+  // without this, any row that became height-locked (via the sidebar height
+  // editor, or the row-height drag handle, which locks both rows it touches)
+  // would permanently reserve its fixed share of the available height,
+  // making it impossible to ever add another row again even when there'd
+  // otherwise be plenty of total room once everything redistributed.
+  simulated.forEach(row => {
+    row.height = null;
+    row.locked = false;
+  });
+
   simulated.splice(rowIndex + 1, 0, { height: null, locked: false, items: [{}] });
 
   const vLayout = computeVerticalLayout();
@@ -119,6 +133,17 @@ export function handleRemoveChart(rowIndex, itemIndex) {
   } else if (newRows.length > 1) {
     // remove the whole row; other rows will recompute their widths
     newRows.splice(rowIndex, 1);
+
+    // Free the remaining rows' height locks too. Without this, a row that
+    // had become height-locked (via the sidebar height editor, or the
+    // row-height drag handle, which locks both rows it touches) would keep
+    // its old fixed height even though a whole row's worth of vertical
+    // space just freed up above/below it — leaving that freed space as a
+    // blank gap instead of the remaining row(s) expanding to fill it.
+    newRows.forEach(row => {
+      row.height = null;
+      row.locked = false;
+    });
   }
 
   state.setChartRows(newRows);

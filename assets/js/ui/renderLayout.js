@@ -15,6 +15,7 @@ import {
   handleToggleChartLock
 } from "../events/chartEvents.js";
 import { attachChartResizeHandle } from "../events/chartResizeEvents.js";
+import { attachRowResizeHandle } from "../events/rowResizeEvents.js";
 import { setSelected } from "../ui/selection.js";
 import { renderWarnings } from "../ui/warnings.js";
 
@@ -405,6 +406,37 @@ export function renderLayout() {
       canvas.appendChild(handle);
     });
   });
+
+  // Row-height resize handles: one per adjacent pair of chart rows, only
+  // when a second row actually exists (chartsLayout.length - 1 iterations —
+  // zero if there's only one row, which naturally skips creating any handle
+  // at all). Same canvas-sibling + real-DOM-rect approach as the chart-width
+  // handles above, just on the vertical axis: the handle spans the full
+  // usable width (grab anywhere along the row boundary) and is centered
+  // *horizontally* within that span via the grip dots in its CSS, matching
+  // how the chart-width handle's grip is centered within its own strip.
+  for (let rowIndex = 0; rowIndex < chartsLayout.length - 1; rowIndex++) {
+    const rowA = chartsLayout[rowIndex];
+    const rowB = chartsLayout[rowIndex + 1];
+    if (!rowA.length || !rowB.length) continue;
+
+    const aEl = document.getElementById(`chart-${rowIndex}-0`);
+    const bEl = document.getElementById(`chart-${rowIndex + 1}-0`);
+    if (!aEl || !bEl) continue;
+
+    const aRect = aEl.getBoundingClientRect();
+    const bRect = bEl.getBoundingClientRect();
+    const midScreenY = (aRect.bottom + bRect.top) / 2;
+
+    const rowHandle = document.createElement("div");
+    rowHandle.className = "row-resize-handle";
+    rowHandle.style.left = scale(state.MARGIN) + "px";
+    rowHandle.style.width = scale(state.USABLE_WIDTH) + "px";
+    rowHandle.style.top = (midScreenY - canvasRect.top) + "px";
+
+    attachRowResizeHandle(rowHandle, rowIndex, renderLayout);
+    canvas.appendChild(rowHandle);
+  }
 
   renderWarnings();
 }
