@@ -2,6 +2,8 @@ import * as state from "../state/state.js";
 import { setSelected } from "../ui/selection.js";
 import { addWarning } from "../ui/warnings.js";
 import { renderLayout } from "../ui/renderLayout.js";
+import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
+import { computeSlicersLayout } from "../layout/computeSlicersLayout.js";
 
 // Handle adding a slicer at a specific index
 export function handleAddSlicer(globalIndex) {
@@ -31,7 +33,7 @@ export function handleRemoveSlicer(globalIndex) {
 }
 
 // Handle clicking a slicer (selecting it)
-export function handleSelectSlicer(item, domId) {
+export function handleSelectSlicer(item, domId, opts = {}) {
   setSelected({
     kind: "slicer",
     labelType: "Slicer",
@@ -42,5 +44,23 @@ export function handleSelectSlicer(item, domId) {
     height: item.height,
     domId,
     stateRef: item.stateRef
-  });
+  }, opts);
+}
+
+// Re-syncs the selection panel to a slicer's current geometry after an edit
+// (e.g. after the Apply button changes its width and neighboring slicers
+// redistribute). Mirrors refreshSelectedChartAfterResize in chartEvents.js:
+// finds the freshly computed layout item for the currently-selected slicer
+// by stateRef (its position in the row can't have shifted, since applying a
+// width never adds/removes slicers) and re-selects it.
+export function refreshSelectedSlicerAfterEdit(preservePending = false) {
+  const selected = state.selectedElement;
+  if (!selected || selected.kind !== "slicer" || !selected.domId) return;
+
+  const v = computeVerticalLayout();
+  const rows = computeSlicersLayout(v);
+  const item = rows.flat().find(i => i.stateRef === selected.stateRef);
+  if (!item) return;
+
+  handleSelectSlicer(item, selected.domId, { preservePending });
 }

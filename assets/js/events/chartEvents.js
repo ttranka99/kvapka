@@ -190,7 +190,7 @@ export function handleToggleChartLock(rowIndex, itemIndex) {
 }
 
 // Select chart row
-export function handleSelectChart(item, rowIndex, domId, heights) {
+export function handleSelectChart(item, rowIndex, domId, heights, opts = {}) {
   setSelected({
     kind: "chartRow",
     labelType: "Řada grafů",
@@ -201,7 +201,7 @@ export function handleSelectChart(item, rowIndex, domId, heights) {
     height: heights[rowIndex],
     domId,
     rowIndex
-  });
+  }, opts);
 }
 
 // Re-syncs the selection panel (and the "selected" highlight) to a chart's
@@ -212,7 +212,7 @@ export function handleSelectChart(item, rowIndex, domId, heights) {
 // the same helper works for both width drags (own width changes) and
 // row-height drags (own row's height changes) without needing to know
 // which kind of resize triggered it.
-export function refreshSelectedChartAfterResize() {
+export function refreshSelectedChartAfterResize(preservePending = false) {
   const selected = state.selectedElement;
   if (!selected || selected.kind !== "chartRow" || !selected.domId) return;
 
@@ -228,5 +228,5 @@ export function refreshSelectedChartAfterResize() {
   const item = chartsLayout[rowIndex]?.[itemIndex];
   if (!item) return;
 
-  handleSelectChart(item, rowIndex, selected.domId, heights);
+  handleSelectChart(item, rowIndex, selected.domId, heights, { preservePending });
 }

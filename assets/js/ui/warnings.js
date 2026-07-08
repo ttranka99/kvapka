@@ -30,16 +30,41 @@ function toastId(msg) {
   return `toast-${Math.abs(hash)}`;
 }
 
+// Marks a message as having arrived in the panel, and — only for messages
+// opted into it via panelTtlMs (see addWarning) — schedules its full removal
+// some time after that. Everything else keeps the default "persists until
+// the underlying condition resolves" behavior; this is purely additive.
+function moveToPanel(msg) {
+  const m = meta.get(msg);
+  if (!m) return;
+
+  m.movedToPanel = true;
+  clearTimeout(m.expireTimerId);
+
+  if (m.panelTtlMs != null) {
+    m.expireTimerId = setTimeout(() => {
+      state.setWarnings(state.warnings.filter(w => w !== msg));
+      renderWarnings();
+    }, m.panelTtlMs);
+  }
+}
+
 function startTimeout(msg) {
   return setTimeout(() => {
-    const m = meta.get(msg);
-    if (m) m.movedToPanel = true;
+    moveToPanel(msg);
     renderWarnings();
   }, TIMEOUT_MS);
 }
 
 // type: "info" | "warning" | "error". Defaults to "warning" so existing call
 // sites that don't pass a type keep working unchanged.
+//
+// opts.panelTtlMs: if set, the message is fully removed (not just faded out
+// of the toast area) this many ms after it lands in the bell's panel — for
+// one-off confirmations (e.g. "copied to clipboard") that shouldn't linger
+// forever like every other warning here is designed to. Omit it (default)
+// to keep the normal "persists until the underlying condition resolves"
+// behavior.
 //
 // Callers that represent a *persistent condition* (e.g. "second row is over
 // the limit") are expected to call this again on every render for as long as
@@ -50,10 +75,12 @@ function startTimeout(msg) {
 // becomes true, false, then true again. That recurrence must re-surface the
 // toast rather than being silently ignored just because the message string
 // is still sitting in state.warnings from its first occurrence.
-export function addWarning(msg, type = "warning") {
+export function addWarning(msg, type = "warning", opts = {}) {
+  const { panelTtlMs = null } = opts;
+
   if (!state.warnings.includes(msg)) {
     state.setWarnings([...state.warnings, msg]);
-    meta.set(msg, { type, addedAt: Date.now(), movedToPanel: false, timerId: startTimeout(msg) });
+    meta.set(msg, { type, addedAt: Date.now(), movedToPanel: false, timerId: startTimeout(msg), expireTimerId: null, panelTtlMs });
     renderWarnings();
     return;
   }
@@ -64,8 +91,10 @@ export function addWarning(msg, type = "warning") {
   const m = meta.get(msg);
   if (m && m.movedToPanel) {
     clearTimeout(m.timerId);
+    clearTimeout(m.expireTimerId);
     m.movedToPanel = false;
     m.type = type;
+    m.panelTtlMs = panelTtlMs;
     m.timerId = startTimeout(msg);
     renderWarnings();
   }
@@ -80,6 +109,7 @@ function syncMeta() {
   for (const msg of Array.from(meta.keys())) {
     if (!state.warnings.includes(msg)) {
       clearTimeout(meta.get(msg).timerId);
+      clearTimeout(meta.get(msg).expireTimerId);
       meta.delete(msg);
     }
   }
@@ -154,10 +184,10 @@ function renderToasts() {
 // is opened.
 function collapseActiveToastsToPanel() {
   let changed = false;
-  meta.forEach(m => {
+  meta.forEach((m, msg) => {
     if (!m.movedToPanel) {
       clearTimeout(m.timerId);
-      m.movedToPanel = true;
+      moveToPanel(msg);
       changed = true;
     }
   });

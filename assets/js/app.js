@@ -1,5 +1,5 @@
 // assets/js/app.js
-import { setSelected } from "./ui/selection.js";
+import { setSelected, initSelectionCopyButtons, initSelectionInlineEditing } from "./ui/selection.js";
 import { addWarning, renderWarnings } from "./ui/warnings.js";
 import { initState } from "./state/initState.js";
 import { initResizeEvents } from "./events/resizeEvents.js";
@@ -117,6 +117,8 @@ function start() {
   syncRowLimitControls();
   renderLayout();
   initResizeEvents();
+  initSelectionCopyButtons();
+  initSelectionInlineEditing();
   setSelected(null);
   window.addEventListener("resize", debounce(renderLayout, 150));
 }

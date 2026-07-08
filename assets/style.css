@@ -330,36 +330,6 @@ body {
 }
 
 /* ----------------------------------------------------
-   EDIT FIELDS
------------------------------------------------------*/
-.edit-field .collapsible-inner {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding-top: var(--space-4);
-}
-
-.edit-field input {
-  width: 100%;
-  padding: var(--space-3);
-  border-radius: var(--radius-control);
-  border: 1px solid var(--border-medium);
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  font-size: 14px;
-}
-
-.edit-field input:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-  border-color: var(--color-primary);
-}
-
-.edit-field button {
-  align-self: flex-start;
-}
-
-/* ----------------------------------------------------
    BUTTONS (global)
 -----------------------------------------------------*/
 button {
@@ -388,8 +358,134 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
+/* Used by the selection panel's single Apply button: gray + inert while
+   there's nothing pending, and automatically back to the normal red button
+   look the moment it's re-enabled — no separate "dirty" class needed. */
+button:disabled {
+  background: var(--border-medium);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
 .hidden {
   display: none;
+}
+
+/* ----------------------------------------------------
+   SELECTION PANEL — geometry rows with copy-to-clipboard
+   and double-click-to-edit width/height
+-----------------------------------------------------*/
+.sel-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+}
+
+/* Marks the *first* button in a row's trailing icon-button cluster (the
+   lone copy button on X/Y rows; the pencil button on width/height rows).
+   Putting the auto margin here instead of on .copy-btn itself keeps the
+   whole cluster pinned together as a unit against the row's right edge —
+   if .copy-btn always had it, the pencil (with no auto margin of its own)
+   would be left behind at its natural, content-dependent position instead
+   of lining up in the same column between rows. */
+.push-right {
+  margin-left: auto;
+}
+
+.copy-btn:hover,
+.copy-btn:active {
+  background: var(--bg-secondary);
+  color: var(--color-primary);
+}
+
+.copy-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+/* Briefly shown after a successful copy (see selection.js), tinting the
+   swapped-in checkmark icon green instead of the default muted color. */
+.copy-btn.copy-btn-success {
+  color: var(--color-success);
+}
+
+/* Wraps a width/height value + its "px" unit. Plain text by default
+   (non-editable kinds, e.g. the title); gets the pointer cursor and dotted
+   underline only once JS marks it .is-editable for the current selection.
+   gap gives the unit its own breathing room — a bare whitespace text node
+   between two flex items isn't reliably preserved by every engine, so "px"
+   gets its own span+gap instead of relying on that whitespace. */
+.editable-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editable-value.is-editable {
+  cursor: pointer;
+}
+
+.editable-value.is-editable span:first-child {
+  border-bottom: 1px dashed var(--text-muted);
+}
+
+.editable-value.is-editable:hover span:first-child {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* Pencil button sits directly to the left of the copy button, in the same
+   visual style/size (it shares the .copy-btn class for that — padding,
+   colors, hover, and the 14px icon size all come from there) and carries
+   .push-right (see above) so the pencil+copy pair aligns as a unit. Hidden
+   by default, only visible once JS marks it .is-editable for the current
+   selection — not hover-gated, so editability is discoverable without
+   guessing. Uses visibility rather than display: an invisible-but-still-
+   laid-out pencil keeps its .push-right margin doing its job, so the copy
+   button next to it (and therefore the whole trailing cluster) stays in the
+   same column across rows instead of sliding left when there's no pencil. */
+.edit-pencil-btn {
+  visibility: hidden;
+}
+
+.edit-pencil-btn.is-editable {
+  visibility: visible;
+}
+
+.inline-edit-input {
+  width: 64px;
+  padding: 2px 6px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-primary);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+}
+
+/* Deliberately no focus outline ring here — the single subtle red border
+   above is already the "this is being edited" cue; adding a 2px outline on
+   top of it (which is focused immediately on open) read as two competing
+   borders stacked on a tiny control. */
+.inline-edit-input:focus-visible {
+  outline: none;
+}
+
+#apply-selection {
+  width: 100%;
+  margin-top: var(--space-2);
 }
 
 /* ----------------------------------------------------
