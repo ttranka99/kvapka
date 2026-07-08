@@ -60,7 +60,7 @@ export function handleAddChartRight(rowIndex, itemIndex) {
 
   const vLayout = computeVerticalLayout();
   if (!canAddChart(simulated, vLayout)) {
-    addWarning("Nelze přidat graf — všechny grafy by byly příliš malé.", "error");
+    addWarning("Nelze přidat graf, ostatní grafy by byly příliš malé.", "error");
     return;
   }
 
@@ -93,7 +93,7 @@ export function handleAddChartRow(rowIndex) {
 
   const vLayout = computeVerticalLayout();
   if (!canAddChart(simulated, vLayout)) {
-    addWarning("Nelze přidat další graf — uprav výšky řad grafů.", "error");
+    addWarning("Nelze přidat další graf, uprav výšky řad grafů.", "error");
     return;
   }
 
@@ -119,7 +119,7 @@ export function handleRemoveChart(rowIndex, itemIndex) {
     // up. Block the removal and ask the user to unlock something first,
     // rather than silently leaving that gap.
     if (!anyUnlockedRemaining) {
-      addWarning("Nelze odebrat graf — nejprve odemkněte alespoň jeden graf v řadě.", "error");
+      addWarning("Nelze odebrat graf, nejprve odemkněte alespoň jeden graf v řadě.", "error");
       return;
     }
 

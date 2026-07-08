@@ -65,7 +65,7 @@ function applyWidthValue(info, val) {
     const otherItems = row.items.filter((_, i) => i !== itemIndex);
 
     if (otherItems.length > 0 && !otherItems.some(item => !item.locked)) {
-      addWarning("Nelze upravit šířku grafu — nejprve odemkněte alespoň jeden další graf v řadě.", "error");
+      addWarning("Nelze upravit šířku grafu, nejprve odemkněte alespoň jeden další graf v řadě.", "error");
       renderWarnings();
       return;
     }
@@ -77,7 +77,7 @@ function applyWidthValue(info, val) {
 
     const vLayout = computeVerticalLayout();
     if (!canAddChart(rowsCopy, vLayout)) {
-      addWarning("Zadaná šířka se nevejde — uprav hodnotu.", "error");
+      addWarning("Zadaná šířka se nevejde, upravte hodnotu.", "error");
       renderWarnings();
       return;
     }
@@ -116,13 +116,13 @@ function applyHeightValue(info, val) {
     const otherRows = state.chartRows.filter((_, i) => i !== info.rowIndex);
 
     if (otherRows.length === 0) {
-      addWarning("Nelze upravit výšku — jediná řada grafů vždy vyplňuje celý dostupný prostor.", "error");
+      addWarning("Nelze upravit výšku, jediná řada grafů vždy vyplňuje celý dostupný prostor.", "error");
       renderWarnings();
       return;
     }
 
     if (!otherRows.some(r => !r.locked)) {
-      addWarning("Nelze upravit výšku řady — nejprve odemkněte alespoň jednu další řadu grafů.", "error");
+      addWarning("Nelze upravit výšku řady, nejprve odemkněte alespoň jednu další řadu grafů.", "error");
       renderWarnings();
       return;
     }
@@ -150,7 +150,7 @@ function applyHeightValue(info, val) {
     if (overflow) {
       row.height = originalHeight;
       row.locked = originalLocked;
-      addWarning("Zadaná výška se nevejde — uprav hodnotu.", "error");
+      addWarning("Zadaná výška se nevejde, upravte hodnotu.", "error");
       renderWarnings();
       return;
     }

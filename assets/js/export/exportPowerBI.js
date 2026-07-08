@@ -107,13 +107,13 @@ export function exportPowerBILayout() {
 
     if (visuals === null) {
       loadSnapshot(liveSnap);
-      alert(`Rozložení na stránce "${tabs[i].name}" obsahuje chyby (prvky se nevejdou na plátno) – před exportem je opravte.`);
+      alert(`Rozložení na stránce "${tabs[i].name}" obsahuje chyby (prvky se nevejdou na plátno), před exportem je opravte.`);
       return;
     }
 
     if (visuals.length === 0) {
       loadSnapshot(liveSnap);
-      alert(`Stránka "${tabs[i].name}" je prázdná – přidejte alespoň jeden prvek.`);
+      alert(`Stránka "${tabs[i].name}" je prázdná, přidejte alespoň jeden prvek.`);
       return;
     }
 
