@@ -80,21 +80,57 @@ function scale(v) {
   return v * state.EFFECTIVE_SCALE;
 }
 
-// Shrinks the render scale down from the base SCALE, if needed, so the canvas
-// fits within the available width of the .main content area. Never scales up
-// beyond the base SCALE. Floors at 0.12 so extremely narrow viewports still
-// render something usable (with horizontal scroll as a fallback).
+// Scales the canvas to fully fit the available space of the .main content
+// area — both width and height — instead of capping at the base SCALE. This
+// lets the canvas grow on large windows and shrink on small ones, so the
+// window can always show the whole layout with no scrollbars. Floors at 0.12
+// so extremely small windows still render something usable.
 function computeEffectiveScale() {
   const main = document.querySelector(".main");
-  if (!main) return state.SCALE;
+  const wrapper = document.getElementById("canvas-wrapper");
+  if (!main || !wrapper) return state.SCALE;
 
-  const styles = getComputedStyle(main);
-  const paddingX = parseFloat(styles.paddingLeft || 0) + parseFloat(styles.paddingRight || 0);
-  const available = main.clientWidth - paddingX;
-  if (available <= 0) return state.SCALE;
+  const mainStyles = getComputedStyle(main);
+  const wrapperStyles = getComputedStyle(wrapper);
+  const paddingX = parseFloat(mainStyles.paddingLeft || 0) + parseFloat(mainStyles.paddingRight || 0);
+  const wrapperPaddingX = parseFloat(wrapperStyles.paddingLeft || 0) + parseFloat(wrapperStyles.paddingRight || 0);
 
-  const fitScale = available / state.CANVAS_WIDTH;
-  return Math.min(state.SCALE, Math.max(0.12, fitScale));
+  // Below the responsive breakpoint (see the .app media query in style.css)
+  // the sidebar panels stack above the canvas instead of sitting beside it.
+  const stacked = getComputedStyle(document.querySelector(".app")).flexDirection === "column";
+
+  // main.clientWidth is unreliable once stacked: with flex-direction:column,
+  // .main's cross-axis (width) stretch can end up driven by its own content
+  // instead of the viewport — and that content is the canvas we're about to
+  // size, creating a circular dependency where a stale large canvas width
+  // keeps measuring a stale large "available" width forever. The document
+  // root's clientWidth reflects the true viewport (minus scrollbar) and
+  // isn't affected by that, so use it as the width basis while stacked.
+  const availableWidth = stacked
+    ? document.documentElement.clientWidth - paddingX - wrapperPaddingX
+    : main.clientWidth - paddingX - wrapperPaddingX;
+
+  if (availableWidth <= 0) return state.SCALE;
+  const fitScaleW = availableWidth / state.CANVAS_WIDTH;
+
+  // Fitting by height too in the stacked layout would starve the canvas
+  // down to almost nothing (the canvas-wrapper's top position is pushed far
+  // down the page by the stacked panels above it), so fit by width only and
+  // let the page scroll vertically to reach it.
+  if (stacked) return Math.max(0.12, fitScaleW);
+
+  const wrapperPaddingY = parseFloat(wrapperStyles.paddingTop || 0) + parseFloat(wrapperStyles.paddingBottom || 0);
+  const wrapperBorderY = parseFloat(wrapperStyles.borderTopWidth || 0) + parseFloat(wrapperStyles.borderBottomWidth || 0);
+  // The wrapper's top position already accounts for everything stacked above
+  // it (heading, hint text, tab bar, main's own top padding), so subtracting
+  // it from the viewport height gives exactly the room left below it.
+  const wrapperTop = wrapper.getBoundingClientRect().top;
+  const mainPaddingBottom = parseFloat(mainStyles.paddingBottom || 0);
+  const availableHeight = window.innerHeight - wrapperTop - wrapperPaddingY - wrapperBorderY - mainPaddingBottom;
+
+  if (availableHeight <= 0) return state.SCALE;
+  const fitScaleH = availableHeight / state.CANVAS_HEIGHT;
+  return Math.max(0.12, Math.min(fitScaleW, fitScaleH));
 }
 
 function clearCanvas() {
@@ -106,6 +142,12 @@ export function renderLayout() {
   clearCanvas();
   canvas.style.width = scale(state.CANVAS_WIDTH) + "px";
   canvas.style.height = scale(state.CANVAS_HEIGHT) + "px";
+  // Drives every generic element label's font-size (assets/style.css
+  // .canvas-element-label) so slicer/KPI/chart names scale with the canvas
+  // instead of staying a fixed size as the window grows or shrinks. Reproduces
+  // the previous fixed 10px at the base SCALE, clamped so it stays legible.
+  const labelFontSize = Math.max(6, Math.min(16, 10 * (state.EFFECTIVE_SCALE / state.SCALE)));
+  canvas.style.setProperty("--label-font-size", labelFontSize + "px");
 
   const v = computeVerticalLayout();
 
@@ -121,6 +163,14 @@ export function renderLayout() {
   const titleLabel = document.createElement("div");
   titleLabel.className = "canvas-element-label";
   titleLabel.textContent = `Hlavička (${state.USABLE_WIDTH} × ${state.TITLE_HEIGHT})`;
+  // The label's font size is otherwise a fixed 10px, but the title box's own
+  // height shrinks with the template (HD) and with a small EFFECTIVE_SCALE
+  // (narrow viewport), so at extreme zoom-out the text can be taller than
+  // the box itself and spill outside it. Scale the font with the box height
+  // instead, clamped so it never grows huge on a big canvas or shrinks below
+  // legibility on a tiny one.
+  const titleFontSize = Math.max(6, Math.min(11, scale(state.TITLE_HEIGHT) * 0.45));
+  titleLabel.style.fontSize = titleFontSize + "px";
   title.appendChild(titleLabel);
 
   title.addEventListener("click", (e) => {

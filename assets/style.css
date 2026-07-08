@@ -358,6 +358,19 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
+#export-layout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+#export-layout svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
 /* Used by the selection panel's single Apply button: gray + inert while
    there's nothing pending, and automatically back to the normal red button
    look the moment it's re-enabled — no separate "dirty" class needed. */
@@ -624,6 +637,44 @@ button:disabled {
   cursor: default;
 }
 
+.tab--new {
+  animation: tab-in 0.2s ease-out;
+}
+
+@keyframes tab-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.tab--renamed {
+  animation: tab-renamed-pulse 0.4s ease-out;
+}
+
+@keyframes tab-renamed-pulse {
+  from {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+  }
+}
+
+.tab--removing {
+  animation: tab-out 0.18s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes tab-out {
+  to {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
 /* ----------------------------------------------------
    CANVAS WRAPPER
 -----------------------------------------------------*/
@@ -635,7 +686,6 @@ button:disabled {
   box-shadow: var(--shadow-card);
   display: inline-block;
   max-width: 100%;
-  overflow-x: auto;
 }
 
 #canvas {
@@ -831,6 +881,7 @@ button:disabled {
   align-items: center;
   padding-left: var(--space-2);
   font-weight: 500;
+  overflow: hidden;
 }
 
 .canvas-element.selected {
@@ -936,7 +987,7 @@ body.is-resizing-chart .element-controls {
   position: absolute;
   bottom: 4px;
   left: 6px;
-  font-size: 10px;
+  font-size: var(--label-font-size, 10px);
   font-weight: 500;
   color: var(--text-secondary);
   opacity: 0.85;
@@ -944,6 +995,10 @@ body.is-resizing-chart .element-controls {
 
 .canvas-element.title .canvas-element-label {
   color: var(--text-primary);
+  right: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ----------------------------------------------------
@@ -1291,6 +1346,9 @@ body.is-resizing-chart .element-controls {
   .notification-bell,
   .notification-dot,
   .notification-panel,
+  .tab--new,
+  .tab--renamed,
+  .tab--removing,
   #canvas,
   button {
     animation: none !important;

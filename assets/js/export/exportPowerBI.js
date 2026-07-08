@@ -1,14 +1,20 @@
 // assets/js/export/exportPowerBI.js
 //
-// Exports the current layout as the content of a PBIR definition/pages
-// folder: pages.json + <pageHash>/page.json + one
-// <pageHash>/visuals/<hash>/visual.json per slicer, KPI and chart, zipped
-// for download.
+// Exports every tab as a page in a PBIR definition/pages folder: pages.json
+// (pageOrder + activePageName) + one <pageHash>/page.json +
+// <pageHash>/visuals/<hash>/visual.json per slicer, KPI and chart per page,
+// zipped for download.
 // Styling comes verbatim from visualTemplates.js; positions come from the
 // same pure layout functions the renderer uses. The header/title element is
 // intentionally not exported.
+//
+// The layout functions read live module state, but only the active tab's
+// live state is current — other tabs' layouts live in their snapshots
+// (state/tabs.js). So each tab's snapshot is loaded into live state in turn
+// to compute its geometry, and the original live state is restored after.
 
 import * as state from "../state/state.js";
+import { getTabs, getActiveTabIndex, captureSnapshot, loadSnapshot } from "../state/tabs.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeSlicersLayout } from "../layout/computeSlicersLayout.js";
 import { computeKpiLayout } from "../layout/computeKpiLayout.js";
@@ -86,52 +92,69 @@ function downloadBlob(blob, filename) {
 }
 
 export function exportPowerBILayout() {
-  const visuals = collectVisuals();
+  const tabs = getTabs();
+  const activeIndex = getActiveTabIndex();
+  const liveSnap = captureSnapshot(); // active tab's true current state
 
-  if (visuals === null) {
-    alert("Rozložení obsahuje chyby (prvky se nevejdou na plátno) – před exportem je opravte.");
-    return;
+  const pageOrder = [];
+  const files = [];
+  let activePageName = null;
+
+  for (let i = 0; i < tabs.length; i++) {
+    loadSnapshot(i === activeIndex ? liveSnap : tabs[i].snapshot);
+
+    const visuals = collectVisuals();
+
+    if (visuals === null) {
+      loadSnapshot(liveSnap);
+      alert(`Rozložení na stránce "${tabs[i].name}" obsahuje chyby (prvky se nevejdou na plátno) – před exportem je opravte.`);
+      return;
+    }
+
+    if (visuals.length === 0) {
+      loadSnapshot(liveSnap);
+      alert(`Stránka "${tabs[i].name}" je prázdná – přidejte alespoň jeden prvek.`);
+      return;
+    }
+
+    const pageName = genHash();
+    pageOrder.push(pageName);
+    if (i === activeIndex) activePageName = pageName;
+
+    const page = {
+      $schema: PAGE_SCHEMA,
+      name: pageName,
+      displayName: tabs[i].name,
+      displayOption: "FitToPage",
+      height: state.CANVAS_HEIGHT,
+      width: state.CANVAS_WIDTH
+    };
+
+    files.push({ path: `${pageName}/page.json`, data: JSON.stringify(page, null, 2) });
+
+    visuals.forEach((entry, n) => {
+      const visualJson = buildVisualJson(entry, n);
+      files.push({
+        path: `${pageName}/visuals/${visualJson.name}/visual.json`,
+        data: JSON.stringify(visualJson, null, 2)
+      });
+    });
   }
 
-  if (visuals.length === 0) {
-    alert("Není co exportovat – přidejte alespoň jeden prvek.");
-    return;
-  }
+  loadSnapshot(liveSnap); // restore the active tab's live state
 
-  const pageName = genHash();
-
-  const page = {
-    $schema: PAGE_SCHEMA,
-    name: pageName,
-    displayName: "Page 1",
-    displayOption: "FitToPage",
-    height: state.CANVAS_HEIGHT,
-    width: state.CANVAS_WIDTH
-  };
-
-  // pages.json registers the page — without it Power BI reports
-  // "ActivePageName not found" when the pasted page isn't listed.
+  // pages.json registers every page — without it Power BI reports
+  // "ActivePageName not found" when a pasted page isn't listed.
   const pages = {
     $schema: PAGES_SCHEMA,
-    pageOrder: [pageName],
-    activePageName: pageName
+    pageOrder,
+    activePageName
   };
 
-  const files = [
-    { path: "pages.json", data: JSON.stringify(pages, null, 2) },
-    { path: `${pageName}/page.json`, data: JSON.stringify(page, null, 2) }
-  ];
-
-  visuals.forEach((entry, n) => {
-    const visualJson = buildVisualJson(entry, n);
-    files.push({
-      path: `${pageName}/visuals/${visualJson.name}/visual.json`,
-      data: JSON.stringify(visualJson, null, 2)
-    });
-  });
+  files.unshift({ path: "pages.json", data: JSON.stringify(pages, null, 2) });
 
   const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-");
-  downloadBlob(createZip(files), `kb-layout-${state.activeTemplate}-${timestamp}.zip`);
+  downloadBlob(createZip(files), `kb-layout-${timestamp}.zip`);
 }
 
 export function initExportEvents() {

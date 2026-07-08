@@ -13,7 +13,7 @@ export function getActiveTabIndex() { return activeTabIndex; }
 
 const clone = v => JSON.parse(JSON.stringify(v));
 
-function captureSnapshot() {
+export function captureSnapshot() {
   return {
     slicers: clone(state.slicers),
     kpis: clone(state.kpis),
@@ -25,7 +25,7 @@ function captureSnapshot() {
   };
 }
 
-function loadSnapshot(snap) {
+export function loadSnapshot(snap) {
   state.setLayoutTemplate(snap.activeTemplate);
   state.setMaxSlicers(snap.maxSlicers);
   state.setMaxKpis(snap.maxKpis);

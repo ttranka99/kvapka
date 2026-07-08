@@ -13,7 +13,7 @@ export function initTabsUI(options) {
   renderTabBar();
 }
 
-export function renderTabBar() {
+export function renderTabBar(animate) {
   tabBarEl.innerHTML = "";
   const tabs = getTabs();
   const active = getActiveTabIndex();
@@ -23,6 +23,16 @@ export function renderTabBar() {
     tabEl.className = "tab" + (index === active ? " tab--active" : "");
     tabEl.setAttribute("role", "tab");
     tabEl.setAttribute("aria-selected", String(index === active));
+
+    // Only the tab that just changed gets the entry/highlight animation —
+    // the whole bar is torn down and rebuilt on every change (see project
+    // render model), so an animation on the base .tab class would replay on
+    // every tab, not just the one the user actually acted on.
+    if (animate && index === animate.index) {
+      const animClass = animate.type === "new" ? "tab--new" : "tab--renamed";
+      tabEl.classList.add(animClass);
+      tabEl.addEventListener("animationend", () => tabEl.classList.remove(animClass), { once: true });
+    }
 
     const label = document.createElement("span");
     label.className = "tab-label";
@@ -37,9 +47,28 @@ export function renderTabBar() {
       closeBtn.title = "Zavřít stránku";
       closeBtn.addEventListener("click", e => {
         e.stopPropagation();
-        const swapped = removeTab(index);
-        renderTabBar();
-        if (swapped) refreshUI();
+
+        const commitRemoval = () => {
+          const swapped = removeTab(index);
+          renderTabBar();
+          if (swapped) refreshUI();
+        };
+
+        // Unlike add/rename (which tag the *new* DOM after re-rendering),
+        // the closed tab is destroyed by the re-render, so it has to play
+        // its exit animation first and only then trigger the state change +
+        // rebuild — reversed order from the other two animations.
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          commitRemoval();
+          return;
+        }
+
+        let done = false;
+        const finish = () => { if (done) return; done = true; commitRemoval(); };
+        tabEl.classList.add("tab--removing");
+        closeBtn.disabled = true;
+        tabEl.addEventListener("animationend", finish, { once: true });
+        setTimeout(finish, 250); // safety net in case animationend doesn't fire
       });
       tabEl.appendChild(closeBtn);
     }
@@ -58,7 +87,7 @@ export function renderTabBar() {
   addBtn.title = "Přidat stránku";
   addBtn.disabled = tabs.length >= MAX_TABS;
   addBtn.addEventListener("click", () => {
-    if (addTab()) { renderTabBar(); refreshUI(); }
+    if (addTab()) { renderTabBar({ index: getActiveTabIndex(), type: "new" }); refreshUI(); }
   });
   tabBarEl.appendChild(addBtn);
 }
@@ -74,7 +103,7 @@ function startRename(tabEl, label, index) {
   input.select();
 
   let finished = false;   // guards against blur firing during DOM teardown
-  const commit = () => { if (finished) return; finished = true; renameTab(index, input.value); renderTabBar(); };
+  const commit = () => { if (finished) return; finished = true; renameTab(index, input.value); renderTabBar({ index, type: "renamed" }); };
   const cancel = () => { if (finished) return; finished = true; renderTabBar(); };
 
   input.addEventListener("blur", commit);
