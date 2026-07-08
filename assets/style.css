@@ -875,6 +875,32 @@ body.is-resizing-chart .element-controls {
   border-color: var(--color-primary);
 }
 
+.reset-layout-wrapper button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.reset-layout-wrapper button:disabled:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-medium);
+}
+
+.reset-layout-btn {
+  width: 100%;
+  background: var(--bg-surface);
+  color: var(--color-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  padding: var(--space-3) var(--space-4);
+  font-weight: 600;
+  margin-top: var(--space-3);
+}
+
+.reset-layout-btn:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
 /* ----------------------------------------------------
    NOTIFICATION BELL
 -----------------------------------------------------*/
