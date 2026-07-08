@@ -519,6 +519,112 @@ button:disabled {
 }
 
 /* ----------------------------------------------------
+   PAGE TABS
+-----------------------------------------------------*/
+.tab-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.tab:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-medium);
+}
+
+.tab--active,
+.tab--active:hover {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--text-white);
+}
+
+.tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 3px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.tab-close svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.tab-close:hover {
+  background: var(--border-medium);
+  color: var(--text-secondary);
+}
+
+.tab--active .tab-close {
+  color: var(--text-white);
+}
+
+.tab--active .tab-close:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: var(--text-white);
+}
+
+.tab-rename-input {
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  font-size: 13px;
+  padding: 2px var(--space-2);
+  width: 110px;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+}
+
+.tab-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.tab-add:hover:not(:disabled) {
+  background: var(--bg-secondary);
+}
+
+.tab-add:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ----------------------------------------------------
    CANVAS WRAPPER
 -----------------------------------------------------*/
 #canvas-wrapper {

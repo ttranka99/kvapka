@@ -1,10 +1,11 @@
 // assets/js/app.js
 import { setSelected, initSelectionCopyButtons, initSelectionInlineEditing } from "./ui/selection.js";
 import { addWarning, renderWarnings } from "./ui/warnings.js";
-import { initState } from "./state/initState.js";
 import { initResizeEvents } from "./events/resizeEvents.js";
 import { initExportEvents } from "./export/exportPowerBI.js";
 import { renderLayout } from "./ui/renderLayout.js";
+import { initTabs } from "./state/tabs.js";
+import { initTabsUI } from "./ui/tabs.js";
 import * as state from "./state/state.js";
 
 const addKpiBtn = document.getElementById("add-kpi");
@@ -102,6 +103,14 @@ function initRowLimitControls() {
   });
 }
 
+function refreshUIFromState() {
+  setSelected(null);
+  syncTemplateControls();
+  syncRowLimitControls();
+  renderLayout();
+  renderWarnings();
+}
+
 function debounce(fn, waitMs) {
   let timer;
   return (...args) => {
@@ -111,7 +120,8 @@ function debounce(fn, waitMs) {
 }
 
 function start() {
-  initState();
+  initTabs();
+  initTabsUI({ refreshUI: refreshUIFromState });
   initTemplateControls();
   initRowLimitControls();
   syncTemplateControls();
