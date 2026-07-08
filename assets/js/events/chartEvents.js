@@ -93,7 +93,7 @@ export function handleAddChartRow(rowIndex) {
 
   const vLayout = computeVerticalLayout();
   if (!canAddChart(simulated, vLayout)) {
-    addWarning("Nelze přidat další graf, uprav výšky řad grafů.", "error");
+    addWarning("Nelze přidat další graf, upravte výšky řad grafů.", "error");
     return;
   }
 
