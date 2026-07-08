@@ -11,40 +11,45 @@ let activeResize = null;
 // the same regardless of zoom/shrink level chosen for the tolerance itself.
 const SOFT_SNAP_TOLERANCE_PX = 2;
 
-// Strong snap: aligns the dragged edge with a slicer/KPI's left or right
-// edge. Tolerance is defined in *screen* px and converted to canvas px at
-// drag time (divided by EFFECTIVE_SCALE), so the catch radius feels
-// consistent under the pointer regardless of how much the canvas preview is
-// currently shrunk to fit the viewport.
+// Strong snap: aligns the dragged edge with a slicer/KPI's right edge.
+// Tolerance is defined in *screen* px and converted to canvas px at drag
+// time (divided by EFFECTIVE_SCALE), so the catch radius feels consistent
+// under the pointer regardless of how much the canvas preview is currently
+// shrunk to fit the viewport.
 const STRONG_SNAP_SCREEN_PX = 8;
 
 function nearestMultipleOf5(value) {
   return Math.round(value / 5) * 5;
 }
 
-// Reads the already-rendered slicer/KPI elements directly from the DOM to
-// get their right edges in canvas (unscaled) px, rather than calling
-// computeSlicersLayout()/computeKpiLayout() again ourselves — those functions
-// also drive the notification system as a side effect (see warnings.js), so
-// re-invoking them here just to read coordinates would risk redundant or
-// unwanted warning churn. Reading the DOM avoids that entirely and reflects
-// exactly what's currently on screen.
+function getCanvasRect() {
+  const canvas = document.getElementById("canvas");
+  return canvas ? canvas.getBoundingClientRect() : null;
+}
+
+// Reads the already-rendered slicer/KPI elements' true rendered geometry
+// (getBoundingClientRect, not a parsed style string) to get their right
+// edges in canvas (unscaled) px, relative to #canvas itself. Reading actual
+// rendered geometry rather than re-deriving it avoids any chance of a
+// mismatch between assumption and reality. Not calling
+// computeSlicersLayout()/computeKpiLayout() again ourselves is deliberate
+// too — those functions also drive the notification system as a side
+// effect (see warnings.js), so re-invoking them here just to read
+// coordinates would risk redundant or unwanted warning churn.
 //
 // Only the right edge is collected (not the left edge too): the handle being
 // dragged is always the right edge of "current"/left edge of "next", so the
 // only alignment that makes visual sense is against other elements' right
-// edges — snapping to a left edge would put the chart boundary flush with
-// where a slicer/KPI *starts*, not somewhere a person resizing would expect.
+// edges.
 function collectSnapEdgeTargets() {
   const targets = new Set();
+  const canvasRect = getCanvasRect();
+  if (!canvasRect) return [];
   const scale = state.EFFECTIVE_SCALE || 1;
 
   document.querySelectorAll("#canvas .canvas-element.slicer, #canvas .canvas-element.kpi").forEach(el => {
-    const left = parseFloat(el.style.left) / scale;
-    const width = parseFloat(el.style.width) / scale;
-    if (Number.isFinite(left) && Number.isFinite(width)) {
-      targets.add(Math.round(left + width));
-    }
+    const rect = el.getBoundingClientRect();
+    targets.add((rect.right - canvasRect.left) / scale);
   });
 
   return Array.from(targets);
@@ -65,24 +70,48 @@ function findNearestSnapEdge(boundaryX, targets, tolerancePx) {
   return nearest;
 }
 
-// Shows/hides the vertical alignment guide line while the dragged edge is
-// snapped to a slicer/KPI edge. Re-created on every call rather than reused,
-// since #canvas is fully torn down and rebuilt by renderLayout() on every
-// width change — any guide appended before that render is gone by the time
-// this runs again, so there's nothing stale to remove first.
-function updateSnapGuide(canvasX) {
+// Shows/hides the vertical alignment guide line, positioned at an exact
+// SCREEN px value relative to #canvas (no scale conversion happens in here
+// — the caller already provides a screen-space value). Re-created on every
+// call rather than reused, since #canvas is fully torn down and rebuilt by
+// renderLayout() on every width change — any guide appended before that
+// render is gone by the time this runs again, so there's nothing stale to
+// remove first.
+function updateSnapGuide(screenLeftPx) {
   const canvas = document.getElementById("canvas");
   if (!canvas) return;
 
   const existing = canvas.querySelector(".chart-snap-guide");
   if (existing) existing.remove();
 
-  if (canvasX == null) return;
+  if (screenLeftPx == null) return;
 
   const guide = document.createElement("div");
   guide.className = "chart-snap-guide";
-  guide.style.left = (canvasX * state.EFFECTIVE_SCALE) + "px";
+  guide.style.left = screenLeftPx + "px";
   canvas.appendChild(guide);
+}
+
+// Computes the guide's screen position by reading the ACTUAL rendered
+// bounding boxes of the current/next chart elements (getBoundingClientRect,
+// relative to #canvas), rather than parsing style strings or deriving it
+// from a GAP_SMALL-based formula. This is ground truth: it's correct
+// regardless of what layout logic produced those positions, border-box
+// sizing, or any other detail that a formula could get subtly wrong.
+function computeGapMidpointScreen(rowIndex, itemIndex) {
+  const canvasRect = getCanvasRect();
+  if (!canvasRect) return null;
+
+  const currentEl = document.getElementById(`chart-${rowIndex}-${itemIndex}`);
+  const nextEl = document.getElementById(`chart-${rowIndex}-${itemIndex + 1}`);
+  if (!currentEl || !nextEl) return null;
+
+  const currentRect = currentEl.getBoundingClientRect();
+  const nextRect = nextEl.getBoundingClientRect();
+  const currentRight = currentRect.right - canvasRect.left;
+  const nextLeft = nextRect.left - canvasRect.left;
+
+  return (currentRight + nextLeft) / 2;
 }
 
 function finishResize() {
@@ -115,11 +144,12 @@ function handlePointerMove(event) {
   const strongTolerance = STRONG_SNAP_SCREEN_PX / state.EFFECTIVE_SCALE;
   const snappedEdge = findNearestSnapEdge(boundaryX, activeResize.edgeTargets, strongTolerance);
 
-  let snappedGuideX = null;
+  let isStrongSnapped = false;
 
   if (snappedEdge !== null) {
+    // The chart's edge lands exactly on the slicer/KPI edge — flush, exact.
     newCurrentWidth = snappedEdge - activeResize.itemStartX;
-    snappedGuideX = snappedEdge;
+    isStrongSnapped = true;
   } else {
     const rounded = nearestMultipleOf5(newCurrentWidth);
     if (Math.abs(newCurrentWidth - rounded) <= SOFT_SNAP_TOLERANCE_PX) {
@@ -132,20 +162,20 @@ function handlePointerMove(event) {
   if (newCurrentWidth < minCurrent) {
     newCurrentWidth = minCurrent;
     newNextWidth = totalWidth - newCurrentWidth;
-    snappedGuideX = null; // clamping overrode the snap target
+    isStrongSnapped = false; // clamping overrode the snap target
   }
 
   if (newNextWidth < minNext) {
     newNextWidth = minNext;
     newCurrentWidth = totalWidth - newNextWidth;
-    snappedGuideX = null;
+    isStrongSnapped = false;
   }
 
   if (newCurrentWidth === activeResize.currentWidth && newNextWidth === activeResize.nextWidth) {
-    // Width didn't actually change this tick (e.g. still within the same
-    // snapped pixel) — still refresh the guide line in case snap state
-    // changed, but skip re-rendering the chart layout itself.
-    updateSnapGuide(snappedGuideX);
+    // Width didn't actually change this tick — the existing rendered chart
+    // elements are still accurate, so the guide (if any) can be recomputed
+    // from them without re-rendering the chart layout itself.
+    updateSnapGuide(isStrongSnapped ? computeGapMidpointScreen(activeResize.rowIndex, activeResize.itemIndex) : null);
     return;
   }
 
@@ -165,9 +195,10 @@ function handlePointerMove(event) {
   nextChart.locked = true;
 
   activeResize.onResize();
-  // onResize (renderLayout) just rebuilt #canvas from scratch, so the guide
-  // line has to be (re-)added after it, not before.
-  updateSnapGuide(snappedGuideX);
+  // onResize (renderLayout) just rebuilt #canvas from scratch with the new
+  // widths — only now can the two chart elements' real positions be read
+  // back out to find the true gap midpoint.
+  updateSnapGuide(isStrongSnapped ? computeGapMidpointScreen(activeResize.rowIndex, activeResize.itemIndex) : null);
 }
 
 function handlePointerUp() {

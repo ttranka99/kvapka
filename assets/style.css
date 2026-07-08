@@ -479,23 +479,38 @@ button:focus-visible {
   border: 1px solid var(--border-light);
 }
 
+/* The single element serving both as the actual drag hitbox AND the visible
+   affordance. left is set inline in renderLayout.js to the true computed
+   midpoint between this chart and the next one (getBoundingClientRect-based,
+   corrected for border width) — not a formula, and not anchored to this
+   chart's own edge. pointer-events stays "auto" unconditionally (not gated
+   behind the parent chart's :hover) specifically so it can sit centered in
+   the gap, potentially outside this chart's own box, and still be directly
+   hoverable/grabbable there — a child gated by the parent's :hover only
+   responds within the parent's own box, which a centered position may fall
+   outside of. Using this element's *own* :hover below keeps the visible cue
+   and the actual grabbable area permanently in the same place, since they're
+   now the same element instead of two separately-positioned ones. */
+/* Appended directly as a #canvas sibling (not nested inside a chart div —
+   see renderLayout.js), with left/top/height all set inline per-handle from
+   the actual rendered positions of the two charts it sits between. This is
+   the single element serving both as the real drag hitbox AND the visible
+   affordance; being a canvas sibling means there's no chart-parent
+   border/padding box-model to account for, unlike nesting it inside one. */
 .chart-resize-handle {
   position: absolute;
-  top: 0;
-  right: -3px;
-  width: 6px;
-  height: 100%;
+  width: 16px;
+  transform: translateX(-50%);
   cursor: ew-resize;
   background: transparent;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.12s ease-out, background 0.12s ease-out;
+  border-radius: 4px;
+  pointer-events: auto;
+  z-index: 40;
+  transition: background 0.12s ease-out;
 }
 
-.canvas-element.chart:hover .chart-resize-handle {
-  opacity: 1;
-  pointer-events: auto;
-  background: rgba(32, 33, 36, 0.06);
+.chart-resize-handle:hover {
+  background: rgba(32, 33, 36, 0.12);
 }
 
 .chart-resize-handle::before,
@@ -504,15 +519,25 @@ button:focus-visible {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
   width: 2px;
-  height: 14px;
-  background: rgba(32, 33, 36, 0.4);
+  height: 16px;
+  background: rgba(32, 33, 36, 0.55);
   border-radius: 1px;
+  /* Symmetric around the handle's true center (-2px / +2px), not one dot
+     exactly at center and the other offset from it — that would make the
+     pair's combined visual center land 2px off from the actual midpoint. */
+  transform: translate(calc(-50% - 2px), -50%);
+  opacity: 0;
+  transition: opacity 0.12s ease-out;
 }
 
 .chart-resize-handle::after {
-  transform: translate(-50%, -50%) translateX(4px);
+  transform: translate(calc(-50% + 2px), -50%);
+}
+
+.chart-resize-handle:hover::before,
+.chart-resize-handle:hover::after {
+  opacity: 1;
 }
 
 /* Vertical alignment guide shown while a chart-width drag is "strong"
@@ -525,8 +550,22 @@ button:focus-visible {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 0;
-  border-left: 2px dotted var(--text-muted);
+  width: 1px;
+  /* border-left drew the visible line starting AT `left` and extending
+     rightward from there — never actually centered on the midpoint value
+     it was given, just flush against it. translateX(-50%) centers the line
+     itself on `left` regardless of its own width, so it truly sits in the
+     middle of the gap instead of merely starting there. Using a repeating
+     gradient (not border-style:dotted) since a background can be centered
+     this way; a border can't. */
+  transform: translateX(-50%);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--text-muted) 0,
+    var(--text-muted) 2px,
+    transparent 2px,
+    transparent 5px
+  );
   pointer-events: none;
   z-index: 50;
 }

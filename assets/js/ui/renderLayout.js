@@ -334,12 +334,13 @@ export function renderLayout() {
       controls.appendChild(removeBtn);
       el.appendChild(controls);
 
-      if (i < row.length - 1) {
-        const resizeHandle = document.createElement("div");
-        resizeHandle.className = "chart-resize-handle";
-        attachChartResizeHandle(resizeHandle, rowIndex, i, renderLayout);
-        el.appendChild(resizeHandle);
-      }
+      // The resize handle for this pair (if any) is created in a dedicated
+      // pass after every chart in this render exists in the DOM — see
+      // below. It's appended directly to #canvas as a sibling of the chart
+      // elements, not as a child of this one; nesting it inside a chart div
+      // meant every position fix had to also account for that chart's own
+      // border/padding box-model, which is exactly where earlier attempts
+      // kept breaking.
 
       el.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -368,6 +369,40 @@ export function renderLayout() {
           lockBtn.classList.remove("suppress-hover");
         }, { once: true });
       }
+    });
+  });
+
+  // Create each row's resize handles as direct children of #canvas — the
+  // exact same coordinate system already used successfully for the snap
+  // guide line — instead of nesting them inside a chart div. Positioned
+  // using each pair's ACTUAL rendered bounding boxes (relative to canvas),
+  // which requires every chart element above to already exist in the DOM,
+  // hence this running as its own pass afterward rather than inline in the
+  // loop above.
+  const canvasRect = canvas.getBoundingClientRect();
+  chartsLayout.forEach((row, rowIndex) => {
+    row.forEach((item, i) => {
+      if (i >= row.length - 1) return;
+
+      const currentEl = document.getElementById(`chart-${rowIndex}-${i}`);
+      const nextEl = document.getElementById(`chart-${rowIndex}-${i + 1}`);
+      if (!currentEl || !nextEl) return;
+
+      const currentRect = currentEl.getBoundingClientRect();
+      const nextRect = nextEl.getBoundingClientRect();
+      const midScreen = (currentRect.right + nextRect.left) / 2;
+
+      const handle = document.createElement("div");
+      handle.className = "chart-resize-handle";
+      // Relative to #canvas, exactly like every other canvas child (title,
+      // slicers, KPIs, charts, the snap guide) — no chart-parent border or
+      // padding to account for, since this is no longer nested inside one.
+      handle.style.left = (midScreen - canvasRect.left) + "px";
+      handle.style.top = (currentRect.top - canvasRect.top) + "px";
+      handle.style.height = currentRect.height + "px";
+
+      attachChartResizeHandle(handle, rowIndex, i, renderLayout);
+      canvas.appendChild(handle);
     });
   });
 
