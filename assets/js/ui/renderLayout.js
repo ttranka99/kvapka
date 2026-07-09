@@ -163,13 +163,10 @@ export function renderLayout() {
   const titleLabel = document.createElement("div");
   titleLabel.className = "canvas-element-label";
   titleLabel.textContent = `Hlavička (${state.USABLE_WIDTH} × ${state.TITLE_HEIGHT})`;
-  // The label's font size is otherwise a fixed 10px, but the title box's own
-  // height shrinks with the template (HD) and with a small EFFECTIVE_SCALE
-  // (narrow viewport), so at extreme zoom-out the text can be taller than
-  // the box itself and spill outside it. Scale the font with the box height
-  // instead, clamped so it never grows huge on a big canvas or shrinks below
-  // legibility on a tiny one.
-  const titleFontSize = Math.max(6, Math.min(11, scale(state.TITLE_HEIGHT) * 0.45));
+  // Scale like every other element label, but also cap by the title box's own
+  // height (which shrinks with the template, e.g. HD) so at extreme zoom-out
+  // the text never grows taller than the box and spills outside it.
+  const titleFontSize = Math.min(labelFontSize, Math.max(6, scale(state.TITLE_HEIGHT) * 0.45));
   titleLabel.style.fontSize = titleFontSize + "px";
   title.appendChild(titleLabel);
 
