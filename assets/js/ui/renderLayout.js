@@ -53,29 +53,8 @@ const UNLOCK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.5 0 25 
 <path d="M17 9.32001V7.32001C17 5.99392 16.4732 4.72217 15.5355 3.78448C14.5978 2.8468 13.3261 2.32001 12 2.32001" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-// Directional arrow icons for the chart add-left/add-right/add-row-below
-// controls. Same thin-stroke, currentColor style as the lock icons above
-// (stroke-width 2.2, round caps/joins) so all icon-based controls read as
-// one consistent set instead of mixing plain unicode glyphs (←/→/↓) with a
-// hand-drawn lock icon.
-const ARROW_LEFT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-<path d="M19 12H5M11 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-
-const ARROW_RIGHT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-<path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-
-const ARROW_DOWN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-<path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-
 const REMOVE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
 <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-
-const ADD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
 // Clicking the empty canvas background deselects the current element.
@@ -142,6 +121,59 @@ function computeEffectiveScale() {
 
 function clearCanvas() {
   while (canvas.firstChild) canvas.removeChild(canvas.firstChild);
+}
+
+// Appends a hover-activated "+" control at an element edge or gap, replacing
+// the old always-visible arrow/add buttons. Three pieces, always appended in
+// this order so the CSS adjacent-sibling selectors (canvas-add-zone:hover +
+// canvas-add-btn, canvas-add-btn:hover + canvas-add-indicator) can reveal the
+// button on hovering its trigger and the indicator line on hovering the
+// button itself:
+//   1. `zone` (optional) — an invisible hover-trigger strip; omitted when an
+//      existing resize handle already occupies that exact spot, in which
+//      case the handle itself (already in the DOM immediately before this
+//      call) serves as the hover trigger instead.
+//   2. the circular "+" button.
+//   3. the insertion-indicator line (vertical or horizontal solid line).
+// All coordinates are final canvas-relative px (already scaled/adjusted by
+// the caller), matching how every other #canvas child is positioned.
+function appendEdgeAddControl({ zone, btnPos, indicator, onClick, title }) {
+  if (zone) {
+    const zoneEl = document.createElement("div");
+    zoneEl.className = "canvas-add-zone";
+    zoneEl.style.left = zone.left + "px";
+    zoneEl.style.top = zone.top + "px";
+    zoneEl.style.width = zone.width + "px";
+    zoneEl.style.height = zone.height + "px";
+    canvas.appendChild(zoneEl);
+  }
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "canvas-add-btn";
+  btn.textContent = "+";
+  btn.title = title;
+  btn.style.left = btnPos.x + "px";
+  btn.style.top = btnPos.y + "px";
+  // Never let a "+" click be mistaken for the start of a drag on the resize
+  // strip it sits on top of.
+  btn.addEventListener("pointerdown", (e) => e.stopPropagation());
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    onClick();
+  });
+  canvas.appendChild(btn);
+
+  const line = document.createElement("div");
+  line.className = `canvas-add-indicator canvas-add-indicator--${indicator.orientation}`;
+  line.style.left = indicator.left + "px";
+  line.style.top = indicator.top + "px";
+  if (indicator.orientation === "v") {
+    line.style.height = indicator.length + "px";
+  } else {
+    line.style.width = indicator.length + "px";
+  }
+  canvas.appendChild(line);
 }
 
 export function renderLayout() {
@@ -213,15 +245,6 @@ export function renderLayout() {
       const controls = document.createElement("div");
       controls.className = "element-controls";
 
-      const addBtn = document.createElement("button");
-      addBtn.className = "icon-btn";
-      addBtn.innerHTML = ADD_ICON;
-      addBtn.title = "Přidat slicer";
-      addBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        handleAddSlicer(item.globalIndex);
-      });
-
       const removeBtn = document.createElement("button");
       removeBtn.className = "icon-btn";
       removeBtn.innerHTML = REMOVE_ICON;
@@ -231,7 +254,6 @@ export function renderLayout() {
         handleRemoveSlicer(item.globalIndex);
       });
 
-      controls.appendChild(addBtn);
       controls.appendChild(removeBtn);
       el.appendChild(controls);
 
@@ -241,6 +263,21 @@ export function renderLayout() {
       });
 
       canvas.appendChild(el);
+
+      // Right-edge hover "+" — the only way to add another slicer now (see
+      // appendEdgeAddControl below).
+      appendEdgeAddControl({
+        zone: {
+          left: scale(item.x + item.width) - 8,
+          top: scale(item.y),
+          width: 16,
+          height: scale(item.height)
+        },
+        btnPos: { x: scale(item.x + item.width), y: scale(item.y + item.height / 2) },
+        indicator: { orientation: "v", left: scale(item.x + item.width), top: scale(item.y), length: scale(item.height) },
+        onClick: () => handleAddSlicer(item.globalIndex),
+        title: "Přidat slicer"
+      });
     });
   });
 
@@ -265,25 +302,15 @@ export function renderLayout() {
       const controls = document.createElement("div");
       controls.className = "element-controls";
 
-      const addBtn = document.createElement("button");
-      addBtn.className = "icon-btn";
-      addBtn.innerHTML = ADD_ICON;
-      addBtn.title = "Add KPI";
-      addBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        handleAddKpi(item.index);
-      });
-
       const removeBtn = document.createElement("button");
       removeBtn.className = "icon-btn";
       removeBtn.innerHTML = REMOVE_ICON;
-      removeBtn.title = "Remove KPI";
+      removeBtn.title = "Odebrat KPI";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         handleRemoveKpi(item.index);
       });
 
-      controls.appendChild(addBtn);
       controls.appendChild(removeBtn);
       el.appendChild(controls);
 
@@ -293,6 +320,20 @@ export function renderLayout() {
       });
 
       canvas.appendChild(el);
+
+      // Right-edge hover "+" — the only way to add another KPI now.
+      appendEdgeAddControl({
+        zone: {
+          left: scale(item.x + item.width) - 8,
+          top: scale(item.y),
+          width: 16,
+          height: scale(item.height)
+        },
+        btnPos: { x: scale(item.x + item.width), y: scale(item.y + item.height / 2) },
+        indicator: { orientation: "v", left: scale(item.x + item.width), top: scale(item.y), length: scale(item.height) },
+        onClick: () => handleAddKpi(item.index),
+        title: "Přidat KPI"
+      });
     });
   });
 
@@ -378,69 +419,11 @@ export function renderLayout() {
 
           const controls = document.createElement("div");
           controls.className = "element-controls";
-          const isFirst = s === 0;
-          const isLast = s === item.subCharts.length - 1;
 
-          // Only the first sub-chart carries the cell-level insert controls
-          // (left/right) — they act on the cell as a unit (its position
-          // within the row), so showing them on every sub-chart would be
-          // redundant. There's no whole-stack remove control: the stack has
-          // no size/identity of its own beyond its individual charts, so
-          // removal only makes sense per-chart (see the stack +/-/lock
-          // controls below, always present on every sub-chart). There's also
-          // no separate whole-stack width-lock control — the cell's width
-          // lock is derived from the sub-charts' own locks instead (see
-          // handleToggleStackLock in stackEvents.js): the column is
-          // width-locked while any sub-chart is locked, and unlocking every
-          // sub-chart frees the column's width again.
-          if (isFirst) {
-            const addLeftBtn = document.createElement("button");
-            addLeftBtn.className = "icon-btn";
-            addLeftBtn.innerHTML = ARROW_LEFT_ICON;
-            addLeftBtn.title = "Přidat graf vlevo";
-            addLeftBtn.addEventListener("click", (e) => {
-              e.stopPropagation();
-              handleAddChartLeft(rowIndex, i);
-            });
-
-            const addRightBtn = document.createElement("button");
-            addRightBtn.className = "icon-btn";
-            addRightBtn.innerHTML = ARROW_RIGHT_ICON;
-            addRightBtn.title = "Přidat graf vpravo";
-            addRightBtn.addEventListener("click", (e) => {
-              e.stopPropagation();
-              handleAddChartRight(rowIndex, i);
-            });
-
-            controls.appendChild(addLeftBtn);
-            controls.appendChild(addRightBtn);
-          }
-
-          // Only the last sub-chart carries "add row below" — it acts on
-          // the whole row, and visually sits closest to the row's bottom
-          // edge (where a new row would appear) on the last sub-chart.
-          if (isLast) {
-            const addDownBtn = document.createElement("button");
-            addDownBtn.className = "icon-btn";
-            addDownBtn.innerHTML = ARROW_DOWN_ICON;
-            addDownBtn.title = "Přidat řadu grafů pod";
-            addDownBtn.addEventListener("click", (e) => {
-              e.stopPropagation();
-              handleAddChartRow(rowIndex);
-            });
-            controls.appendChild(addDownBtn);
-          }
-
-          const stackAddBtn = document.createElement("button");
-          stackAddBtn.className = "icon-btn";
-          stackAddBtn.innerHTML = ADD_ICON;
-          stackAddBtn.title = "Přidat graf pod";
-          stackAddBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            handleAddStackChart(rowIndex, i, s);
-          });
-          controls.appendChild(stackAddBtn);
-
+          // Only lock and remove live in the top-right cluster now — adding
+          // a chart (left/right/row-below) or another stacked chart is done
+          // via the hover "+" on the relevant edge instead (see the
+          // add-control passes after all elements/handles exist below).
           const stackLockBtn = buildLockButton(
             stackEntry.locked,
             () => handleToggleStackLock(rowIndex, i, s),
@@ -472,6 +455,24 @@ export function renderLayout() {
           suppressHoverIfCursorOver(stackLockBtn);
         });
 
+        // Bottom-edge hover "+" for the stack — adds another stacked chart
+        // in this column. Placed a few px above the row boundary itself
+        // (rather than centered on it) so its hover zone doesn't overlap the
+        // full-width row-add "+"/row-resize-handle sitting on the boundary.
+        const stackBottomY = scale(item.y + item.height) - 10;
+        appendEdgeAddControl({
+          zone: {
+            left: scale(item.x),
+            top: stackBottomY - 7,
+            width: scale(item.width),
+            height: 14
+          },
+          btnPos: { x: scale(item.x + item.width / 2), y: stackBottomY },
+          indicator: { orientation: "h", left: scale(item.x), top: stackBottomY, length: scale(item.width) },
+          onClick: () => handleAddStackChart(rowIndex, i, item.subCharts.length - 1),
+          title: "Přidat graf pod"
+        });
+
         return;
       }
 
@@ -494,36 +495,10 @@ export function renderLayout() {
       const controls = document.createElement("div");
       controls.className = "element-controls";
 
-      const addLeftBtn = document.createElement("button");
-      addLeftBtn.className = "icon-btn";
-      addLeftBtn.innerHTML = ARROW_LEFT_ICON;
-      addLeftBtn.title = "Přidat graf vlevo";
-      addLeftBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        handleAddChartLeft(rowIndex, i);
-      });
-
-      const addRightBtn = document.createElement("button");
-      addRightBtn.className = "icon-btn";
-      addRightBtn.innerHTML = ARROW_RIGHT_ICON;
-      addRightBtn.title = "Přidat graf vpravo";
-      addRightBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        handleAddChartRight(rowIndex, i);
-      });
-
-      const addDownBtn = document.createElement("button");
-      addDownBtn.className = "icon-btn";
-      addDownBtn.innerHTML = ARROW_DOWN_ICON;
-      addDownBtn.title = "Přidat řadu grafů pod";
-      addDownBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        handleAddChartRow(rowIndex);
-      });
-
-      controls.appendChild(addLeftBtn);
-      controls.appendChild(addRightBtn);
-      controls.appendChild(addDownBtn);
+      // Only lock and remove live in the top-right cluster now — adding a
+      // chart (left/right/row-below) is done via the hover "+" on the
+      // relevant edge instead (see the add-control passes after all
+      // elements/handles exist below).
 
       // Lock/unlock the chart's width. Locking freezes its current width so
       // it's excluded from auto-redistribution when siblings are added or
@@ -584,10 +559,13 @@ export function renderLayout() {
     });
   });
 
-  // Horizontal drag handles between adjacent charts within a vertical stack
-  // — the stack counterpart of the chart-width/row-height handle passes
-  // below. Skipped for a pair when either neighbor is height-locked, since
-  // there'd be nothing left to redistribute the drag into on that side.
+  // Horizontal drag handles (+ hover "+" add-controls) between adjacent
+  // charts within a vertical stack — the stack counterpart of the
+  // chart-width/row-height passes below. The drag handle itself is skipped
+  // for a pair when either neighbor is height-locked (nothing left to
+  // redistribute the drag into), but the add-control still appears either
+  // way — adding a stacked chart there doesn't depend on either neighbor's
+  // lock state — via its own hover zone when no handle exists to serve as one.
   chartsLayout.forEach((row, rowIndex) => {
     row.forEach((item, i) => {
       if (!item.subCharts) return;
@@ -595,8 +573,6 @@ export function renderLayout() {
       const canvasRect = canvas.getBoundingClientRect();
 
       for (let s = 0; s < item.subCharts.length - 1; s++) {
-        if (chartStateItem.stack[s].locked || chartStateItem.stack[s + 1].locked) continue;
-
         const currentEl = document.getElementById(`chart-${rowIndex}-${i}-${s}`);
         const nextEl = document.getElementById(`chart-${rowIndex}-${i}-${s + 1}`);
         if (!currentEl || !nextEl) continue;
@@ -604,15 +580,30 @@ export function renderLayout() {
         const currentRect = currentEl.getBoundingClientRect();
         const nextRect = nextEl.getBoundingClientRect();
         const midScreenY = (currentRect.bottom + nextRect.top) / 2;
+        const left = currentRect.left - canvasRect.left;
+        const top = midScreenY - canvasRect.top;
+        const width = currentRect.width;
 
-        const handle = document.createElement("div");
-        handle.className = "stack-resize-handle";
-        handle.style.left = (currentRect.left - canvasRect.left) + "px";
-        handle.style.width = currentRect.width + "px";
-        handle.style.top = (midScreenY - canvasRect.top) + "px";
+        const draggable = !chartStateItem.stack[s].locked && !chartStateItem.stack[s + 1].locked;
+        let handle = null;
+        if (draggable) {
+          handle = document.createElement("div");
+          handle.className = "stack-resize-handle";
+          handle.style.left = left + "px";
+          handle.style.width = width + "px";
+          handle.style.top = top + "px";
 
-        attachStackResizeHandle(handle, rowIndex, i, s, renderLayout);
-        canvas.appendChild(handle);
+          attachStackResizeHandle(handle, rowIndex, i, s, renderLayout);
+          canvas.appendChild(handle);
+        }
+
+        appendEdgeAddControl({
+          zone: handle ? null : { left, top: top - 7, width, height: 14 },
+          btnPos: { x: left + width / 2, y: top },
+          indicator: { orientation: "h", left, top, length: width },
+          onClick: () => handleAddStackChart(rowIndex, i, s),
+          title: "Přidat graf pod"
+        });
       }
     });
   });
@@ -627,6 +618,44 @@ export function renderLayout() {
   const canvasRect = canvas.getBoundingClientRect();
   chartsLayout.forEach((row, rowIndex) => {
     row.forEach((item, i) => {
+      // Left edge of the first chart in the row — a "+" here adds a chart to
+      // its left. There's nothing to its left to drag against, so this
+      // always gets its own hover zone rather than reusing a resize handle.
+      if (i === 0) {
+        const el = document.getElementById(`chart-${rowIndex}-0`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const left = rect.left - canvasRect.left;
+          const top = rect.top - canvasRect.top;
+          appendEdgeAddControl({
+            zone: { left: left - 8, top, width: 16, height: rect.height },
+            btnPos: { x: left, y: top + rect.height / 2 },
+            indicator: { orientation: "v", left, top, length: rect.height },
+            onClick: () => handleAddChartLeft(rowIndex, 0),
+            title: "Přidat graf vlevo"
+          });
+        }
+      }
+
+      // Right edge of the last chart in the row — same idea, mirrored. Note
+      // a single-chart row hits both this branch and the one above for the
+      // same chart, correctly showing a "+" on each of its two edges.
+      if (i === row.length - 1) {
+        const el = document.getElementById(`chart-${rowIndex}-${i}`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const left = rect.right - canvasRect.left;
+          const top = rect.top - canvasRect.top;
+          appendEdgeAddControl({
+            zone: { left: left - 8, top, width: 16, height: rect.height },
+            btnPos: { x: left, y: top + rect.height / 2 },
+            indicator: { orientation: "v", left, top, length: rect.height },
+            onClick: () => handleAddChartRight(rowIndex, i),
+            title: "Přidat graf vpravo"
+          });
+        }
+      }
+
       if (i >= row.length - 1) return;
 
       const currentEl = document.getElementById(`chart-${rowIndex}-${i}`);
@@ -648,6 +677,21 @@ export function renderLayout() {
 
       attachChartResizeHandle(handle, rowIndex, i, renderLayout);
       canvas.appendChild(handle);
+
+      // Single shared "+" for the gap between these two charts — reuses the
+      // resize handle above as its hover trigger (see appendEdgeAddControl).
+      appendEdgeAddControl({
+        zone: null,
+        btnPos: { x: midScreen - canvasRect.left, y: (currentRect.top + currentRect.bottom) / 2 - canvasRect.top },
+        indicator: {
+          orientation: "v",
+          left: midScreen - canvasRect.left,
+          top: currentRect.top - canvasRect.top,
+          length: currentRect.height
+        },
+        onClick: () => handleAddChartRight(rowIndex, i),
+        title: "Přidat graf vpravo"
+      });
     });
   });
 
@@ -680,6 +724,50 @@ export function renderLayout() {
 
     attachRowResizeHandle(rowHandle, rowIndex, renderLayout);
     canvas.appendChild(rowHandle);
+
+    // If a stacked cell in the row above sits roughly centered on the row's
+    // overall horizontal midpoint, that cell's own bottom-edge "+" (added
+    // while rendering it, above) would land almost exactly on top of this
+    // row-add "+" — nudge this one aside so both stay independently
+    // clickable instead of overlapping.
+    const rowCenterX = state.MARGIN + state.USABLE_WIDTH / 2;
+    const hasCenteredStack = rowA.some(cell =>
+      cell.subCharts && Math.abs((cell.x + cell.width / 2) - rowCenterX) * state.EFFECTIVE_SCALE < 32
+    );
+    const btnX = scale(rowCenterX) + (hasCenteredStack ? -40 : 0);
+
+    appendEdgeAddControl({
+      zone: null,
+      btnPos: { x: btnX, y: midScreenY - canvasRect.top },
+      indicator: {
+        orientation: "h",
+        left: scale(state.MARGIN),
+        top: midScreenY - canvasRect.top,
+        length: scale(state.USABLE_WIDTH)
+      },
+      onClick: () => handleAddChartRow(rowIndex),
+      title: "Přidat řadu grafů pod"
+    });
+  }
+
+  // Bottom edge of the last row — same "+"/full-width-line affordance as the
+  // row boundaries above, adding a new row after the very last one. No drag
+  // handle exists here (nothing below to drag against), so it gets its own
+  // hover zone.
+  const lastRowIndex = chartsLayout.length - 1;
+  if (lastRowIndex >= 0 && chartsLayout[lastRowIndex].length) {
+    const el = document.getElementById(`chart-${lastRowIndex}-0`);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      const top = rect.bottom - canvasRect.top;
+      appendEdgeAddControl({
+        zone: { left: scale(state.MARGIN), top: top - 7, width: scale(state.USABLE_WIDTH), height: 14 },
+        btnPos: { x: scale(state.MARGIN + state.USABLE_WIDTH / 2), y: top },
+        indicator: { orientation: "h", left: scale(state.MARGIN), top, length: scale(state.USABLE_WIDTH) },
+        onClick: () => handleAddChartRow(lastRowIndex),
+        title: "Přidat řadu grafů pod"
+      });
+    }
   }
 
   renderWarnings();

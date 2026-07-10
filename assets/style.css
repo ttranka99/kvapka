@@ -903,6 +903,93 @@ button:disabled {
   opacity: 1;
 }
 
+/* Hover-activated "+" add-controls — replace the old always-visible
+   arrow/add buttons. Each is a zone/handle + button + indicator line trio
+   (see appendEdgeAddControl in renderLayout.js), always appended to #canvas
+   in that DOM order so the adjacent-sibling selectors below work: hovering
+   the invisible zone (or an existing resize handle sitting in the same
+   spot) reveals the button; hovering the button itself reveals the line. */
+.canvas-add-zone {
+  position: absolute;
+  background: transparent;
+  pointer-events: auto;
+  z-index: 39;
+}
+
+.canvas-add-btn {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  line-height: 1;
+  border-radius: var(--radius-control);
+  border: none;
+  background: var(--color-error);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease-out, background 0.15s ease;
+  z-index: 45;
+}
+
+.canvas-add-zone:hover + .canvas-add-btn,
+.chart-resize-handle:hover + .canvas-add-btn,
+.row-resize-handle:hover + .canvas-add-btn,
+.stack-resize-handle:hover + .canvas-add-btn,
+.canvas-add-btn:hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.canvas-add-btn:hover {
+  filter: brightness(0.9);
+}
+
+/* Insertion-indicator line — only shown while the "+" itself is hovered, so
+   it reads as a preview of exactly where clicking will insert the new
+   element, not a permanent grid line. */
+.canvas-add-indicator {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 40;
+  transition: opacity 0.12s ease-out;
+}
+
+.canvas-add-btn:hover + .canvas-add-indicator {
+  opacity: 1;
+}
+
+.canvas-add-indicator--v {
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--color-primary);
+}
+
+.canvas-add-indicator--h {
+  height: 2px;
+  transform: translateY(-50%);
+  background: var(--color-primary);
+}
+
+/* Hide every add-control while any width/height/stack drag is in progress —
+   same body flag all three resize flows already toggle for .element-controls
+   above, reused here so the "+" UI can't be clicked mid-drag or visually
+   clash with the guide line. */
+body.is-resizing-chart .canvas-add-zone,
+body.is-resizing-chart .canvas-add-btn,
+body.is-resizing-chart .canvas-add-indicator {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* Vertical alignment guide shown while a chart-width drag is "strong"
    snapped to a slicer/KPI edge (see chartResizeEvents.js). Spans the full
    canvas height so the alignment is unambiguous at a glance, Figma-style.

@@ -8,6 +8,22 @@ import { canAddChart } from "../layout/canAddChart.js";
 import { renderLayout } from "../ui/renderLayout.js";
 import { renderWarnings } from "../ui/warnings.js";
 
+// Builds the "row is fully locked" warning shown when every item in a row
+// blocks a new chart from being added. A stack item's width lock is derived
+// (item.locked = some sub-chart is locked — see handleToggleStackLock in
+// stackEvents.js), so unlocking just one of several locked sub-charts in a
+// stack has no effect on the row: the column stays width-locked until every
+// sub-chart in it is unlocked. Call out that requirement explicitly when a
+// stack is among the locked items, so the user doesn't unlock one sub-chart
+// and get confused when the row is still blocked.
+function buildAllLockedRowWarning(items) {
+  const base = "Nelze přidat graf, všechny grafy v řadě jsou uzamčené. Nejprve odemkněte alespoň jeden graf.";
+  const hasLockedStack = items.some(item => item.locked && item.stack);
+  return hasLockedStack
+    ? `${base} (U sloupce s více grafy je nutné odemknout všechny grafy v tomto sloupci.)`
+    : base;
+}
+
 // Add chart to the left
 export function handleAddChartLeft(rowIndex, itemIndex) {
   // Simulate: keep truly locked charts as-is; every unlocked chart —
@@ -18,6 +34,14 @@ export function handleAddChartLeft(rowIndex, itemIndex) {
   // never does this; only a real add/remove does.
   const simulated = JSON.parse(JSON.stringify(state.chartRows));
   const simulatedRow = simulated[rowIndex];
+
+  // If every chart in the row is locked, no existing chart can shrink to
+  // make room — the failure is about locks, not total space, so tell the
+  // user to unlock something instead of claiming charts would be too small.
+  if (simulatedRow.items.length > 0 && simulatedRow.items.every(item => item.locked)) {
+    addWarning(buildAllLockedRowWarning(simulatedRow.items), "error");
+    return;
+  }
 
   simulatedRow.items = simulatedRow.items.map(item =>
     item.locked ? item : { ...item, width: null }
@@ -50,6 +74,14 @@ export function handleAddChartRight(rowIndex, itemIndex) {
   // never does this; only a real add/remove does.
   const simulated = JSON.parse(JSON.stringify(state.chartRows));
   const simulatedRow = simulated[rowIndex];
+
+  // If every chart in the row is locked, no existing chart can shrink to
+  // make room — the failure is about locks, not total space, so tell the
+  // user to unlock something instead of claiming charts would be too small.
+  if (simulatedRow.items.length > 0 && simulatedRow.items.every(item => item.locked)) {
+    addWarning(buildAllLockedRowWarning(simulatedRow.items), "error");
+    return;
+  }
 
   simulatedRow.items = simulatedRow.items.map(item =>
     item.locked ? item : { ...item, width: null }

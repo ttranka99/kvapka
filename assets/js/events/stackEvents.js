@@ -83,6 +83,8 @@ export function handleAddStackChart(rowIndex, itemIndex, stackIndex) {
   const v = computeVerticalLayout();
   const currentRowHeight = computeChartRowHeights(v)[rowIndex];
 
+  const allExistingLocked = stack.length > 0 && stack.every(s => s.locked);
+
   stack.splice(stackIndex + 1, 0, { height: null, locked: false });
   stack.forEach(s => {
     if (!s.locked) s.height = null;
@@ -99,7 +101,15 @@ export function handleAddStackChart(rowIndex, itemIndex, stackIndex) {
   const totalHeight = heights.reduce((s, h) => s + h, 0) + totalGaps;
 
   if (needed > currentRowHeight || totalHeight > v.chartsHeight) {
-    addWarning("Nelze přidat graf, grafy ve sloupci by byly příliš malé.", "error");
+    // When every existing sub-chart is locked, nothing can shrink to make
+    // room — the real blocker is the locks, so say that instead of
+    // claiming the charts would be too small.
+    addWarning(
+      allExistingLocked
+        ? "Nelze přidat graf, všechny grafy ve sloupci jsou uzamčené. Nejprve odemkněte alespoň jeden graf."
+        : "Nelze přidat graf, grafy ve sloupci by byly příliš malé.",
+      "error"
+    );
     renderWarnings();
     return;
   }
