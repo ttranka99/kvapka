@@ -1,5 +1,6 @@
 import * as state from "../state/state.js";
 import { computeChartRowHeights } from "./computeChartRowHeights.js";
+import { computeStackHeights } from "./computeStackHeights.js";
 
 export function computeChartsLayout(v) {
   const heights = computeChartRowHeights(v);
@@ -97,7 +98,7 @@ export function computeChartsLayout(v) {
     row.items.forEach((item, i) => {
       const w = widths[i];
 
-      items.push({
+      const layoutItem = {
         type: "chart",
         rowIndex,
         indexInRow: i,
@@ -105,7 +106,28 @@ export function computeChartsLayout(v) {
         y: currentY,
         width: w,
         height: rowHeight
-      });
+      };
+
+      if (item.stack && item.stack.length >= 2) {
+        const subHeights = computeStackHeights(item.stack, rowHeight);
+        let subY = currentY;
+        layoutItem.subCharts = subHeights.map((h, stackIndex) => {
+          const sub = {
+            type: "chart",
+            rowIndex,
+            indexInRow: i,
+            stackIndex,
+            x,
+            y: subY,
+            width: w,
+            height: h
+          };
+          subY += h + state.GAP_SMALL;
+          return sub;
+        });
+      }
+
+      items.push(layoutItem);
 
       x += w + state.GAP_SMALL;
     });

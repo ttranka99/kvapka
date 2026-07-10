@@ -2,6 +2,7 @@
 import { setSelected, initSelectionCopyButtons, initSelectionInlineEditing } from "./ui/selection.js";
 import { addWarning, renderWarnings } from "./ui/warnings.js";
 import { initResizeEvents } from "./events/resizeEvents.js";
+import { handleSplitChart } from "./events/stackEvents.js";
 import { initExportEvents } from "./export/exportPowerBI.js";
 import { renderLayout } from "./ui/renderLayout.js";
 import { initTabs } from "./state/tabs.js";
@@ -10,6 +11,7 @@ import * as state from "./state/state.js";
 
 const addKpiBtn = document.getElementById("add-kpi");
 const addSlicerBtn = document.getElementById("add-slicer");
+const addChartSplitBtn = document.getElementById("add-chart-split");
 const templateButtons = document.querySelectorAll(".template-option");
 const canvasSizeLabel = document.getElementById("canvas-size-label");
 const slicersPerRowSelect = document.getElementById("slicers-per-row");
@@ -43,6 +45,34 @@ function addKPI() {
 
 addKpiBtn.addEventListener("click", addKPI);
 addSlicerBtn.addEventListener("click", addSlicer);
+
+// Splits the currently selected top-level chart into a vertical stack of
+// two charts. The button itself is only shown/hidden by setSelected() (see
+// updateSplitChartButtonVisibility in ui/selection.js) whenever the
+// selection is an unstacked, unlocked chart — so a click here can assume
+// state.selectedElement is exactly that.
+addChartSplitBtn.addEventListener("click", () => {
+  const match = /^chart-(\d+)-(\d+)$/.exec(state.selectedElement?.domId || "");
+  if (!match) return;
+  handleSplitChart(Number(match[1]), Number(match[2]));
+});
+
+// Hovering the split button previews its effect by tinting the chart it
+// would act on — the same light-red tint used for the reset/export buttons
+// (.split-target-highlight, see style.css) — so the user knows exactly
+// which chart is about to be split before clicking. Toggled directly on the
+// live DOM node rather than through a re-render, since hovering a sidebar
+// button doesn't itself change any state.
+addChartSplitBtn.addEventListener("mouseenter", () => {
+  const domId = state.selectedElement?.domId;
+  const el = domId && document.getElementById(domId);
+  if (el) el.classList.add("split-target-highlight");
+});
+addChartSplitBtn.addEventListener("mouseleave", () => {
+  const domId = state.selectedElement?.domId;
+  const el = domId && document.getElementById(domId);
+  if (el) el.classList.remove("split-target-highlight");
+});
 
 function syncTemplateControls() {
   templateButtons.forEach(button => {

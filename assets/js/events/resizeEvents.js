@@ -4,11 +4,13 @@ import { renderWarnings, addWarning } from "../ui/warnings.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
 import { canAddChart } from "../layout/canAddChart.js";
+import { rowEffectiveMinHeight } from "../layout/computeStackHeights.js";
 import { setSelected, getPendingWidth, getPendingHeight } from "../ui/selection.js";
 import { initState } from "../state/initState.js";
 import { refreshSelectedChartAfterResize } from "./chartEvents.js";
 import { refreshSelectedSlicerAfterEdit } from "./slicerEvents.js";
 import { refreshSelectedKpiAfterEdit } from "./kpiEvents.js";
+import { refreshSelectedStackChartAfterEdit } from "./stackEvents.js";
 
 const resetBtn = document.getElementById("reset-layout");
 const applySelectionBtn = document.getElementById("apply-selection");
@@ -18,7 +20,7 @@ function isWidthEditable(kind) {
 }
 
 function isHeightEditable(kind) {
-  return kind === "chartRow";
+  return kind === "chartRow" || kind === "stackChart";
 }
 
 // Applies a new width for the given selected element. Same validation/commit
@@ -106,9 +108,58 @@ function applyHeightValue(info, val) {
     return;
   }
 
-  if (info.kind === "chartRow") {
+  if (info.kind === "stackChart") {
     if (isNaN(val) || val < state.MIN_CHART_ROW_HEIGHT) {
-      addWarning(`Minimální výška řady grafů je ${state.MIN_CHART_ROW_HEIGHT}px.`, "error");
+      addWarning(`Minimální výška grafu ve sloupci je ${state.MIN_CHART_ROW_HEIGHT}px.`, "error");
+      renderWarnings();
+      return;
+    }
+
+    const { rowIndex, itemIndex, stackIndex } = info;
+    const rowsCopy = JSON.parse(JSON.stringify(state.chartRows));
+    const stack = rowsCopy[rowIndex]?.items?.[itemIndex]?.stack;
+    if (!stack) return;
+
+    const otherEntries = stack.filter((_, i) => i !== stackIndex);
+    if (!otherEntries.some(s => !s.locked)) {
+      addWarning("Nelze upravit výšku grafu, nejprve odemkněte alespoň jeden další graf ve sloupci.", "error");
+      renderWarnings();
+      return;
+    }
+
+    stack[stackIndex] = { height: val, locked: true };
+    stack.forEach((s, i) => {
+      if (i !== stackIndex && !s.locked) s.height = null;
+    });
+
+    const v = computeVerticalLayout();
+    const heights = computeChartRowHeights(v);
+    const rowHeight = heights[rowIndex];
+
+    const lockedSum = stack.filter(s => s.locked).reduce((sum, s) => sum + s.height, 0);
+    const unlockedCount = stack.filter(s => !s.locked).length;
+    const gaps = (stack.length - 1) * state.GAP_SMALL;
+    const needed = lockedSum + unlockedCount * state.MIN_CHART_ROW_HEIGHT + gaps;
+
+    if (needed > rowHeight) {
+      addWarning("Zadaná výška se nevejde do řady, upravte hodnotu.", "error");
+      renderWarnings();
+      return;
+    }
+
+    state.setChartRows(rowsCopy);
+    state.setWarnings([]);
+    renderLayout();
+    return;
+  }
+
+  if (info.kind === "chartRow") {
+    const rowMin = rowEffectiveMinHeight(state.chartRows[info.rowIndex]);
+    if (isNaN(val) || val < rowMin) {
+      const msg = rowMin > state.MIN_CHART_ROW_HEIGHT
+        ? `Minimální výška řady je ${rowMin}px (obsahuje sloupec grafů).`
+        : `Minimální výška řady grafů je ${rowMin}px.`;
+      addWarning(msg, "error");
       renderWarnings();
       return;
     }
@@ -144,7 +195,7 @@ function applyHeightValue(info, val) {
     const totalHeight = heights.reduce((s, h) => s + h, 0) + totalGaps;
 
     const overflow =
-      heights.some(h => h < state.MIN_CHART_ROW_HEIGHT) ||
+      heights.some((h, i) => h < rowEffectiveMinHeight(state.chartRows[i])) ||
       totalHeight > v.chartsHeight;
 
     if (overflow) {
@@ -173,6 +224,8 @@ function refreshSelectedElementPreservingPending() {
     refreshSelectedSlicerAfterEdit(true);
   } else if (info.kind === "kpi") {
     refreshSelectedKpiAfterEdit(true);
+  } else if (info.kind === "stackChart") {
+    refreshSelectedStackChartAfterEdit(true);
   }
 }
 

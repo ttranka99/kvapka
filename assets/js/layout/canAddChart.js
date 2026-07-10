@@ -1,5 +1,6 @@
 import * as state from "../state/state.js";
 import { computeChartRowHeights } from "./computeChartRowHeights.js";
+import { rowEffectiveMinHeight } from "./computeStackHeights.js";
 
 export function canAddChart(simulatedChartRows, vLayout) {
   const original = state.chartRows;
@@ -14,7 +15,7 @@ export function canAddChart(simulatedChartRows, vLayout) {
   const totalGaps = (n - 1) * state.GAP_SMALL;
   const totalHeight = heights.reduce((s, h) => s + h, 0) + totalGaps;
 
-  if (heights.some(h => h < state.MIN_CHART_ROW_HEIGHT)) return false;
+  if (heights.some((h, i) => h < rowEffectiveMinHeight(simulatedChartRows[i]))) return false;
   if (totalHeight > vLayout.chartsHeight) return false;
 
   // Check horizontal: each row must fit within USABLE_WIDTH

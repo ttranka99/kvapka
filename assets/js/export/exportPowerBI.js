@@ -43,7 +43,7 @@ const Z_BASE = { chart: 0, slicer: 1000, kpi: 8000 };
 function collectVisuals() {
   const v = computeVerticalLayout();
 
-  const charts = computeChartsLayout(v).flat();
+  const charts = computeChartsLayout(v).flat().flatMap(item => item.subCharts ?? [item]);
   const slicers = computeSlicersLayout(v).flat();
   const kpis = computeKpiLayout(v).flat();
 

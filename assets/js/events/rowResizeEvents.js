@@ -1,6 +1,7 @@
 import * as state from "../state/state.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
+import { rowEffectiveMinHeight } from "../layout/computeStackHeights.js";
 import { renderWarnings } from "../ui/warnings.js";
 import { refreshSelectedChartAfterResize } from "./chartEvents.js";
 
@@ -36,8 +37,8 @@ function handleRowPointerMove(event) {
   const deltaPx = event.clientY - activeRowResize.startY;
   const delta = Math.round(deltaPx / state.EFFECTIVE_SCALE);
   const totalHeight = activeRowResize.startHeight + activeRowResize.startNextHeight;
-  const minCurrent = state.MIN_CHART_ROW_HEIGHT;
-  const minNext = state.MIN_CHART_ROW_HEIGHT;
+  const minCurrent = activeRowResize.minCurrent;
+  const minNext = activeRowResize.minNext;
   let newCurrentHeight = activeRowResize.startHeight + delta;
 
   const rounded = nearestMultipleOf5(newCurrentHeight);
@@ -103,6 +104,8 @@ export function attachRowResizeHandle(handle, rowIndex, onResize) {
       startNextHeight: nextHeight,
       currentHeight,
       nextHeight,
+      minCurrent: rowEffectiveMinHeight(state.chartRows[rowIndex]),
+      minNext: rowEffectiveMinHeight(state.chartRows[rowIndex + 1]),
       onResize,
       moveHandler: handleRowPointerMove,
       upHandler: handleRowPointerUp

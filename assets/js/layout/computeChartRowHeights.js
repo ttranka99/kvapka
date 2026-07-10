@@ -1,4 +1,5 @@
 import * as state from "../state/state.js";
+import { rowEffectiveMinHeight } from "./computeStackHeights.js";
 
 export function computeChartRowHeights(v) {
   const rows = state.chartRows;
@@ -20,7 +21,7 @@ export function computeChartRowHeights(v) {
 
   if (m === 0) {
     rows.forEach((r, i) => {
-      result[i] = r.height ?? state.MIN_CHART_ROW_HEIGHT;
+      result[i] = r.height ?? rowEffectiveMinHeight(r);
     });
     return result;
   }
@@ -37,8 +38,9 @@ export function computeChartRowHeights(v) {
         h += 1;
         remainder--;
       }
-      if (h < state.MIN_CHART_ROW_HEIGHT) {
-        h = state.MIN_CHART_ROW_HEIGHT;
+      const rowMin = rowEffectiveMinHeight(r);
+      if (h < rowMin) {
+        h = rowMin;
       }
       result[i] = h;
     }

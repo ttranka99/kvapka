@@ -124,7 +124,15 @@ export function resetKpiSizingLocks() {
 export function resetChartWidthLocks() {
   chartRows = chartRows.map(row => ({
     ...row,
-    items: row.items.map(() => ({ width: null, locked: false }))
+    items: row.items.map(item => ({
+      width: null,
+      locked: false,
+      // Stacked cells survive a width/lock reset (only their own sizing is
+      // reset here) — width resets are triggered by things that can't
+      // themselves invalidate a vertical stack (per-row slicer/KPI count
+      // changes, template switches alongside the height reset below).
+      ...(item.stack ? { stack: item.stack.map(() => ({ height: null, locked: false })) } : {})
+    }))
   }));
 }
 

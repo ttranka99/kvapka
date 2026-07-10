@@ -14,8 +14,15 @@ import {
   handleSelectChart,
   handleToggleChartLock
 } from "../events/chartEvents.js";
+import {
+  handleAddStackChart,
+  handleRemoveStackChart,
+  handleToggleStackLock,
+  handleSelectStackChart
+} from "../events/stackEvents.js";
 import { attachChartResizeHandle } from "../events/chartResizeEvents.js";
 import { attachRowResizeHandle } from "../events/rowResizeEvents.js";
+import { attachStackResizeHandle } from "../events/stackResizeEvents.js";
 import { setSelected } from "../ui/selection.js";
 import { renderWarnings } from "../ui/warnings.js";
 
@@ -291,10 +298,175 @@ export function renderLayout() {
 
   const chartsLayout = computeChartsLayout(v);
 
+  // Suppresses a freshly-(re)created icon button's hover-preview swap if the
+  // cursor already happens to be resting on top of it (see the lock button's
+  // original comment above chartsLayout.forEach below for the full
+  // rationale) — shared by the cell width-lock button and every per-stack
+  // height-lock button, since #canvas is torn down/rebuilt for all of them
+  // alike. Must run after the button is attached to the document.
+  function suppressHoverIfCursorOver(btn) {
+    const rect = btn.getBoundingClientRect();
+    const cursorIsOver =
+      lastPointer.x >= rect.left && lastPointer.x <= rect.right &&
+      lastPointer.y >= rect.top && lastPointer.y <= rect.bottom;
+    if (cursorIsOver) {
+      btn.classList.add("suppress-hover");
+      btn.addEventListener("mouseleave", () => {
+        btn.classList.remove("suppress-hover");
+      }, { once: true });
+    }
+  }
+
+  function buildLockButton(locked, onClick, lockedTitle, unlockedTitle) {
+    const lockBtn = document.createElement("button");
+    lockBtn.className = "icon-btn";
+    lockBtn.innerHTML = locked
+      ? `<span class="icon-default">${LOCK_ICON}</span><span class="icon-hover">${UNLOCK_ICON}</span>`
+      : `<span class="icon-default">${UNLOCK_ICON}</span><span class="icon-hover">${LOCK_ICON}</span>`;
+    lockBtn.title = locked ? lockedTitle : unlockedTitle;
+    lockBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onClick();
+    });
+    return lockBtn;
+  }
+
   chartsLayout.forEach((row, rowIndex) => {
     row.forEach((item, i) => {
       const domId = `chart-${rowIndex}-${i}`;
       const chartStateItem = state.chartRows[rowIndex].items[i];
+
+      if (chartStateItem.stack && chartStateItem.stack.length >= 2) {
+        // Invisible geometry anchor at the cell's full x/y/width/height,
+        // kept at the plain `chart-${rowIndex}-${i}` id so the existing
+        // chart-width and row-height resize-handle passes below (which look
+        // up charts by that id to read their real rendered rects) keep
+        // working unchanged for stacked cells too — they only ever need the
+        // cell's outer box, never its internal split.
+        const anchor = document.createElement("div");
+        anchor.id = domId;
+        anchor.style.position = "absolute";
+        anchor.style.left = scale(item.x) + "px";
+        anchor.style.top = scale(item.y) + "px";
+        anchor.style.width = scale(item.width) + "px";
+        anchor.style.height = scale(item.height) + "px";
+        anchor.style.pointerEvents = "none";
+        anchor.style.visibility = "hidden";
+        canvas.appendChild(anchor);
+
+        item.subCharts.forEach((sub, s) => {
+          const subDomId = `chart-${rowIndex}-${i}-${s}`;
+          const stackEntry = chartStateItem.stack[s];
+
+          const el = document.createElement("div");
+          el.id = subDomId;
+          el.className = "canvas-element chart";
+          if (chartStateItem.locked) el.classList.add("width-locked");
+          if (stackEntry.locked) el.classList.add("height-locked");
+          el.style.left = scale(sub.x) + "px";
+          el.style.top = scale(sub.y) + "px";
+          el.style.width = scale(sub.width) + "px";
+          el.style.height = scale(sub.height) + "px";
+
+          const label = document.createElement("div");
+          label.className = "canvas-element-label";
+          label.textContent = `Graf ${rowIndex + 1}.${i + 1}.${s + 1}`;
+          el.appendChild(label);
+
+          const controls = document.createElement("div");
+          controls.className = "element-controls";
+          const isFirst = s === 0;
+          const isLast = s === item.subCharts.length - 1;
+
+          // Only the first sub-chart carries the cell-level insert controls
+          // (left/right) — they act on the cell as a unit (its position
+          // within the row), so showing them on every sub-chart would be
+          // redundant. There's no whole-stack width-lock or whole-stack
+          // remove control: the stack has no size/identity of its own beyond
+          // its individual charts, so those operations only make sense
+          // per-chart (see the stack +/-/lock controls below, always present
+          // on every sub-chart).
+          if (isFirst) {
+            const addLeftBtn = document.createElement("button");
+            addLeftBtn.className = "icon-btn";
+            addLeftBtn.innerHTML = ARROW_LEFT_ICON;
+            addLeftBtn.title = "Přidat graf vlevo";
+            addLeftBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              handleAddChartLeft(rowIndex, i);
+            });
+
+            const addRightBtn = document.createElement("button");
+            addRightBtn.className = "icon-btn";
+            addRightBtn.innerHTML = ARROW_RIGHT_ICON;
+            addRightBtn.title = "Přidat graf vpravo";
+            addRightBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              handleAddChartRight(rowIndex, i);
+            });
+
+            controls.appendChild(addLeftBtn);
+            controls.appendChild(addRightBtn);
+          }
+
+          // Only the last sub-chart carries "add row below" — it acts on
+          // the whole row, and visually sits closest to the row's bottom
+          // edge (where a new row would appear) on the last sub-chart.
+          if (isLast) {
+            const addDownBtn = document.createElement("button");
+            addDownBtn.className = "icon-btn";
+            addDownBtn.innerHTML = ARROW_DOWN_ICON;
+            addDownBtn.title = "Přidat řadu grafů pod";
+            addDownBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              handleAddChartRow(rowIndex);
+            });
+            controls.appendChild(addDownBtn);
+          }
+
+          const stackAddBtn = document.createElement("button");
+          stackAddBtn.className = "icon-btn";
+          stackAddBtn.innerHTML = ADD_ICON;
+          stackAddBtn.title = "Přidat graf pod";
+          stackAddBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            handleAddStackChart(rowIndex, i, s);
+          });
+          controls.appendChild(stackAddBtn);
+
+          const stackLockBtn = buildLockButton(
+            stackEntry.locked,
+            () => handleToggleStackLock(rowIndex, i, s),
+            "Odemknout výšku grafu",
+            "Zamknout výšku grafu"
+          );
+          controls.appendChild(stackLockBtn);
+
+          // Remove is always the last (rightmost) control.
+          const stackRemoveBtn = document.createElement("button");
+          stackRemoveBtn.className = "icon-btn";
+          stackRemoveBtn.innerHTML = REMOVE_ICON;
+          stackRemoveBtn.title = "Odebrat graf";
+          stackRemoveBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            handleRemoveStackChart(rowIndex, i, s);
+          });
+          controls.appendChild(stackRemoveBtn);
+
+          el.appendChild(controls);
+
+          el.addEventListener("click", (e) => {
+            e.stopPropagation();
+            handleSelectStackChart(rowIndex, i, s, subDomId);
+          });
+
+          canvas.appendChild(el);
+
+          suppressHoverIfCursorOver(stackLockBtn);
+        });
+
+        return;
+      }
 
       const el = document.createElement("div");
       el.id = domId;
@@ -356,18 +528,12 @@ export function renderLayout() {
       // icon on hover; locked -> shows unlock icon on hover). Both icons are
       // always in the DOM and toggled via CSS (.icon-btn:hover), so no
       // JS/re-render is needed just to preview the hover state.
-      const lockBtn = document.createElement("button");
-      lockBtn.className = "icon-btn";
-      lockBtn.innerHTML = chartStateItem.locked
-        ? `<span class="icon-default">${LOCK_ICON}</span><span class="icon-hover">${UNLOCK_ICON}</span>`
-        : `<span class="icon-default">${UNLOCK_ICON}</span><span class="icon-hover">${LOCK_ICON}</span>`;
-      lockBtn.title = chartStateItem.locked
-        ? "Odemknout šířku grafu"
-        : "Zamknout šířku grafu";
-      lockBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        handleToggleChartLock(rowIndex, i);
-      });
+      const lockBtn = buildLockButton(
+        chartStateItem.locked,
+        () => handleToggleChartLock(rowIndex, i),
+        "Odemknout šířku grafu",
+        "Zamknout šířku grafu"
+      );
       controls.appendChild(lockBtn);
 
       const removeBtn = document.createElement("button");
@@ -407,15 +573,39 @@ export function renderLayout() {
       // .icon-btn.suppress-hover in style.css). Must run after canvas.append
       // -Child(el) above: getBoundingClientRect() on a button that isn't yet
       // attached to the document always returns a zero-sized rect.
-      const lockBtnRect = lockBtn.getBoundingClientRect();
-      const cursorIsOverLockBtn =
-        lastPointer.x >= lockBtnRect.left && lastPointer.x <= lockBtnRect.right &&
-        lastPointer.y >= lockBtnRect.top && lastPointer.y <= lockBtnRect.bottom;
-      if (cursorIsOverLockBtn) {
-        lockBtn.classList.add("suppress-hover");
-        lockBtn.addEventListener("mouseleave", () => {
-          lockBtn.classList.remove("suppress-hover");
-        }, { once: true });
+      suppressHoverIfCursorOver(lockBtn);
+    });
+  });
+
+  // Horizontal drag handles between adjacent charts within a vertical stack
+  // — the stack counterpart of the chart-width/row-height handle passes
+  // below. Skipped for a pair when either neighbor is height-locked, since
+  // there'd be nothing left to redistribute the drag into on that side.
+  chartsLayout.forEach((row, rowIndex) => {
+    row.forEach((item, i) => {
+      if (!item.subCharts) return;
+      const chartStateItem = state.chartRows[rowIndex].items[i];
+      const canvasRect = canvas.getBoundingClientRect();
+
+      for (let s = 0; s < item.subCharts.length - 1; s++) {
+        if (chartStateItem.stack[s].locked || chartStateItem.stack[s + 1].locked) continue;
+
+        const currentEl = document.getElementById(`chart-${rowIndex}-${i}-${s}`);
+        const nextEl = document.getElementById(`chart-${rowIndex}-${i}-${s + 1}`);
+        if (!currentEl || !nextEl) continue;
+
+        const currentRect = currentEl.getBoundingClientRect();
+        const nextRect = nextEl.getBoundingClientRect();
+        const midScreenY = (currentRect.bottom + nextRect.top) / 2;
+
+        const handle = document.createElement("div");
+        handle.className = "stack-resize-handle";
+        handle.style.left = (currentRect.left - canvasRect.left) + "px";
+        handle.style.width = currentRect.width + "px";
+        handle.style.top = (midScreenY - canvasRect.top) + "px";
+
+        attachStackResizeHandle(handle, rowIndex, i, s, renderLayout);
+        canvas.appendChild(handle);
       }
     });
   });

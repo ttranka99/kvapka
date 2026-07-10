@@ -726,6 +726,20 @@ button:disabled {
   border: 1.5px dashed var(--color-primary);
 }
 
+/* Height-locked sub-charts inside a vertical stack — the height counterpart
+   of .width-locked above, shown on the individual sub-chart rather than the
+   whole cell since only that one sub-chart's height is frozen. */
+.canvas-element.chart.height-locked {
+  border: 1.5px dashed var(--color-primary);
+}
+
+/* Previews which chart the sidebar "Graf" split button will act on, while
+   hovering that button (see app.js) — same light-red tint used for the
+   reset/export buttons on hover (.reset-layout-wrapper button:hover). */
+.canvas-element.chart.split-target-highlight {
+  background: var(--color-primary-light);
+}
+
 .canvas-element.kpi {
   background: var(--bg-surface);
   border: 1px solid var(--border-light);
@@ -840,6 +854,52 @@ button:disabled {
 
 .row-resize-handle:hover::before,
 .row-resize-handle:hover::after {
+  opacity: 1;
+}
+
+/* Stack-height resize handle — the row-resize-handle's counterpart for
+   dragging the boundary between two charts stacked inside one cell. Only
+   spans the stacked cell's own width (left/width set inline in
+   renderLayout.js from the sub-charts' real rendered rects), unlike the
+   full-row-width row-resize-handle above, since a stack drag only ever
+   affects the two sub-charts inside that one cell. */
+.stack-resize-handle {
+  position: absolute;
+  height: 14px;
+  transform: translateY(-50%);
+  cursor: ns-resize;
+  background: transparent;
+  border-radius: 4px;
+  pointer-events: auto;
+  z-index: 40;
+  transition: background 0.12s ease-out;
+}
+
+.stack-resize-handle:hover {
+  background: rgba(32, 33, 36, 0.12);
+}
+
+.stack-resize-handle::before,
+.stack-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 2px;
+  background: rgba(32, 33, 36, 0.55);
+  border-radius: 1px;
+  transform: translate(-50%, calc(-50% - 2px));
+  opacity: 0;
+  transition: opacity 0.12s ease-out;
+}
+
+.stack-resize-handle::after {
+  transform: translate(-50%, calc(-50% + 2px));
+}
+
+.stack-resize-handle:hover::before,
+.stack-resize-handle:hover::after {
   opacity: 1;
 }
 

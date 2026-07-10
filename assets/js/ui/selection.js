@@ -14,7 +14,7 @@ function isWidthEditable(kind) {
 }
 
 function isHeightEditable(kind) {
-  return kind === "chartRow";
+  return kind === "chartRow" || kind === "stackChart";
 }
 
 export function getPendingWidth() {
@@ -183,6 +183,27 @@ export function initSelectionInlineEditing() {
   });
 }
 
+// Shows the sidebar "Graf" split button only while the current selection is
+// an unstacked, unlocked top-level chart cell — the only kind of selection
+// splitting is actually valid for (see canSplitChart in stackEvents.js,
+// which this mirrors without importing it, to avoid a circular import: that
+// module imports setSelected from here).
+function updateSplitChartButtonVisibility(info) {
+  const btn = document.getElementById("add-chart-split");
+  if (!btn) return;
+
+  let show = false;
+  if (info?.kind === "chartRow" && info.domId) {
+    const match = /^chart-(\d+)-(\d+)$/.exec(info.domId);
+    if (match) {
+      const item = state.chartRows[Number(match[1])]?.items?.[Number(match[2])];
+      show = !!item && !item.stack && !item.locked;
+    }
+  }
+
+  btn.classList.toggle("hidden", !show);
+}
+
 // opts.preservePending: when true, refreshes the panel's geometry (e.g.
 // after a drag tick or an Apply attempt) without resetting `pending`. Used
 // after an Apply attempt so a field that failed validation keeps showing
@@ -216,6 +237,7 @@ export function setSelected(info, opts = {}) {
     selectionDetailsEl.classList.remove("expanded");
     document.querySelectorAll(".canvas-element").forEach(el => el.classList.remove("selected"));
     updateApplyButtonState();
+    updateSplitChartButtonVisibility(null);
     return;
   }
 
@@ -259,4 +281,5 @@ export function setSelected(info, opts = {}) {
   }
 
   updateApplyButtonState();
+  updateSplitChartButtonVisibility(info);
 }
