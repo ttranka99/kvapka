@@ -361,7 +361,10 @@ export function renderLayout() {
           const el = document.createElement("div");
           el.id = subDomId;
           el.className = "canvas-element chart";
-          if (chartStateItem.locked) el.classList.add("width-locked");
+          // A sub-chart's locked visual reflects only its own lock state —
+          // the cell's item.locked is *derived* from the sub-charts (see
+          // handleToggleStackLock in stackEvents.js), so mirroring it here
+          // too would just double-apply the same lock as a second class.
           if (stackEntry.locked) el.classList.add("height-locked");
           el.style.left = scale(sub.x) + "px";
           el.style.top = scale(sub.y) + "px";
@@ -381,11 +384,15 @@ export function renderLayout() {
           // Only the first sub-chart carries the cell-level insert controls
           // (left/right) — they act on the cell as a unit (its position
           // within the row), so showing them on every sub-chart would be
-          // redundant. There's no whole-stack width-lock or whole-stack
-          // remove control: the stack has no size/identity of its own beyond
-          // its individual charts, so those operations only make sense
-          // per-chart (see the stack +/-/lock controls below, always present
-          // on every sub-chart).
+          // redundant. There's no whole-stack remove control: the stack has
+          // no size/identity of its own beyond its individual charts, so
+          // removal only makes sense per-chart (see the stack +/-/lock
+          // controls below, always present on every sub-chart). There's also
+          // no separate whole-stack width-lock control — the cell's width
+          // lock is derived from the sub-charts' own locks instead (see
+          // handleToggleStackLock in stackEvents.js): the column is
+          // width-locked while any sub-chart is locked, and unlocking every
+          // sub-chart frees the column's width again.
           if (isFirst) {
             const addLeftBtn = document.createElement("button");
             addLeftBtn.className = "icon-btn";

@@ -135,8 +135,14 @@ export function handleRemoveStackChart(rowIndex, itemIndex, stackIndex) {
     if (!s.locked) s.height = null;
   });
 
+  // Re-sync the cell's derived width lock now that a sub-chart is gone —
+  // it's only locked while at least one remaining sub-chart still is.
+  item.locked = stack.some(s => s.locked);
+
   // A stack that's down to a single chart is no longer a stack — it reverts
   // to a normal chart cell (plain width/lock controls, no stack controls).
+  // The remaining entry is guaranteed unlocked here (the checks above refuse
+  // removal otherwise), so the cell reverts fully unlocked too.
   if (stack.length === 1) {
     delete item.stack;
   }
@@ -161,6 +167,11 @@ export function handleRemoveStackChart(rowIndex, itemIndex, stackIndex) {
 // the current height in place (no visible jump) until a structural change
 // (add/remove) or a row-height change redistributes it — mirrors
 // handleToggleChartLock's width-lock semantics in chartEvents.js.
+//
+// The cell's own width lock (item.locked) is *derived* from its sub-charts
+// rather than toggled directly, since a stacked cell has no width-lock
+// control of its own: the column is width-locked while any sub-chart is
+// locked, and only unlocking every sub-chart frees the column's width again.
 export function handleToggleStackLock(rowIndex, itemIndex, stackIndex) {
   const item = state.chartRows[rowIndex]?.items?.[itemIndex];
   const entry = item?.stack?.[stackIndex];
@@ -174,6 +185,16 @@ export function handleToggleStackLock(rowIndex, itemIndex, stackIndex) {
     const currentHeight = chartsLayout[rowIndex]?.[itemIndex]?.subCharts?.[stackIndex]?.height;
     entry.height = currentHeight;
     entry.locked = true;
+  }
+
+  const anyLocked = item.stack.some(s => s.locked);
+  if (anyLocked && !item.locked) {
+    const v = computeVerticalLayout();
+    const rowsLayout = computeChartsLayout(v);
+    item.width = rowsLayout[rowIndex]?.[itemIndex]?.width;
+    item.locked = true;
+  } else if (!anyLocked && item.locked) {
+    item.locked = false;
   }
 
   state.setChartRows([...state.chartRows]);

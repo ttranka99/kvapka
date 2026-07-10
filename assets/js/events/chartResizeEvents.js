@@ -130,6 +130,24 @@ function finishResize() {
   activeResize = null;
 }
 
+// Freezes every not-yet-locked sub-chart's height when a width drag locks
+// the stacked cell containing them, mirroring handleToggleStackLock's own
+// lock-time height freeze (stackEvents.js) so each sub-chart's individual
+// unlock button has something meaningful to unlock afterwards.
+function lockStackEntriesForResize(rowIndex, itemIndex, chart) {
+  if (!chart.stack) return;
+
+  const v = computeVerticalLayout();
+  const chartsLayout = computeChartsLayout(v);
+  const subCharts = chartsLayout[rowIndex]?.[itemIndex]?.subCharts;
+
+  chart.stack.forEach((entry, s) => {
+    if (entry.locked) return;
+    entry.height = subCharts?.[s]?.height ?? entry.height;
+    entry.locked = true;
+  });
+}
+
 function handlePointerMove(event) {
   if (!activeResize) return;
 
@@ -198,6 +216,14 @@ function handlePointerMove(event) {
   currentChart.locked = true;
   nextChart.width = newNextWidth;
   nextChart.locked = true;
+
+  // A stacked cell's width lock is derived from its sub-charts (locked while
+  // any sub-chart is locked — see handleToggleStackLock in stackEvents.js), so
+  // freezing the cell's width here also has to lock every not-yet-locked
+  // sub-chart, or the freshly-set item.locked would have no per-chart control
+  // that can ever clear it.
+  lockStackEntriesForResize(activeResize.rowIndex, activeResize.itemIndex, currentChart);
+  lockStackEntriesForResize(activeResize.rowIndex, activeResize.itemIndex + 1, nextChart);
 
   activeResize.onResize();
   // onResize (renderLayout) just rebuilt #canvas from scratch with the new
