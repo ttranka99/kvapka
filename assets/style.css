@@ -62,6 +62,15 @@
   box-sizing: border-box;
 }
 
+html {
+  /* Reserves the scrollbar gutter permanently so its appearance/disappearance
+     never changes .main's clientWidth. Without this, an auto-fit canvas that
+     lands exactly at the viewport edge can trigger a feedback loop: scrollbar
+     appears -> available width shrinks -> canvas shrinks to fit -> scrollbar
+     disappears -> width grows back -> canvas grows -> overflow again. */
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -684,7 +693,11 @@ button:disabled {
   border-radius: var(--radius-card);
   padding: var(--space-6);
   box-shadow: var(--shadow-card);
-  display: inline-block;
+  /* block + fit-content (not inline-block) avoids the inline line-box's
+     descender gap adding a few unaccounted px below the wrapper, which was
+     enough to push an "exact fit" canvas past the viewport height. */
+  display: block;
+  width: fit-content;
   max-width: 100%;
 }
 
@@ -693,7 +706,12 @@ button:disabled {
   background: var(--bg-secondary);
   border-radius: 10px;
   overflow: visible;
-  transition: width 0.25s ease-out, height 0.25s ease-out;
+  /* No width/height transition: computeEffectiveScale() (renderLayout.js)
+     measures the canvas-wrapper's current box on every render to decide the
+     next scale. An animated width/height meant a render that landed mid-
+     transition would measure the still-shrinking/growing old box instead of
+     its settled size, feeding a wrong scale into the very next render
+     (worst case collapsing toward the 0.12 floor after a template switch). */
 }
 
 /* ----------------------------------------------------

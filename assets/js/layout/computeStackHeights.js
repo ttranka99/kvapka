@@ -33,6 +33,52 @@ export function rowEffectiveMinHeight(row) {
   return min;
 }
 
+// Shrinks the unlocked stack entries (proportionally to their headroom above
+// HARD_MIN_CHART_HEIGHT) until their total fits within `remaining`. Mirrors
+// clampUnlockedRows() in computeChartRowHeights.js — needed because a row can
+// itself get shrunk below rowEffectiveMinHeight() (see that file) when the
+// canvas is too short, leaving less cellHeight than this stack's own
+// MIN_CHART_ROW_HEIGHT floors add up to.
+function clampUnlockedStack(heights, unlockedIdx, remaining) {
+  const unlockedSum = unlockedIdx.reduce((s, i) => s + heights[i], 0);
+  const excess = unlockedSum - remaining;
+  if (excess <= 0) return;
+
+  const hardFloor = state.HARD_MIN_CHART_HEIGHT;
+  const headroom = unlockedIdx.reduce((s, i) => s + Math.max(0, heights[i] - hardFloor), 0);
+  if (headroom <= 0) return;
+
+  const ratio = Math.min(1, excess / headroom);
+  unlockedIdx.forEach(i => {
+    const shrinkable = Math.max(0, heights[i] - hardFloor);
+    heights[i] = Math.round(heights[i] - shrinkable * ratio);
+  });
+}
+
+// Scales the given `indices`' heights proportionally so they sum to exactly
+// `target` (growing or shrinking as needed), flooring each at
+// HARD_MIN_CHART_HEIGHT. Used when every stack entry is locked: locked
+// heights are normally kept verbatim, but when the cell itself doesn't
+// match their sum (e.g. a sibling row was removed and this row grew) they
+// must be redistributed on-screen. This never writes back to the stored
+// `stack[i].height`, so the exact locked sizes return once the cell fits
+// them again.
+function fitHeightsTo(heights, indices, target) {
+  const sum = indices.reduce((s, i) => s + heights[i], 0);
+  if (sum <= 0 || sum === target) return;
+
+  const hardFloor = state.HARD_MIN_CHART_HEIGHT;
+  let assigned = 0;
+  indices.forEach((i, idx) => {
+    if (idx === indices.length - 1) {
+      heights[i] = Math.max(hardFloor, target - assigned);
+    } else {
+      heights[i] = Math.max(hardFloor, Math.round(heights[i] * (target / sum)));
+      assigned += heights[i];
+    }
+  });
+}
+
 // Splits a cell's total height among its stacked sub-charts. Locked entries
 // keep their stored height untouched. Among the unlocked entries: if every
 // one of them already has a stored height (e.g. from a prior drag), they're
@@ -60,7 +106,14 @@ export function computeStackHeights(stack, cellHeight) {
 
   const remaining = Math.max(0, available - lockedSum);
 
-  if (unlockedIdx.length === 0) return heights;
+  if (unlockedIdx.length === 0) {
+    // Every entry is locked: their stored heights are honored verbatim
+    // whenever possible, but the cell must still be filled exactly, so
+    // scale them to fit `available` (grow or shrink) without touching the
+    // stored values.
+    fitHeightsTo(heights, lockedIdx, available);
+    return heights;
+  }
 
   const storedUnlocked = unlockedIdx.filter(i => Number.isFinite(stack[i].height));
   const allUnlockedStored = storedUnlocked.length === unlockedIdx.length;
@@ -78,19 +131,29 @@ export function computeStackHeights(stack, cellHeight) {
       }
       heights[i] = Math.max(state.MIN_CHART_ROW_HEIGHT, h);
     });
-    return heights;
+  } else {
+    const base = Math.floor(remaining / unlockedIdx.length);
+    let remainder = remaining % unlockedIdx.length;
+    unlockedIdx.forEach(i => {
+      let h = base;
+      if (remainder > 0) {
+        h += 1;
+        remainder--;
+      }
+      heights[i] = Math.max(state.MIN_CHART_ROW_HEIGHT, h);
+    });
   }
 
-  const base = Math.floor(remaining / unlockedIdx.length);
-  let remainder = remaining % unlockedIdx.length;
-  unlockedIdx.forEach(i => {
-    let h = base;
-    if (remainder > 0) {
-      h += 1;
-      remainder--;
-    }
-    heights[i] = Math.max(state.MIN_CHART_ROW_HEIGHT, h);
-  });
+  clampUnlockedStack(heights, unlockedIdx, remaining);
+
+  // If the locked entries alone exceed the room left after the unlocked
+  // ones settled at their floor, the stack still overflows the cell —
+  // shrink the locked heights (on-screen only) to fit what's left.
+  const unlockedSum = unlockedIdx.reduce((s, i) => s + heights[i], 0);
+  const lockedRemaining = available - unlockedSum;
+  if (lockedSum > lockedRemaining) {
+    clampUnlockedStack(heights, lockedIdx, lockedRemaining);
+  }
 
   return heights;
 }

@@ -22,7 +22,7 @@ export const LAYOUT_TEMPLATES = {
     slicerHeight: 70,
     kpiMinHeight: 70,
     minSlicerWidth: 50,
-    minChartRowHeight: 150
+    minChartRowHeight: 100
   }
 };
 
@@ -38,6 +38,13 @@ export let KPI_MIN_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.kpiMinHeight;
 export let MIN_SLICER_WIDTH = LAYOUT_TEMPLATES.FULL_HD.minSlicerWidth;
 export let MIN_CHART_ROW_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.minChartRowHeight;
 export const MIN_CHART_WIDTH = 150;
+// Absolute floor a chart row/stacked-cell height can be squeezed to when the
+// layout's usual minimums (MIN_CHART_ROW_HEIGHT and stack minimums) don't
+// all fit within the canvas's available charts area — e.g. many rows on the
+// smaller HD template. Rows still render (never overflow the canvas) but a
+// warning is raised so the user knows content was shrunk below its normal
+// minimum.
+export const HARD_MIN_CHART_HEIGHT = 40;
 export let USABLE_WIDTH = CANVAS_WIDTH - 2 * MARGIN;
 export const SCALE = 0.4;
 // The scale actually used for rendering, after shrinking SCALE down (if needed)

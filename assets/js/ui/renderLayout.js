@@ -109,10 +109,17 @@ function computeEffectiveScale() {
   const wrapperBorderY = parseFloat(wrapperStyles.borderTopWidth || 0) + parseFloat(wrapperStyles.borderBottomWidth || 0);
   // The wrapper's top position already accounts for everything stacked above
   // it (heading, hint text, tab bar, main's own top padding), so subtracting
-  // it from the viewport height gives exactly the room left below it.
-  const wrapperTop = wrapper.getBoundingClientRect().top;
+  // it from the viewport height gives exactly the room left below it. Using
+  // getBoundingClientRect().top directly (viewport-relative) makes this
+  // scroll-position-dependent: if an earlier overflowing render made the page
+  // scrollable, a re-render while scrolled measures a shrunken/negative
+  // availableHeight and the scale collapses toward the 0.12 floor. Adding
+  // scrollY converts to a document-relative offset, then subtracting the
+  // viewport height back out gives the room the wrapper would have at
+  // scrollY 0, regardless of where the page happens to be scrolled right now.
+  const wrapperDocTop = wrapper.getBoundingClientRect().top + window.scrollY;
   const mainPaddingBottom = parseFloat(mainStyles.paddingBottom || 0);
-  const availableHeight = window.innerHeight - wrapperTop - wrapperPaddingY - wrapperBorderY - mainPaddingBottom;
+  const availableHeight = window.innerHeight - wrapperDocTop - wrapperPaddingY - wrapperBorderY - mainPaddingBottom;
 
   if (availableHeight <= 0) return state.SCALE;
   const fitScaleH = availableHeight / state.CANVAS_HEIGHT;
@@ -179,8 +186,10 @@ function appendEdgeAddControl({ zone, btnPos, indicator, onClick, title }) {
 export function renderLayout() {
   state.setEffectiveScale(computeEffectiveScale());
   clearCanvas();
-  canvas.style.width = scale(state.CANVAS_WIDTH) + "px";
-  canvas.style.height = scale(state.CANVAS_HEIGHT) + "px";
+  // Floored so fractional scale math can never round the rendered box up
+  // past the available space computeEffectiveScale() just measured.
+  canvas.style.width = Math.floor(scale(state.CANVAS_WIDTH)) + "px";
+  canvas.style.height = Math.floor(scale(state.CANVAS_HEIGHT)) + "px";
   // Drives every generic element label's font-size (assets/style.css
   // .canvas-element-label) so slicer/KPI/chart names scale with the canvas
   // instead of staying a fixed size as the window grows or shrinks. Reproduces
