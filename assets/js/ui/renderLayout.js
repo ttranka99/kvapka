@@ -133,18 +133,27 @@ function clearCanvas() {
 // Appends a hover-activated "+" control at an element edge or gap, replacing
 // the old always-visible arrow/add buttons. Three pieces, always appended in
 // this order so the CSS adjacent-sibling selectors (canvas-add-zone:hover +
-// canvas-add-btn, canvas-add-btn:hover + canvas-add-indicator) can reveal the
-// button on hovering its trigger and the indicator line on hovering the
+// canvas-add-btn, canvas-add-btn:hover + canvas-add-scope) can reveal the
+// button on hovering its trigger and the scope preview on hovering the
 // button itself:
 //   1. `zone` (optional) — an invisible hover-trigger strip; omitted when an
 //      existing resize handle already occupies that exact spot, in which
 //      case the handle itself (already in the DOM immediately before this
 //      call) serves as the hover trigger instead.
 //   2. the circular "+" button.
-//   3. the insertion-indicator line (vertical or horizontal solid line).
+//   3. the scope preview — an invisible rect matching the element the new one
+//      will be placed next to, drawn only as a solid bar along `scope.edge`
+//      (the side it will appear on).
+//
+// The zone/button (input layer) and the scope preview (visual layer) are
+// deliberately independent: a caller may nudge its hover zone away from a
+// boundary to keep it from colliding with another control's zone, while the
+// preview still draws on the real insertion edge. Positional nudges must
+// therefore never be folded into `scope`.
+//
 // All coordinates are final canvas-relative px (already scaled/adjusted by
 // the caller), matching how every other #canvas child is positioned.
-function appendEdgeAddControl({ zone, btnPos, indicator, onClick, title }) {
+function appendEdgeAddControl({ zone, btnPos, scope, onClick, title }) {
   if (zone) {
     const zoneEl = document.createElement("div");
     zoneEl.className = "canvas-add-zone";
@@ -171,16 +180,13 @@ function appendEdgeAddControl({ zone, btnPos, indicator, onClick, title }) {
   });
   canvas.appendChild(btn);
 
-  const line = document.createElement("div");
-  line.className = `canvas-add-indicator canvas-add-indicator--${indicator.orientation}`;
-  line.style.left = indicator.left + "px";
-  line.style.top = indicator.top + "px";
-  if (indicator.orientation === "v") {
-    line.style.height = indicator.length + "px";
-  } else {
-    line.style.width = indicator.length + "px";
-  }
-  canvas.appendChild(line);
+  const preview = document.createElement("div");
+  preview.className = `canvas-add-scope canvas-add-scope--${scope.edge}`;
+  preview.style.left = scope.left + "px";
+  preview.style.top = scope.top + "px";
+  preview.style.width = scope.width + "px";
+  preview.style.height = scope.height + "px";
+  canvas.appendChild(preview);
 }
 
 export function renderLayout() {
@@ -283,7 +289,13 @@ export function renderLayout() {
           height: scale(item.height)
         },
         btnPos: { x: scale(item.x + item.width), y: scale(item.y + item.height / 2) },
-        indicator: { orientation: "v", left: scale(item.x + item.width), top: scale(item.y), length: scale(item.height) },
+        scope: {
+          left: scale(item.x),
+          top: scale(item.y),
+          width: scale(item.width),
+          height: scale(item.height),
+          edge: "right"
+        },
         onClick: () => handleAddSlicer(item.globalIndex),
         title: "Přidat slicer"
       });
@@ -339,7 +351,13 @@ export function renderLayout() {
           height: scale(item.height)
         },
         btnPos: { x: scale(item.x + item.width), y: scale(item.y + item.height / 2) },
-        indicator: { orientation: "v", left: scale(item.x + item.width), top: scale(item.y), length: scale(item.height) },
+        scope: {
+          left: scale(item.x),
+          top: scale(item.y),
+          width: scale(item.width),
+          height: scale(item.height),
+          edge: "right"
+        },
         onClick: () => handleAddKpi(item.index),
         title: "Přidat KPI"
       });
@@ -465,19 +483,33 @@ export function renderLayout() {
         });
 
         // Bottom-edge hover "+" for the stack — adds another stacked chart
-        // in this column. Placed a few px above the row boundary itself
-        // (rather than centered on it) so its hover zone doesn't overlap the
-        // full-width row-add "+"/row-resize-handle sitting on the boundary.
-        const stackBottomY = scale(item.y + item.height) - 10;
+        // in this column. The zone/button are placed a few px above the row
+        // boundary itself (rather than centered on it) so the hover zone
+        // doesn't overlap the full-width row-add "+"/row-resize-handle
+        // sitting on that same boundary. That nudge stays in the input layer
+        // only: the scope preview below covers the last sub-chart and draws
+        // its bar on the sub-chart's real bottom edge, so it never crosses
+        // the sub-chart's label and never implies the wrong insertion point.
+        // It also reads as unmistakably different from the row-add preview
+        // that shares this Y — a one-column bar here, a full-row-width one
+        // there.
+        const lastSub = item.subCharts[item.subCharts.length - 1];
+        const stackBtnY = scale(item.y + item.height) - 10;
         appendEdgeAddControl({
           zone: {
             left: scale(item.x),
-            top: stackBottomY - 7,
+            top: stackBtnY - 7,
             width: scale(item.width),
             height: 14
           },
-          btnPos: { x: scale(item.x + item.width / 2), y: stackBottomY },
-          indicator: { orientation: "h", left: scale(item.x), top: stackBottomY, length: scale(item.width) },
+          btnPos: { x: scale(item.x + item.width / 2), y: stackBtnY },
+          scope: {
+            left: scale(lastSub.x),
+            top: scale(lastSub.y),
+            width: scale(lastSub.width),
+            height: scale(lastSub.height),
+            edge: "bottom"
+          },
           onClick: () => handleAddStackChart(rowIndex, i, item.subCharts.length - 1),
           title: "Přidat graf pod"
         });
@@ -609,7 +641,15 @@ export function renderLayout() {
         appendEdgeAddControl({
           zone: handle ? null : { left, top: top - 7, width, height: 14 },
           btnPos: { x: left + width / 2, y: top },
-          indicator: { orientation: "h", left, top, length: width },
+          // Scoped to the sub-chart above the gap — the new chart lands
+          // directly below it.
+          scope: {
+            left,
+            top: currentRect.top - canvasRect.top,
+            width,
+            height: currentRect.height,
+            edge: "bottom"
+          },
           onClick: () => handleAddStackChart(rowIndex, i, s),
           title: "Přidat graf pod"
         });
@@ -639,7 +679,7 @@ export function renderLayout() {
           appendEdgeAddControl({
             zone: { left: left - 8, top, width: 16, height: rect.height },
             btnPos: { x: left, y: top + rect.height / 2 },
-            indicator: { orientation: "v", left, top, length: rect.height },
+            scope: { left, top, width: rect.width, height: rect.height, edge: "left" },
             onClick: () => handleAddChartLeft(rowIndex, 0),
             title: "Přidat graf vlevo"
           });
@@ -658,7 +698,13 @@ export function renderLayout() {
           appendEdgeAddControl({
             zone: { left: left - 8, top, width: 16, height: rect.height },
             btnPos: { x: left, y: top + rect.height / 2 },
-            indicator: { orientation: "v", left, top, length: rect.height },
+            scope: {
+              left: rect.left - canvasRect.left,
+              top,
+              width: rect.width,
+              height: rect.height,
+              edge: "right"
+            },
             onClick: () => handleAddChartRight(rowIndex, i),
             title: "Přidat graf vpravo"
           });
@@ -692,11 +738,14 @@ export function renderLayout() {
       appendEdgeAddControl({
         zone: null,
         btnPos: { x: midScreen - canvasRect.left, y: (currentRect.top + currentRect.bottom) / 2 - canvasRect.top },
-        indicator: {
-          orientation: "v",
-          left: midScreen - canvasRect.left,
+        // Scoped to the chart left of the gap — the new chart lands to its
+        // right, pushing the rest of the row along.
+        scope: {
+          left: currentRect.left - canvasRect.left,
           top: currentRect.top - canvasRect.top,
-          length: currentRect.height
+          width: currentRect.width,
+          height: currentRect.height,
+          edge: "right"
         },
         onClick: () => handleAddChartRight(rowIndex, i),
         title: "Přidat graf vpravo"
@@ -748,11 +797,16 @@ export function renderLayout() {
     appendEdgeAddControl({
       zone: null,
       btnPos: { x: btnX, y: midScreenY - canvasRect.top },
-      indicator: {
-        orientation: "h",
+      // Scoped to the whole row band above the boundary (full usable width),
+      // which is what distinguishes this preview from a stacked cell's
+      // bottom-edge "+" sharing the same boundary — that one's bar spans a
+      // single column, this one the entire row.
+      scope: {
         left: scale(state.MARGIN),
-        top: midScreenY - canvasRect.top,
-        length: scale(state.USABLE_WIDTH)
+        top: aRect.top - canvasRect.top,
+        width: scale(state.USABLE_WIDTH),
+        height: aRect.height,
+        edge: "bottom"
       },
       onClick: () => handleAddChartRow(rowIndex),
       title: "Přidat řadu grafů pod"
@@ -772,7 +826,13 @@ export function renderLayout() {
       appendEdgeAddControl({
         zone: { left: scale(state.MARGIN), top: top - 7, width: scale(state.USABLE_WIDTH), height: 14 },
         btnPos: { x: scale(state.MARGIN + state.USABLE_WIDTH / 2), y: top },
-        indicator: { orientation: "h", left: scale(state.MARGIN), top, length: scale(state.USABLE_WIDTH) },
+        scope: {
+          left: scale(state.MARGIN),
+          top: rect.top - canvasRect.top,
+          width: scale(state.USABLE_WIDTH),
+          height: rect.height,
+          edge: "bottom"
+        },
         onClick: () => handleAddChartRow(lastRowIndex),
         title: "Přidat řadu grafů pod"
       });

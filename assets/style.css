@@ -970,31 +970,50 @@ button:disabled {
   filter: brightness(0.9);
 }
 
-/* Insertion-indicator line — only shown while the "+" itself is hovered, so
-   it reads as a preview of exactly where clicking will insert the new
-   element, not a permanent grid line. */
-.canvas-add-indicator {
+/* Insertion scope preview — replaces the old hairline indicator, which had
+   to be drawn *across* an element's content (crossing its label) whenever a
+   control's position was nudged off the real boundary to keep hover zones
+   from colliding. This covers the element the new one will sit next to and
+   caps it with a solid bar on that side instead, so the cue is always an
+   edge of the layout rather than a line stamped over it, and two controls
+   sharing a boundary (a stacked cell's bottom "+" and the full-width row
+   "+") stay distinguishable by how far their bar runs.
+
+   The rect itself is invisible; it only positions the bar (see the per-edge
+   rules below) and defines its length.
+
+   Sits above the canvas elements it overlays but below the resize handles
+   (z-index 40) and the "+" itself (45). Only shown while the "+" is hovered,
+   matching the two-stage reveal the indicator line used. */
+.canvas-add-scope {
   position: absolute;
+  border-radius: 6px;
   opacity: 0;
   pointer-events: none;
-  z-index: 40;
+  z-index: 38;
   transition: opacity 0.12s ease-out;
 }
 
-.canvas-add-btn:hover + .canvas-add-indicator {
+.canvas-add-btn:hover + .canvas-add-scope {
   opacity: 1;
 }
 
-.canvas-add-indicator--v {
-  width: 2px;
-  transform: translateX(-50%);
-  background: var(--color-primary);
+/* Bar only, no fill: the scope rect earns its keep purely through the bar's
+   *extent* — a stacked cell's bottom "+" caps one column, the row "+" the
+   full usable width — so a tint on top of that was redundant and competed
+   with the selection ring and the red control chrome. Drawn as an inset
+   box-shadow so it follows the border-radius above and hugs the element's
+   corners instead of overhanging them. */
+.canvas-add-scope--bottom {
+  box-shadow: inset 0 -3px 0 var(--color-primary);
 }
 
-.canvas-add-indicator--h {
-  height: 2px;
-  transform: translateY(-50%);
-  background: var(--color-primary);
+.canvas-add-scope--right {
+  box-shadow: inset -3px 0 0 var(--color-primary);
+}
+
+.canvas-add-scope--left {
+  box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
 /* Hide every add-control while any width/height/stack drag is in progress —
@@ -1003,7 +1022,7 @@ button:disabled {
    clash with the guide line. */
 body.is-resizing-chart .canvas-add-zone,
 body.is-resizing-chart .canvas-add-btn,
-body.is-resizing-chart .canvas-add-indicator {
+body.is-resizing-chart .canvas-add-scope {
   opacity: 0 !important;
   pointer-events: none !important;
 }
