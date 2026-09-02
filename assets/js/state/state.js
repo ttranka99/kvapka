@@ -8,7 +8,7 @@ export const LAYOUT_TEMPLATES = {
     titleHeight: 50,
     gapKpiToCharts: 30,
     slicerHeight: 80,
-    kpiMinHeight: 70,
+    kpiMinHeight: 90,
     minSlicerWidth: 50,
     minChartRowHeight: 150
   },
@@ -20,7 +20,7 @@ export const LAYOUT_TEMPLATES = {
     titleHeight: 40,
     gapKpiToCharts: 20,
     slicerHeight: 70,
-    kpiMinHeight: 70,
+    kpiMinHeight: 80,
     minSlicerWidth: 50,
     minChartRowHeight: 100
   }
