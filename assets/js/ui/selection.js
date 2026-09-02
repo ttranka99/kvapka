@@ -57,8 +57,8 @@ function updateApplyButtonState() {
   applyBtn.disabled = !dirty;
 }
 
-// Swapped into a copy button briefly after a successful copy, so the user
-// gets a clear "it worked" confirmation instead of only the toast.
+// Swapped into a copy button briefly after a successful copy: the check mark
+// is the only confirmation the user gets, so no notification is raised.
 const CHECK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const COPY_SUCCESS_MS = 1200;
 
@@ -81,12 +81,6 @@ export function initSelectionCopyButtons() {
       const value = target.textContent.trim();
       try {
         await navigator.clipboard.writeText(value);
-        // Unlike every other warning/notification in the app (which persist
-        // until their underlying condition resolves), this is a one-off
-        // confirmation — it should clear itself out of the bell's panel a
-        // few seconds after landing there instead of sitting forever.
-        addWarning("Hodnota zkopírována do schránky.", "info", { panelTtlMs: 3000 });
-
         clearTimeout(revertTimer);
         btn.innerHTML = CHECK_ICON;
         btn.classList.add("copy-btn-success");
@@ -96,8 +90,8 @@ export function initSelectionCopyButtons() {
         }, COPY_SUCCESS_MS);
       } catch {
         addWarning("Kopírování se nezdařilo.", "error");
+        renderWarnings();
       }
-      renderWarnings();
     });
   });
 }
