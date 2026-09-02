@@ -953,7 +953,13 @@ button:disabled {
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.12s ease-out, background 0.15s ease;
+  /* No opacity transition in the resting state, so un-revealing is instant —
+     see the mutual-exclusion rule near .element-controls for why the fade-out
+     had to go: a 0.12s fade out of the "+" overlapping a 0.15s fade in of the
+     "×" leaves both on screen together in the same pixels, which is the very
+     thing that rule exists to prevent. The fade-IN lives on the reveal rule
+     below instead, so appearing is still soft. */
+  transition: background 0.15s ease;
   z-index: 45;
 }
 
@@ -964,6 +970,7 @@ button:disabled {
 .canvas-add-btn:hover {
   opacity: 1;
   pointer-events: auto;
+  transition: opacity 0.12s ease-out, background 0.15s ease;
 }
 
 .canvas-add-btn:hover {
@@ -1079,11 +1086,72 @@ body.is-resizing-chart .canvas-add-scope {
   display: flex;
   gap: 4px;
   opacity: 0;
-  transition: opacity 0.15s ease-out;
+  /* Above the add zone (39) and the "+" itself (45). Those two overlap this
+     cluster's own footprint — the zone reaches 8px inside the element's edge
+     and the "+" 12px — so without this they win the hit test over the "×"'s
+     last few pixels: the button would vanish under the cursor as you moved
+     onto its right side, and the mutual-exclusion rule below would fire while
+     you were aiming at the "×" itself. Raising the cluster instead settles
+     the priority by stacking, with no extra rules: on the "×" the "×" wins,
+     anywhere else the add trigger does. .canvas-element is position:absolute
+     with z-index:auto, so it creates no stacking context and this value is
+     compared against the canvas's other children directly. */
+  z-index: 46;
+  /* Fade-in only (declared on the reveal rule below); hiding is instant, for
+     the same reason as .canvas-add-btn above. */
 }
 
 .canvas-element:hover .element-controls {
   opacity: 1;
+  transition: opacity 0.15s ease-out;
+}
+
+/* Slicers and KPIs are short wide bars whose rendered height tracks
+   EFFECTIVE_SCALE — a slicer swings between roughly 30px and 61px as the
+   window resizes. The cluster's own size is fixed, so anchoring it to the top
+   left it pinned 5px below the edge at every scale while the bar grew
+   underneath it: stranded in the corner with an empty middle at large scale,
+   and drifting to a different relative position on every rescale. Centring it
+   is stable at any height — it always reads as sitting in the bar's right end.
+
+   Charts keep the top-right anchor: they're tall panels rather than bars, and
+   they carry two controls, which belong in a corner rather than floating in
+   the middle of the chart body. */
+.canvas-element.slicer .element-controls,
+.canvas-element.kpi .element-controls {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Mutual exclusion: while the pointer is on anything that reveals a "+", this
+   element's own controls are hidden.
+
+   The two controls physically overlap and no amount of repositioning fixes
+   it. The "+" is centred ON the element's edge (translate(-50%, -50%)), so it
+   protrudes ~12px INTO the element, while this cluster is inset only 4px from
+   that same edge — they claim the same strip. They only miss each other when
+   the element is tall enough to separate them vertically, and at SCALE 0.4 a
+   slicer renders ~28-32px tall and a chart squeezed to HARD_MIN_CHART_HEIGHT
+   only ~16px. The add zone is 16px wide and centred on the boundary too, so
+   its inner 8px sits on top of the element and triggers both at once.
+   Showing only one at a time makes the overlap impossible at any element
+   height and any EFFECTIVE_SCALE, with no positional math.
+
+   :has() rather than a JS-toggled body class deliberately: #canvas is torn
+   down and rebuilt on every render, and a flag would have to be re-synced
+   against the cursor after each rebuild. A selector is always live and can
+   never go stale. If :has() is ever unsupported the rule is simply dropped
+   and behaviour falls back to what it is today, so it degrades safely.
+
+   Wins over .canvas-element:hover .element-controls on specificity (one id),
+   so no !important is needed. */
+#canvas:has(.canvas-add-zone:hover) .element-controls,
+#canvas:has(.chart-resize-handle:hover) .element-controls,
+#canvas:has(.row-resize-handle:hover) .element-controls,
+#canvas:has(.stack-resize-handle:hover) .element-controls,
+#canvas:has(.canvas-add-btn:hover) .element-controls {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* While actively dragging a chart's resize handle, #canvas is rebuilt from
