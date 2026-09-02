@@ -63,9 +63,12 @@ export function computeVerticalLayout() {
       : kpiTop;
 
   // CHARTS
+  // With no slicers and no KPIs the charts sit directly under the title and
+  // use the same title-to-content gap as the KPI-to-charts spacing
+  // (30px on FULL HD, 20px on HD) rather than the tighter GAP_SMALL.
   const chartsTop =
     slicers.length === 0 && kpis.length === 0
-      ? slicersTop
+      ? TITLE_Y + TITLE_HEIGHT + GAP_KPI_TO_CHARTS
       : kpis.length > 0
         ? kpiBottom + GAP_KPI_TO_CHARTS
         : slicersBottom + GAP_KPI_TO_CHARTS;
