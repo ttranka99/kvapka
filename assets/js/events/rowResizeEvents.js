@@ -4,19 +4,15 @@ import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
 import { rowEffectiveMinHeight } from "../layout/computeStackHeights.js";
 import { renderWarnings } from "../ui/warnings.js";
 import { refreshSelectedChartAfterResize } from "./chartEvents.js";
+import { snapToStep } from "../layout/sizeStep.js";
 
 let activeRowResize = null;
 
-// Soft snap only — gently catches the dragged height on multiples of 5
-// canvas px, same tolerance as the chart-width drag. Unlike width dragging,
-// there's no "strong" alignment snap here: slicers/KPIs live above the
-// chart area, not between chart rows, so there's nothing meaningful to
-// align a row boundary against.
-const SOFT_SNAP_TOLERANCE_PX = 2;
-
-function nearestMultipleOf5(value) {
-  return Math.round(value / 5) * 5;
-}
+// Step snap only — the dragged height always lands on a multiple of 5 canvas
+// px, same as the chart-width drag. Unlike width dragging, there's no
+// "strong" alignment snap here: slicers/KPIs live above the chart area, not
+// between chart rows, so there's nothing meaningful to align a row boundary
+// against.
 
 function finishRowResize() {
   if (!activeRowResize) return;
@@ -39,12 +35,7 @@ function handleRowPointerMove(event) {
   const totalHeight = activeRowResize.startHeight + activeRowResize.startNextHeight;
   const minCurrent = activeRowResize.minCurrent;
   const minNext = activeRowResize.minNext;
-  let newCurrentHeight = activeRowResize.startHeight + delta;
-
-  const rounded = nearestMultipleOf5(newCurrentHeight);
-  if (Math.abs(newCurrentHeight - rounded) <= SOFT_SNAP_TOLERANCE_PX) {
-    newCurrentHeight = rounded;
-  }
+  let newCurrentHeight = snapToStep(activeRowResize.startHeight + delta);
 
   let newNextHeight = totalHeight - newCurrentHeight;
 

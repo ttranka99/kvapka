@@ -1,5 +1,6 @@
 import * as state from "../state/state.js";
 import { addWarning } from "../ui/warnings.js";
+import { distributeInSteps } from "./sizeStep.js";
 
 const MAX_PER_ROW_INFO = "Dosažen maximální počet KPI. Další KPI budou umístěny na další řádek.";
 const HARD_LIMIT_ERROR = "Dosaženo maximálního počtu KPI. Odeberte KPI.";
@@ -101,15 +102,9 @@ export function computeKpiLayout(v) {
       if (u === 0) {
         widths1 = row1.map(k => k.width);
       } else {
-        const base = Math.floor(remaining / u);
-        let remainder = remaining % u;
-
-        widths1 = row1.map(k => {
-          if (k.locked) return k.width;
-          let w = base;
-          if (remainder > 0) { w += 1; remainder--; }
-          return w;
-        });
+        const shares = distributeInSteps(remaining, u, false);
+        let next = 0;
+        widths1 = row1.map(k => (k.locked ? k.width : shares[next++]));
       }
     }
   }
@@ -119,28 +114,9 @@ export function computeKpiLayout(v) {
     const n1 = row1.length;
     const usable = state.USABLE_WIDTH - totalGaps1;
 
-    // Base evenly distributed width
-    const base = Math.floor(usable / n1);
-    let remainder = usable - base * n1;
-
-    widths1 = Array(n1).fill(base);
-
-    // Distribute leftover pixels symmetrically from edges towards center
-    let left = 0;
-    let right = n1 - 1;
-
-    while (remainder > 0 && left <= right) {
-      if (remainder > 0) {
-        widths1[left]++;
-        remainder--;
-      }
-      if (remainder > 0 && right !== left) {
-        widths1[right]++;
-        remainder--;
-      }
-      left++;
-      right--;
-    }
+    // Even distribution, leftover chunks spread symmetrically from the edges
+    // towards the center
+    widths1 = distributeInSteps(usable, n1);
   }
 
   syncWarning(row1ManualWidthSumExceeded, ROW1_MANUAL_WIDTH_SUM_ERROR, "error");
@@ -188,15 +164,9 @@ export function computeKpiLayout(v) {
       if (u2 === 0) {
         widths2 = row2.map(k => k.width);
       } else {
-        const base = Math.floor(remaining2 / u2);
-        let remainder = remaining2 % u2;
-
-        widths2 = row2.map(k => {
-          if (k.locked) return k.width;
-          let w = base;
-          if (remainder > 0) { w += 1; remainder--; }
-          return w;
-        });
+        const shares = distributeInSteps(remaining2, u2, false);
+        let next = 0;
+        widths2 = row2.map(k => (k.locked ? k.width : shares[next++]));
       }
     }
 
@@ -206,25 +176,7 @@ export function computeKpiLayout(v) {
 
       // --- A) If there are 4 or 6 KPI → use the same symmetric logic as row1 ---
       if (n2 >= 4) {
-        const base = Math.floor(usable2 / n2);
-        let remainder = usable2 - base * n2;
-
-        widths2 = Array(n2).fill(base);
-
-        let left = 0;
-        let right = n2 - 1;
-        while (remainder > 0 && left <= right) {
-          if (remainder > 0) {
-            widths2[left]++;
-            remainder--;
-          }
-          if (remainder > 0 && right !== left) {
-            widths2[right]++;
-            remainder--;
-          }
-          left++;
-          right--;
-        }
+        widths2 = distributeInSteps(usable2, n2);
       }
       // --- B) If there are 1–3 KPI → follow the width of the first KPI in row1; if custom width and sum of first KPIs exceeds half, stretch only the last one ---
       else {

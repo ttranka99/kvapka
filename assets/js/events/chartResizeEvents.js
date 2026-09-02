@@ -3,25 +3,20 @@ import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { renderWarnings } from "../ui/warnings.js";
 import { refreshSelectedChartAfterResize } from "./chartEvents.js";
+import { snapToStep } from "../layout/sizeStep.js";
 
 let activeResize = null;
 
-// --- Snapping tolerances ---
-// Soft snap: gently catches the dragged width on multiples of 5 canvas px
-// (e.g. 245, 250, 255...). Tolerance is in canvas (unscaled) px, so it feels
-// the same regardless of zoom/shrink level chosen for the tolerance itself.
-const SOFT_SNAP_TOLERANCE_PX = 2;
-
+// --- Snapping ---
+// Step snap: the dragged width always lands on a multiple of 5 canvas px
+// (e.g. 245, 250, 255...), matching the grid the layout solvers use.
+//
 // Strong snap: aligns the dragged edge with a slicer/KPI's right edge.
 // Tolerance is defined in *screen* px and converted to canvas px at drag
 // time (divided by EFFECTIVE_SCALE), so the catch radius feels consistent
 // under the pointer regardless of how much the canvas preview is currently
 // shrunk to fit the viewport.
 const STRONG_SNAP_SCREEN_PX = 8;
-
-function nearestMultipleOf5(value) {
-  return Math.round(value / 5) * 5;
-}
 
 function getCanvasRect() {
   const canvas = document.getElementById("canvas");
@@ -174,10 +169,7 @@ function handlePointerMove(event) {
     newCurrentWidth = Math.round(snappedEdge - activeResize.itemStartX);
     isStrongSnapped = true;
   } else {
-    const rounded = nearestMultipleOf5(newCurrentWidth);
-    if (Math.abs(newCurrentWidth - rounded) <= SOFT_SNAP_TOLERANCE_PX) {
-      newCurrentWidth = rounded;
-    }
+    newCurrentWidth = snapToStep(newCurrentWidth);
   }
 
   let newNextWidth = totalWidth - newCurrentWidth;

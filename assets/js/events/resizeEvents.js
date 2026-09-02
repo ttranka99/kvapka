@@ -5,6 +5,7 @@ import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
 import { canAddChart } from "../layout/canAddChart.js";
 import { rowEffectiveMinHeight } from "../layout/computeStackHeights.js";
+import { snapToStep } from "../layout/sizeStep.js";
 import { setSelected, getPendingWidth, getPendingHeight } from "../ui/selection.js";
 import { initState } from "../state/initState.js";
 import { refreshSelectedChartAfterResize } from "./chartEvents.js";
@@ -28,6 +29,9 @@ function isHeightEditable(kind) {
 // state.selectedElement/inputWidth.value directly, so the single Apply
 // button can drive it.
 function applyWidthValue(info, val) {
+  // Typed values land on the same 5px grid the layout solvers use.
+  if (!isNaN(val)) val = snapToStep(val);
+
   if (isNaN(val) || val < 50) {
     addWarning("Minimální šířka je 50px.", "error");
     renderWarnings();
@@ -93,6 +97,8 @@ function applyWidthValue(info, val) {
 // Applies a new height for the given selected element. Same validation/commit
 // rules as before, parameterized on `info`/`val`.
 function applyHeightValue(info, val) {
+  if (!isNaN(val)) val = snapToStep(val);
+
   if (info.kind === "kpi") {
     if (isNaN(val) || val < state.KPI_MIN_HEIGHT) {
       addWarning(`Minimální výška KPI je ${state.KPI_MIN_HEIGHT}px.`, "error");

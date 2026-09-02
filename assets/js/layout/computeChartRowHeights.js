@@ -1,5 +1,6 @@
 import * as state from "../state/state.js";
 import { rowEffectiveMinHeight } from "./computeStackHeights.js";
+import { distributeInSteps, snapToStep } from "./sizeStep.js";
 
 // Shrinks the unlocked rows' heights (proportionally to how much headroom
 // each has above HARD_MIN_CHART_HEIGHT) until their total no longer exceeds
@@ -16,7 +17,7 @@ function clampUnlockedRows(result, unlockedIndices, remaining) {
     const ratio = Math.min(1, excess / headroom);
     unlockedIndices.forEach(i => {
       const shrinkable = Math.max(0, result[i] - hardFloor);
-      result[i] = Math.round(result[i] - shrinkable * ratio);
+      result[i] = snapToStep(result[i] - shrinkable * ratio);
     });
   }
 }
@@ -57,7 +58,7 @@ export function computeChartRowHeights(v) {
         if (i === n - 1) {
           result[i] = Math.max(floor, target - assigned);
         } else {
-          result[i] = Math.max(floor, Math.round(result[i] * (target / sum)));
+          result[i] = Math.max(floor, snapToStep(result[i] * (target / sum)));
           assigned += result[i];
         }
       });
@@ -65,23 +66,14 @@ export function computeChartRowHeights(v) {
     return result;
   }
 
-  const base = Math.floor(remaining / m);
-  let remainder = remaining % m;
+  const shares = distributeInSteps(remaining, m, false);
+  let next = 0;
 
   rows.forEach((r, i) => {
     if (r.locked) {
       result[i] = r.height;
     } else {
-      let h = base;
-      if (remainder > 0) {
-        h += 1;
-        remainder--;
-      }
-      const rowMin = rowEffectiveMinHeight(r);
-      if (h < rowMin) {
-        h = rowMin;
-      }
-      result[i] = h;
+      result[i] = Math.max(shares[next++], rowEffectiveMinHeight(r));
     }
   });
 

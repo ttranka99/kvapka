@@ -1,6 +1,7 @@
 import * as state from "../state/state.js";
 import { computeChartRowHeights } from "./computeChartRowHeights.js";
 import { computeStackHeights } from "./computeStackHeights.js";
+import { distributeInSteps } from "./sizeStep.js";
 
 export function computeChartsLayout(v) {
   const heights = computeChartRowHeights(v);
@@ -32,64 +33,17 @@ export function computeChartsLayout(v) {
     let widths = [];
 
     if (lockedCount === 0) {
-      const baseWidth = Math.floor(availableWidth / n);
-      let remainder = availableWidth % n;
-      widths = Array(n).fill(baseWidth);
-
-      if (n % 2 === 0 && n >= 4) {
-        let left = 0;
-        let right = n - 1;
-
-        while (remainder > 1 && left < right) {
-          widths[left]++;
-          widths[right]++;
-          remainder -= 2;
-          left++;
-          right--;
-        }
-
-        if (remainder === 1) {
-          widths[n - 1]++;
-        }
-      } else if (n % 2 === 1 && n >= 3) {
-        const center = Math.floor(n / 2);
-        let left = 0;
-        let right = n - 1;
-
-        while (remainder > 2 && left < right) {
-          widths[left]++;
-          widths[right]++;
-          remainder -= 2;
-          left++;
-          right--;
-        }
-
-        if (remainder === 1) {
-          widths[center]++;
-        }
-      } else {
-        for (let i = 0; i < n && remainder > 0; i++) {
-          widths[i]++;
-          remainder--;
-        }
-      }
+      widths = distributeInSteps(availableWidth, n);
     } else {
-      let remainingWidth = availableWidth - lockedSum;
-      const baseWidth = unlockedCount > 0 ? Math.floor(remainingWidth / unlockedCount) : 0;
-      let remainder = unlockedCount > 0 ? remainingWidth % unlockedCount : 0;
+      const remainingWidth = availableWidth - lockedSum;
+      const shares = distributeInSteps(remainingWidth, unlockedCount, false);
 
+      let next = 0;
       widths = row.items.map((item, index) => {
         if (fixedWidths[index] !== null) {
           return fixedWidths[index];
         }
-
-        let value = Math.max(baseWidth, state.MIN_CHART_WIDTH);
-        if (remainder > 0) {
-          value += 1;
-          remainder -= 1;
-        }
-
-        return value;
+        return Math.max(shares[next++], state.MIN_CHART_WIDTH);
       });
     }
 

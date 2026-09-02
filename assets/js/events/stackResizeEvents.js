@@ -12,14 +12,9 @@ import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { renderWarnings } from "../ui/warnings.js";
 import { refreshSelectedStackChartAfterEdit } from "./stackEvents.js";
+import { snapToStep } from "../layout/sizeStep.js";
 
 let activeStackResize = null;
-
-const SOFT_SNAP_TOLERANCE_PX = 2;
-
-function nearestMultipleOf5(value) {
-  return Math.round(value / 5) * 5;
-}
 
 function finishStackResize() {
   if (!activeStackResize) return;
@@ -41,12 +36,7 @@ function handleStackPointerMove(event) {
   const delta = Math.round(deltaPx / state.EFFECTIVE_SCALE);
   const totalHeight = activeStackResize.startHeight + activeStackResize.startNextHeight;
   const min = state.MIN_CHART_ROW_HEIGHT;
-  let newCurrentHeight = activeStackResize.startHeight + delta;
-
-  const rounded = nearestMultipleOf5(newCurrentHeight);
-  if (Math.abs(newCurrentHeight - rounded) <= SOFT_SNAP_TOLERANCE_PX) {
-    newCurrentHeight = rounded;
-  }
+  let newCurrentHeight = snapToStep(activeStackResize.startHeight + delta);
 
   let newNextHeight = totalHeight - newCurrentHeight;
 

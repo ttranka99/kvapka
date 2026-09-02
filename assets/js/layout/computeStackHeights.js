@@ -1,5 +1,6 @@
 // assets/js/layout/computeStackHeights.js
 import * as state from "../state/state.js";
+import { distributeInSteps, snapToStep } from "./sizeStep.js";
 
 // Minimum height a stack of `count` charts needs: each sub-chart floors at
 // MIN_CHART_ROW_HEIGHT, plus the small gaps between them.
@@ -51,7 +52,7 @@ function clampUnlockedStack(heights, unlockedIdx, remaining) {
   const ratio = Math.min(1, excess / headroom);
   unlockedIdx.forEach(i => {
     const shrinkable = Math.max(0, heights[i] - hardFloor);
-    heights[i] = Math.round(heights[i] - shrinkable * ratio);
+    heights[i] = snapToStep(heights[i] - shrinkable * ratio);
   });
 }
 
@@ -73,7 +74,7 @@ function fitHeightsTo(heights, indices, target) {
     if (idx === indices.length - 1) {
       heights[i] = Math.max(hardFloor, target - assigned);
     } else {
-      heights[i] = Math.max(hardFloor, Math.round(heights[i] * (target / sum)));
+      heights[i] = Math.max(hardFloor, snapToStep(heights[i] * (target / sum)));
       assigned += heights[i];
     }
   });
@@ -126,21 +127,15 @@ export function computeStackHeights(stack, cellHeight) {
       if (idx === unlockedIdx.length - 1) {
         h = remaining - assigned;
       } else {
-        h = Math.round(stack[i].height * (remaining / storedSum));
+        h = snapToStep(stack[i].height * (remaining / storedSum));
         assigned += h;
       }
       heights[i] = Math.max(state.MIN_CHART_ROW_HEIGHT, h);
     });
   } else {
-    const base = Math.floor(remaining / unlockedIdx.length);
-    let remainder = remaining % unlockedIdx.length;
-    unlockedIdx.forEach(i => {
-      let h = base;
-      if (remainder > 0) {
-        h += 1;
-        remainder--;
-      }
-      heights[i] = Math.max(state.MIN_CHART_ROW_HEIGHT, h);
+    const shares = distributeInSteps(remaining, unlockedIdx.length, false);
+    unlockedIdx.forEach((i, idx) => {
+      heights[i] = Math.max(state.MIN_CHART_ROW_HEIGHT, shares[idx]);
     });
   }
 

@@ -1,5 +1,6 @@
 import * as state from "../state/state.js";
 import { addWarning } from "../ui/warnings.js";
+import { distributeInSteps } from "./sizeStep.js";
 
 const MANUAL_WIDTH_SUM_ERROR = "Součet ručně nastavených šířek slicerů přesahuje dostupnou šířku.";
 const TIGHT_FIT_WARNING = "Nedostatek místa – některé slicery mohou být příliš úzké.";
@@ -52,39 +53,15 @@ export function computeSlicerRowWidths(rowSlicers) {
 
   syncWarning(remaining < m * state.MIN_SLICER_WIDTH, TIGHT_FIT_WARNING, "warning");
 
-  const base = Math.floor(remaining / m);
-  let remainder = remaining % m;
-
-  // Special symmetric distribution for 4 or 6 slicers (no locked slicers)
-  if (m === n && (n === 4 || n === 6)) {
-    const widths = Array(n).fill(base);
-
-    let left = 0;
-    let right = n - 1;
-
-    // Distribute remainder symmetrically
-    while (remainder > 1 && left < right) {
-      widths[left]++;
-      widths[right]++;
-      remainder -= 2;
-      left++;
-      right--;
-    }
-
-    // If 1 pixel remains → give it to the rightmost slicer
-    if (remainder === 1) {
-      widths[n - 1]++;
-    }
-
-    return widths;
+  // Symmetric distribution when nothing is locked — same rule as KPI rows
+  // (computeKpiLayout.js) and chart rows, so a slicer row and a KPI row with
+  // the same element count line up column for column.
+  if (m === n) {
+    return distributeInSteps(remaining, n);
   }
 
   // Default logic for all other cases
-  return rowSlicers.map(s => {
-    if (s.locked) return s.width;
-    let w = base;
-    if (remainder > 0) { w += 1; remainder--; }
-    return w;
-  });
-
+  const shares = distributeInSteps(remaining, m, false);
+  let next = 0;
+  return rowSlicers.map(s => (s.locked ? s.width : shares[next++]));
 }
