@@ -2,7 +2,6 @@ import * as state from "../state/state.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
 import { rowEffectiveMinHeight } from "../layout/computeStackHeights.js";
-import { renderWarnings } from "../ui/warnings.js";
 import { refreshSelectedChartAfterResize } from "./chartEvents.js";
 import { snapToStep } from "../layout/sizeStep.js";
 
@@ -22,8 +21,10 @@ function finishRowResize() {
   window.removeEventListener("pointercancel", activeRowResize.upHandler);
   document.body.style.cursor = "default";
   document.body.classList.remove("is-resizing-chart");
-  state.setWarnings([]);
-  renderWarnings();
+  // No state.setWarnings([]) here — see the note in
+  // chartResizeEvents.js's finishResize(): wiping the array makes every
+  // still-true condition look new to the layout solvers, which re-add it and
+  // re-pop its toast on the next render.
   activeRowResize = null;
 }
 

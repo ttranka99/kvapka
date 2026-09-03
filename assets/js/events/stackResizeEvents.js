@@ -10,7 +10,6 @@
 import * as state from "../state/state.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartsLayout } from "../layout/computeChartsLayout.js";
-import { renderWarnings } from "../ui/warnings.js";
 import { refreshSelectedStackChartAfterEdit } from "./stackEvents.js";
 import { snapToStep } from "../layout/sizeStep.js";
 
@@ -24,8 +23,8 @@ function finishStackResize() {
   window.removeEventListener("pointercancel", activeStackResize.upHandler);
   document.body.style.cursor = "default";
   document.body.classList.remove("is-resizing-chart");
-  state.setWarnings([]);
-  renderWarnings();
+  // No state.setWarnings([]) here — see the note in
+  // chartResizeEvents.js's finishResize().
   activeStackResize = null;
 }
 

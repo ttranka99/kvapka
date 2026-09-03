@@ -1,7 +1,6 @@
 import * as state from "../state/state.js";
 import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
-import { renderWarnings } from "../ui/warnings.js";
 import { refreshSelectedChartAfterResize } from "./chartEvents.js";
 import { snapToStep } from "../layout/sizeStep.js";
 
@@ -119,9 +118,13 @@ function finishResize() {
   document.body.style.cursor = "default";
   document.body.classList.remove("is-resizing-chart");
   updateSnapGuide(null);
-  // Clear any stale warnings that may have been resolved by the resize
-  state.setWarnings([]);
-  renderWarnings();
+  // Deliberately no state.setWarnings([]) here: the layout solvers own the
+  // warning lifecycle (see syncWarning in computeKpiLayout.js /
+  // computeSlicersLayout.js / computeSlicerRowWidths.js) and already cleared
+  // anything the resize resolved on the last render of the drag. Wiping the
+  // array here would instead make every still-true condition look brand new
+  // to those solvers, so the next render would re-add it and pop its toast
+  // back up even though nothing about it changed.
   activeResize = null;
 }
 
