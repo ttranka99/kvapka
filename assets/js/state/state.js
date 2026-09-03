@@ -8,6 +8,8 @@ export const LAYOUT_TEMPLATES = {
     titleHeight: 50,
     gapKpiToCharts: 30,
     slicerHeight: 80,
+    slicerColumnWidth: 290,
+    minSlicerColumnWidth: 270,
     kpiMinHeight: 90,
     minSlicerWidth: 50,
     minChartRowHeight: 150
@@ -20,6 +22,8 @@ export const LAYOUT_TEMPLATES = {
     titleHeight: 40,
     gapKpiToCharts: 20,
     slicerHeight: 70,
+    slicerColumnWidth: 190,
+    minSlicerColumnWidth: 170,
     kpiMinHeight: 80,
     minSlicerWidth: 50,
     minChartRowHeight: 100
@@ -34,6 +38,16 @@ export let TITLE_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.titleHeight;
 export const GAP_SMALL = 10;
 export let GAP_KPI_TO_CHARTS = LAYOUT_TEMPLATES.FULL_HD.gapKpiToCharts;
 export let SLICER_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.slicerHeight;
+// Vertical-slicer mode: slicers stack in a single fixed-width column on the
+// left instead of a horizontal band under the title. SLICER_HEIGHT keeps its
+// meaning as the per-slicer *minimum* (and default) height in that mode.
+export let SLICER_COLUMN_WIDTH = LAYOUT_TEMPLATES.FULL_HD.slicerColumnWidth;
+export let MIN_SLICER_COLUMN_WIDTH = LAYOUT_TEMPLATES.FULL_HD.minSlicerColumnWidth;
+export const MAX_SLICER_COLUMN_WIDTH = 500;
+// Once the natural (minimum-height) stack would already fill this much of the
+// column, the unlocked slicers are expanded to fill it exactly instead — a
+// nearly-full column with a ragged empty tail reads as a bug, not a choice.
+export const SLICER_FILL_THRESHOLD = 0.65;
 export let KPI_MIN_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.kpiMinHeight;
 export let MIN_SLICER_WIDTH = LAYOUT_TEMPLATES.FULL_HD.minSlicerWidth;
 export let MIN_CHART_ROW_HEIGHT = LAYOUT_TEMPLATES.FULL_HD.minChartRowHeight;
@@ -58,6 +72,8 @@ export const SECOND_ROW_MAX_ITEMS = 7;
 export let MAX_SLICERS = 7;
 export let MAX_KPIS = 6;
 
+export let slicerOrientation = "horizontal";   // "horizontal" | "vertical"
+
 export let slicers = [];
 export let kpis = [];
 export let chartRows = [];
@@ -70,6 +86,19 @@ export function setChartRows(v) { chartRows = v; }
 export function setSelectedElement(v) { selectedElement = v; }
 export function setWarnings(v) { warnings = v; }
 export function setEffectiveScale(v) { EFFECTIVE_SCALE = v; }
+
+export function setSlicerOrientation(v) {
+  slicerOrientation = v === "vertical" ? "vertical" : "horizontal";
+}
+
+export function isVerticalSlicers() { return slicerOrientation === "vertical"; }
+
+export function setSlicerColumnWidth(v) {
+  SLICER_COLUMN_WIDTH = Math.min(
+    MAX_SLICER_COLUMN_WIDTH,
+    Math.max(MIN_SLICER_COLUMN_WIDTH, v)
+  );
+}
 
 function clampComponentsPerRow(v) {
   const value = Number.parseInt(v, 10);
@@ -100,6 +129,11 @@ export function setLayoutTemplate(templateKey) {
   MIN_SLICER_WIDTH = template.minSlicerWidth;
   MIN_CHART_ROW_HEIGHT = template.minChartRowHeight;
   USABLE_WIDTH = CANVAS_WIDTH - 2 * MARGIN;
+  // Back to the new template's own default rather than carrying over a width
+  // the user dragged on the previous one — 290px is over a fifth of the HD
+  // canvas, and the min/max bounds move with the template too.
+  MIN_SLICER_COLUMN_WIDTH = template.minSlicerColumnWidth;
+  SLICER_COLUMN_WIDTH = template.slicerColumnWidth;
 }
 
 // --- Granular sizing-lock resets ---
@@ -121,7 +155,7 @@ export function setLayoutTemplate(templateKey) {
 // invalidate.
 
 export function resetSlicerSizingLocks() {
-  slicers = slicers.map(s => ({ ...s, width: null, locked: false }));
+  slicers = slicers.map(s => ({ ...s, width: null, height: null, locked: false }));
 }
 
 export function resetKpiSizingLocks() {

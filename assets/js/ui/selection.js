@@ -10,10 +10,12 @@ import { addWarning, renderWarnings } from "./warnings.js";
 let pending = { width: null, height: null };
 
 function isWidthEditable(kind) {
-  return kind === "slicer" || kind === "kpi" || kind === "chartRow";
+  if (kind === "slicer") return !state.isVerticalSlicers();
+  return kind === "kpi" || kind === "chartRow";
 }
 
 function isHeightEditable(kind) {
+  if (kind === "slicer") return state.isVerticalSlicers();
   return kind === "chartRow" || kind === "stackChart";
 }
 

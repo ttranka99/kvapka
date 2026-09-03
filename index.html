@@ -51,27 +51,48 @@
                             <span class="tooltip" id="canvas-size-label" role="tooltip">Power BI plátno 1920 × 1080</span>
                         </button>
                     </div>
-                    <div class="template-selector" role="group" aria-label="Layout template">
-                        <button type="button" class="template-option active" data-template="FULL_HD">FULL HD</button>
-                        <button type="button" class="template-option" data-template="HD">HD</button>
+                    <div class="panel-field">
+                        <h3 class="field-label" id="label-resolution">Rozlišení</h3>
+                        <div class="template-selector" role="group" aria-labelledby="label-resolution">
+                            <button type="button" class="template-option active" data-template="FULL_HD">FULL HD</button>
+                            <button type="button" class="template-option" data-template="HD">HD</button>
+                        </div>
                     </div>
 
-                    <div class="panel-section row-limit-controls">
-                        <label for="slicers-per-row">Slicery na řádek</label>
-                        <select id="slicers-per-row">
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                            <option value="7" selected>7</option>
-                        </select>
+                    <div class="panel-field">
+                        <h3 class="field-label" id="label-slicer-orientation">Slicery</h3>
+                        <div class="template-selector" role="group" aria-labelledby="label-slicer-orientation">
+                            <button type="button" class="template-option active" data-orientation="horizontal">Nahoře</button>
+                            <button type="button" class="template-option" data-orientation="vertical">Vlevo</button>
+                        </div>
+                    </div>
 
-                        <label for="kpis-per-row">KPI na řádek</label>
-                        <select id="kpis-per-row">
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                            <option value="6" selected>6</option>
-                            <option value="7">7</option>
-                        </select>
+                    <div class="panel-section panel-rows">
+                        <!-- Collapses away in vertical mode: a single slicer column
+                             has no per-row limit to set. -->
+                        <div class="collapsible expanded" id="slicers-per-row-field">
+                            <div class="collapsible-inner">
+                                <div class="panel-row">
+                                    <label for="slicers-per-row">Slicery na řádek</label>
+                                    <select id="slicers-per-row">
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                        <option value="6">6</option>
+                                        <option value="7" selected>7</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel-row">
+                            <label for="kpis-per-row">KPI na řádek</label>
+                            <select id="kpis-per-row">
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6" selected>6</option>
+                                <option value="7">7</option>
+                            </select>
+                        </div>
                     </div>
 
                     <button id="reset-layout" class="full-btn reset-layout-btn">Reset layoutu</button>

@@ -90,7 +90,7 @@ export function computeKpiLayout(v) {
       .filter(k => k.locked)
       .reduce((sum, k) => sum + (k.width ?? 0), 0);
 
-    let remaining = state.USABLE_WIDTH - totalGaps1 - lockedSum;
+    let remaining = v.contentWidth - totalGaps1 - lockedSum;
 
     if (remaining < 0) {
       row1ManualWidthSumExceeded = true;
@@ -112,7 +112,7 @@ export function computeKpiLayout(v) {
   // 2) If no locked KPI and KPI count >= 4 → symmetric width distribution
   else {
     const n1 = row1.length;
-    const usable = state.USABLE_WIDTH - totalGaps1;
+    const usable = v.contentWidth - totalGaps1;
 
     // Even distribution, leftover chunks spread symmetrically from the edges
     // towards the center
@@ -128,7 +128,7 @@ export function computeKpiLayout(v) {
   }
 
   const totalWidthRow1 = widths1.reduce((s, w) => s + w, 0) + totalGaps1;
-  const row1Overflows = totalWidthRow1 > state.USABLE_WIDTH;
+  const row1Overflows = totalWidthRow1 > v.contentWidth;
   syncWarning(row1Overflows, ROW1_OVERFLOW_ERROR, "error");
   if (row1Overflows) {
     syncWarning(false, ROW2_MANUAL_WIDTH_SUM_ERROR, "error");
@@ -142,7 +142,7 @@ export function computeKpiLayout(v) {
   if (row2.length > 0) {
     const n2 = row2.length;
     const anyLocked2 = row2.some(k => k.locked);
-    const usable2 = state.USABLE_WIDTH - totalGaps2;
+    const usable2 = v.contentWidth - totalGaps2;
 
 
     // 1) If there are locked KPI → use original logic
@@ -218,14 +218,14 @@ export function computeKpiLayout(v) {
   syncWarning(row2ManualWidthSumExceeded, ROW2_MANUAL_WIDTH_SUM_ERROR, "error");
 
   const totalWidthRow2 = widths2.reduce((s, w) => s + w, 0) + totalGaps2;
-  const row2Overflows = totalWidthRow2 > state.USABLE_WIDTH;
+  const row2Overflows = totalWidthRow2 > v.contentWidth;
   syncWarning(row2Overflows, ROW2_OVERFLOW_ERROR, "error");
   if (row2Overflows) return [];
 
   const rows = [];
 
   if (row1.length > 0) {
-    let x = state.MARGIN;
+    let x = v.contentLeft;
     const y = v.kpiTop;
 
     const items = row1.map((k, i) => {
@@ -249,7 +249,7 @@ export function computeKpiLayout(v) {
   }
 
   if (row2.length > 0) {
-    let x = state.MARGIN;
+    let x = v.contentLeft;
 
     const row1Height = row1.length
       ? Math.max(...row1.map(k => k.height ?? state.KPI_MIN_HEIGHT))

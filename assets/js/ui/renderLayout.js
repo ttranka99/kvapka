@@ -4,7 +4,12 @@ import { computeSlicersLayout } from "../layout/computeSlicersLayout.js";
 import { computeKpiLayout } from "../layout/computeKpiLayout.js";
 import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
-import { handleAddSlicer, handleRemoveSlicer, handleSelectSlicer } from "../events/slicerEvents.js";
+import {
+  handleAddSlicer,
+  handleRemoveSlicer,
+  handleSelectSlicer,
+  handleToggleSlicerLock
+} from "../events/slicerEvents.js";
 import { handleAddKpi, handleRemoveKpi, handleSelectKpi } from "../events/kpiEvents.js";
 import {
   handleAddChartLeft,
@@ -23,6 +28,7 @@ import {
 import { attachChartResizeHandle } from "../events/chartResizeEvents.js";
 import { attachRowResizeHandle } from "../events/rowResizeEvents.js";
 import { attachStackResizeHandle } from "../events/stackResizeEvents.js";
+import { attachSlicerColumnResizeHandle } from "../events/slicerColumnResizeEvents.js";
 import { setSelected } from "../ui/selection.js";
 import { renderWarnings } from "../ui/warnings.js";
 
@@ -64,6 +70,20 @@ canvas.addEventListener("click", () => setSelected(null));
 
 function scale(v) {
   return v * state.EFFECTIVE_SCALE;
+}
+
+function buildLockButton(locked, onClick, lockedTitle, unlockedTitle) {
+  const lockBtn = document.createElement("button");
+  lockBtn.className = "icon-btn";
+  lockBtn.innerHTML = locked
+    ? `<span class="icon-default">${LOCK_ICON}</span><span class="icon-hover">${UNLOCK_ICON}</span>`
+    : `<span class="icon-default">${UNLOCK_ICON}</span><span class="icon-hover">${LOCK_ICON}</span>`;
+  lockBtn.title = locked ? lockedTitle : unlockedTitle;
+  lockBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    onClick();
+  });
+  return lockBtn;
 }
 
 // Scales the canvas to fully fit the available space of the .main content
@@ -239,6 +259,7 @@ export function renderLayout() {
 
   canvas.appendChild(title);
 
+  const verticalSlicers = state.isVerticalSlicers();
   const slicerRowsLayout = computeSlicersLayout(v);
 
   slicerRowsLayout.forEach(row => {
@@ -260,6 +281,21 @@ export function renderLayout() {
       const controls = document.createElement("div");
       controls.className = "element-controls";
 
+      // Only the vertical column has per-slicer heights worth freezing —
+      // in a horizontal row every slicer is SLICER_HEIGHT tall, and its
+      // width lock is set by the Apply button instead.
+      let slicerLockBtn = null;
+      if (verticalSlicers) {
+        if (item.stateRef.locked) el.classList.add("height-locked");
+        slicerLockBtn = buildLockButton(
+          item.stateRef.locked,
+          () => handleToggleSlicerLock(item.globalIndex),
+          "Odemknout výšku sliceru",
+          "Zamknout výšku sliceru"
+        );
+        controls.appendChild(slicerLockBtn);
+      }
+
       const removeBtn = document.createElement("button");
       removeBtn.className = "icon-btn";
       removeBtn.innerHTML = REMOVE_ICON;
@@ -278,23 +314,35 @@ export function renderLayout() {
       });
 
       canvas.appendChild(el);
+      // Must run after the button is in the document (see the helper).
+      if (slicerLockBtn) suppressHoverIfCursorOver(slicerLockBtn);
 
-      // Right-edge hover "+" — the only way to add another slicer now (see
-      // appendEdgeAddControl below).
+      // Hover "+" — the only way to add another slicer. It follows the
+      // direction the slicers grow in: the right edge in a row, the bottom
+      // edge in the vertical column.
       appendEdgeAddControl({
-        zone: {
-          left: scale(item.x + item.width) - 8,
-          top: scale(item.y),
-          width: 16,
-          height: scale(item.height)
-        },
-        btnPos: { x: scale(item.x + item.width), y: scale(item.y + item.height / 2) },
+        zone: verticalSlicers
+          ? {
+              left: scale(item.x),
+              top: scale(item.y + item.height) - 8,
+              width: scale(item.width),
+              height: 16
+            }
+          : {
+              left: scale(item.x + item.width) - 8,
+              top: scale(item.y),
+              width: 16,
+              height: scale(item.height)
+            },
+        btnPos: verticalSlicers
+          ? { x: scale(item.x + item.width / 2), y: scale(item.y + item.height) }
+          : { x: scale(item.x + item.width), y: scale(item.y + item.height / 2) },
         scope: {
           left: scale(item.x),
           top: scale(item.y),
           width: scale(item.width),
           height: scale(item.height),
-          edge: "right"
+          edge: verticalSlicers ? "bottom" : "right"
         },
         onClick: () => handleAddSlicer(item.globalIndex),
         title: "Přidat slicer"
@@ -383,20 +431,6 @@ export function renderLayout() {
         btn.classList.remove("suppress-hover");
       }, { once: true });
     }
-  }
-
-  function buildLockButton(locked, onClick, lockedTitle, unlockedTitle) {
-    const lockBtn = document.createElement("button");
-    lockBtn.className = "icon-btn";
-    lockBtn.innerHTML = locked
-      ? `<span class="icon-default">${LOCK_ICON}</span><span class="icon-hover">${UNLOCK_ICON}</span>`
-      : `<span class="icon-default">${UNLOCK_ICON}</span><span class="icon-hover">${LOCK_ICON}</span>`;
-    lockBtn.title = locked ? lockedTitle : unlockedTitle;
-    lockBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      onClick();
-    });
-    return lockBtn;
   }
 
   chartsLayout.forEach((row, rowIndex) => {
@@ -665,6 +699,28 @@ export function renderLayout() {
   // hence this running as its own pass afterward rather than inline in the
   // loop above.
   const canvasRect = canvas.getBoundingClientRect();
+
+  // The vertical column's right-edge drag handle. One handle for the whole
+  // column (all its slicers share a width), spanning it top to bottom, and
+  // positioned from real rendered rects like every other handle.
+  if (v.hasColumn) {
+    const firstEl = document.getElementById("slicer-1");
+    const lastEl = document.getElementById(`slicer-${state.slicers.length}`);
+    if (firstEl && lastEl) {
+      const firstRect = firstEl.getBoundingClientRect();
+      const lastRect = lastEl.getBoundingClientRect();
+
+      const columnHandle = document.createElement("div");
+      columnHandle.className = "chart-resize-handle";
+      columnHandle.style.left = (firstRect.right - canvasRect.left) + "px";
+      columnHandle.style.top = (firstRect.top - canvasRect.top) + "px";
+      columnHandle.style.height = (lastRect.bottom - firstRect.top) + "px";
+
+      attachSlicerColumnResizeHandle(columnHandle, renderLayout);
+      canvas.appendChild(columnHandle);
+    }
+  }
+
   chartsLayout.forEach((row, rowIndex) => {
     row.forEach((item, i) => {
       // Left edge of the first chart in the row — a "+" here adds a chart to

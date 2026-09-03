@@ -22,11 +22,17 @@ export function captureSnapshot() {
     activeTemplate: state.activeTemplate,
     maxSlicers: state.MAX_SLICERS,
     maxKpis: state.MAX_KPIS,
+    slicerOrientation: state.slicerOrientation,
+    slicerColumnWidth: state.SLICER_COLUMN_WIDTH,
   };
 }
 
 export function loadSnapshot(snap) {
+  // setLayoutTemplate resets the column width to the template default, so
+  // the page's own dragged width has to be restored after it, not before.
   state.setLayoutTemplate(snap.activeTemplate);
+  state.setSlicerOrientation(snap.slicerOrientation);
+  state.setSlicerColumnWidth(snap.slicerColumnWidth);
   state.setMaxSlicers(snap.maxSlicers);
   state.setMaxKpis(snap.maxKpis);
   state.setSlicers(clone(snap.slicers));
@@ -37,7 +43,8 @@ export function loadSnapshot(snap) {
 
 // Seeds live state with fresh-page defaults (reuses initState — no duplicated defaults)
 function loadDefaults() {
-  state.setLayoutTemplate("FULL_HD");
+  state.setLayoutTemplate("FULL_HD");   // also restores the default column width
+  state.setSlicerOrientation("horizontal");
   state.setMaxSlicers(7);
   state.setMaxKpis(6);
   initState();

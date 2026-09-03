@@ -18,7 +18,8 @@ export function canAddChart(simulatedChartRows, vLayout) {
   if (heights.some((h, i) => h < rowEffectiveMinHeight(simulatedChartRows[i]))) return false;
   if (totalHeight > vLayout.chartsHeight) return false;
 
-  // Check horizontal: each row must fit within USABLE_WIDTH
+  // Check horizontal: each row must fit within the content box (narrower
+  // than USABLE_WIDTH when the slicer column is on the left)
   for (const row of simulatedChartRows) {
     const itemCount = row.items.length;
     const gapsInRow = (itemCount - 1) * state.GAP_SMALL;
@@ -35,7 +36,7 @@ export function canAddChart(simulatedChartRows, vLayout) {
     const unlockedCount = itemCount - row.items.filter(item => Number.isFinite(item.width)).length;
 
     const minWidthNeeded = lockedSum + unlockedCount * state.MIN_CHART_WIDTH + gapsInRow;
-    if (minWidthNeeded > state.USABLE_WIDTH) {
+    if (minWidthNeeded > vLayout.contentWidth) {
       return false;
     }
   }

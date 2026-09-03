@@ -14,7 +14,7 @@ export function computeChartsLayout(v) {
     const n = row.items.length;
 
     const totalGaps = (n - 1) * state.GAP_SMALL;
-    const availableWidth = state.USABLE_WIDTH - totalGaps;
+    const availableWidth = v.contentWidth - totalGaps;
 
     // A chart keeps its current width if one is stored, whether or not it's
     // still "locked" — unlocking a chart intentionally leaves its width in
@@ -47,7 +47,7 @@ export function computeChartsLayout(v) {
       });
     }
 
-    let x = state.MARGIN;
+    let x = v.contentLeft;
 
     row.items.forEach((item, i) => {
       const w = widths[i];

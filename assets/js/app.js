@@ -8,25 +8,28 @@ import { renderLayout } from "./ui/renderLayout.js";
 import { initTabs } from "./state/tabs.js";
 import { initTabsUI } from "./ui/tabs.js";
 import * as state from "./state/state.js";
+import { canAddSlicer, slicerLimitMessage } from "./events/slicerEvents.js";
 
 const addKpiBtn = document.getElementById("add-kpi");
 const addSlicerBtn = document.getElementById("add-slicer");
 const addChartSplitBtn = document.getElementById("add-chart-split");
-const templateButtons = document.querySelectorAll(".template-option");
+const templateButtons = document.querySelectorAll(".template-option[data-template]");
+const orientationButtons = document.querySelectorAll(".template-option[data-orientation]");
 const canvasSizeLabel = document.getElementById("canvas-size-label");
 const slicersPerRowSelect = document.getElementById("slicers-per-row");
+const slicersPerRowField = document.getElementById("slicers-per-row-field");
 const kpisPerRowSelect = document.getElementById("kpis-per-row");
 
 // Appends a new slicer at the end of the list (used by the sidebar "Slicer" button).
 // Per-item insertion at an arbitrary index is handled separately by handleAddSlicer
 // in events/slicerEvents.js, used by the "+" controls on the canvas.
 function addSlicer() {
-  if (state.slicers.length >= state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS) {
-    addWarning("Bylo dosaženo maximálního počtu slicerů.", "error");
+  if (!canAddSlicer()) {
+    addWarning(slicerLimitMessage(), "error");
     return;
   }
 
-  state.setSlicers([...state.slicers, { width: null, locked: false }]);
+  state.setSlicers([...state.slicers, { width: null, height: null, locked: false }]);
   renderLayout();
 }
 
@@ -82,6 +85,22 @@ function syncTemplateControls() {
   canvasSizeLabel.textContent = `Power BI plátno ${state.CANVAS_WIDTH} × ${state.CANVAS_HEIGHT}`;
 }
 
+function syncOrientationControls() {
+  orientationButtons.forEach(button => {
+    button.classList.toggle("active", button.dataset.orientation === state.slicerOrientation);
+  });
+
+  // The vertical column is always a single column, so a per-row limit has
+  // nothing to control there — the row animates away via .collapsible rather
+  // than popping out of the panel.
+  const vertical = state.isVerticalSlicers();
+  slicersPerRowField.classList.toggle("expanded", !vertical);
+  // A collapsed .collapsible is 0px tall but only overflow-hidden, so its
+  // contents stay in the tab order — disabling the select keeps keyboard
+  // focus from landing on a control nobody can see.
+  slicersPerRowSelect.disabled = vertical;
+}
+
 function syncRowLimitControls() {
   slicersPerRowSelect.value = String(state.MAX_SLICERS);
   kpisPerRowSelect.value = String(state.MAX_KPIS);
@@ -97,6 +116,26 @@ function initTemplateControls() {
       state.setWarnings([]);
       setSelected(null);
       syncTemplateControls();
+      syncOrientationControls();
+      renderLayout();
+      renderWarnings();
+    });
+  });
+}
+
+function initOrientationControls() {
+  orientationButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      if (button.dataset.orientation === state.slicerOrientation) return;
+
+      state.setSlicerOrientation(button.dataset.orientation);
+      // Switching orientation changes both the width available to the KPIs
+      // and charts and the height available to the slicers, so — as with a
+      // template switch — every locked size could now be invalid.
+      state.resetSizingLocks();
+      state.setWarnings([]);
+      setSelected(null);
+      syncOrientationControls();
       renderLayout();
       renderWarnings();
     });
@@ -136,6 +175,7 @@ function initRowLimitControls() {
 function refreshUIFromState() {
   setSelected(null);
   syncTemplateControls();
+  syncOrientationControls();
   syncRowLimitControls();
   renderLayout();
   renderWarnings();
@@ -153,8 +193,10 @@ function start() {
   initTabs();
   initTabsUI({ refreshUI: refreshUIFromState });
   initTemplateControls();
+  initOrientationControls();
   initRowLimitControls();
   syncTemplateControls();
+  syncOrientationControls();
   syncRowLimitControls();
   renderLayout();
   initResizeEvents();

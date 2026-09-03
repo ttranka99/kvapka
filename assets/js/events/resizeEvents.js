@@ -6,6 +6,7 @@ import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
 import { canAddChart } from "../layout/canAddChart.js";
 import { rowEffectiveMinHeight } from "../layout/computeStackHeights.js";
 import { snapToStep } from "../layout/sizeStep.js";
+import { slicerColumnFits } from "../layout/computeSlicerColumnHeights.js";
 import { setSelected, getPendingWidth, getPendingHeight } from "../ui/selection.js";
 import { initState } from "../state/initState.js";
 import { refreshSelectedChartAfterResize } from "./chartEvents.js";
@@ -17,10 +18,12 @@ const resetBtn = document.getElementById("reset-layout");
 const applySelectionBtn = document.getElementById("apply-selection");
 
 function isWidthEditable(kind) {
-  return kind === "slicer" || kind === "kpi" || kind === "chartRow";
+  if (kind === "slicer") return !state.isVerticalSlicers();
+  return kind === "kpi" || kind === "chartRow";
 }
 
 function isHeightEditable(kind) {
+  if (kind === "slicer") return state.isVerticalSlicers();
   return kind === "chartRow" || kind === "stackChart";
 }
 
@@ -39,6 +42,10 @@ function applyWidthValue(info, val) {
   }
 
   if (info.kind === "slicer") {
+    // Vertical slicers have no individual width (isWidthEditable already
+    // rules this out) — their width is the column's.
+    if (state.isVerticalSlicers()) return;
+
     const s = info.stateRef;
     s.width = val;
     s.locked = true;
@@ -98,6 +105,34 @@ function applyWidthValue(info, val) {
 // rules as before, parameterized on `info`/`val`.
 function applyHeightValue(info, val) {
   if (!isNaN(val)) val = snapToStep(val);
+
+  if (info.kind === "slicer") {
+    if (isNaN(val) || val < state.SLICER_HEIGHT) {
+      addWarning(`Minimální výška sliceru je ${state.SLICER_HEIGHT}px.`, "error");
+      renderWarnings();
+      return;
+    }
+
+    // Locking this slicer at the typed height leaves the rest sharing what is
+    // left, so it only holds if they all still clear their own minimum.
+    const s = info.stateRef;
+    const originalHeight = s.height;
+    const originalLocked = s.locked;
+    s.height = val;
+    s.locked = true;
+
+    const v = computeVerticalLayout();
+    if (!slicerColumnFits(state.slicers, v.slicerColumnHeight)) {
+      s.height = originalHeight;
+      s.locked = originalLocked;
+      addWarning("Zadaná výška se do sloupce nevejde, upravte hodnotu.", "error");
+      renderWarnings();
+      return;
+    }
+
+    renderLayout();
+    return;
+  }
 
   if (info.kind === "kpi") {
     if (isNaN(val) || val < state.KPI_MIN_HEIGHT) {

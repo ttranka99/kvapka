@@ -4,18 +4,65 @@ import { addWarning } from "../ui/warnings.js";
 import { renderLayout } from "../ui/renderLayout.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeSlicersLayout } from "../layout/computeSlicersLayout.js";
+import {
+  computeSlicerColumnHeights,
+  slicerColumnFits
+} from "../layout/computeSlicerColumnHeights.js";
+
+// Whether one more slicer can be added. In vertical mode the cap isn't a
+// count at all — it's whether the column still has room for every slicer at
+// its minimum height, after the unlocked ones shrink back down to make way.
+// Shared with app.js's sidebar "Slicer" button so both entry points agree.
+export function canAddSlicer() {
+  if (state.isVerticalSlicers()) {
+    const v = computeVerticalLayout();
+    return slicerColumnFits(
+      [...state.slicers, { width: null, height: null, locked: false }],
+      v.slicerColumnHeight
+    );
+  }
+  return state.slicers.length < state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS;
+}
+
+export function slicerLimitMessage() {
+  return state.isVerticalSlicers()
+    ? "Další slicer se do sloupce nevejde – odemkněte výšky nebo odeberte slicer."
+    : "Bylo dosaženo maximálního počtu slicerů.";
+}
 
 // Handle adding a slicer at a specific index
 export function handleAddSlicer(globalIndex) {
-  if (state.slicers.length >= state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS) {
-    addWarning("Bylo dosaženo maximálního počtu slicerů.", "error");
+  if (!canAddSlicer()) {
+    addWarning(slicerLimitMessage(), "error");
     renderLayout();
     return;
   }
 
   const newSlicers = [...state.slicers];
-  newSlicers.splice(globalIndex, 0, { width: null, locked: false });
+  newSlicers.splice(globalIndex, 0, { width: null, height: null, locked: false });
   state.setSlicers(newSlicers);
+  renderLayout();
+}
+
+// Vertical mode only: freezes (or releases) one slicer's height, so the
+// fill/shrink rules redistribute around it instead of resizing it. Locking
+// captures the height the solver is currently showing — same freeze-on-lock
+// behaviour as a chart row, so the element doesn't jump the moment it's
+// locked.
+export function handleToggleSlicerLock(globalIndex) {
+  const s = state.slicers[globalIndex - 1];
+  if (!s) return;
+
+  if (s.locked) {
+    s.locked = false;
+    s.height = null;
+  } else {
+    const v = computeVerticalLayout();
+    const heights = computeSlicerColumnHeights(state.slicers, v.slicerColumnHeight);
+    s.height = heights[globalIndex - 1] ?? state.SLICER_HEIGHT;
+    s.locked = true;
+  }
+
   renderLayout();
 }
 

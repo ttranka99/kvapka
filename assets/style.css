@@ -220,6 +220,22 @@ body {
   margin: 0;
 }
 
+/* Deliberately NOT the uppercase treatment .panel h2 uses: an identical
+   caption directly under the panel title flattens the hierarchy and the two
+   read as siblings. Sentence case at 11px keeps these clearly subordinate. */
+.field-label {
+  margin: 0 0 var(--space-2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* .panel sets no gap between its children, so consecutive control groups
+   would otherwise sit flush against each other. */
+.panel-field + .panel-field {
+  margin-top: var(--space-4);
+}
+
 .panel p {
   margin: var(--space-2) 0;
   line-height: 1.5;
@@ -278,23 +294,32 @@ body {
 }
 
 /* ----------------------------------------------------
-   ROW LIMIT CONTROLS
+   PANEL ROWS (label left, control right)
 -----------------------------------------------------*/
-.row-limit-controls {
-  display: grid;
-  grid-template-columns: 1fr 68px;
-  align-items: center;
-  gap: var(--space-3);
+/* Deliberately no gap on the container: rows carry their own vertical
+   padding instead, so a row collapsed to 0px (see .collapsible) leaves no
+   ghost gap behind it and the panel height changes by exactly the row. */
+.panel-section.panel-rows {
+  padding-top: var(--space-2);
 }
 
-.row-limit-controls label {
+.panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.panel-row label {
   color: var(--text-secondary);
   font-weight: 500;
   font-size: 13px;
 }
 
-.row-limit-controls select {
-  width: 100%;
+.panel-row select {
+  width: 68px;
+  flex-shrink: 0;
   padding: var(--space-2) var(--space-2);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-control);
@@ -304,7 +329,7 @@ body {
   font-size: 13px;
 }
 
-.row-limit-controls select:focus-visible {
+.panel-row select:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 1px;
 }

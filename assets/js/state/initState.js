@@ -5,10 +5,11 @@ export function initState() {
     // Default slicers
     //
     const initialSlicers = [
-        // width = null → width will be computed automatically
-        { width: null, locked: false },
-        { width: null, locked: false },
-        { width: null, locked: false }
+        // width/height = null → computed automatically (width in the
+        // horizontal row, height in the vertical column)
+        { width: null, height: null, locked: false },
+        { width: null, height: null, locked: false },
+        { width: null, height: null, locked: false }
     ];
 
     //
