@@ -31,10 +31,14 @@ function contentFits(contentWidth) {
     if (fixedSum + freeCount * state.MIN_CHART_WIDTH + gaps > contentWidth) return false;
   }
 
-  // KPI rows split at MAX_KPIS exactly as computeKpiLayout does.
+  // KPI rows split at MAX_KPIS exactly as computeKpiLayout does. The middle
+  // band is one more row competing for the same width, so it belongs in the
+  // same test — a column wide enough for the header band can still leave the
+  // middle band without room.
   const kpiRows = [
     state.kpis.slice(0, state.MAX_KPIS),
-    state.kpis.slice(state.MAX_KPIS, state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS)
+    state.kpis.slice(state.MAX_KPIS, state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS),
+    state.kpis2
   ];
 
   for (const row of kpiRows) {

@@ -1,0 +1,750 @@
+/* ----------------------------------------------------
+   THEME PICKER (sidebar)
+
+   The resolution control is no longer two fixed buttons, so it is a wrapping
+   list of chips rather than a two-column segmented control. Custom chips
+   carry an edit affordance; built-ins do not, because they are read-only
+   baselines the editor copies from.
+-----------------------------------------------------*/
+.theme-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.theme-chip {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  overflow: hidden;
+  transition: background 0.2s ease-out, border-color 0.2s ease-out;
+}
+
+.theme-chip__label {
+  min-height: 34px;
+  padding: var(--space-1) var(--space-3);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.theme-chip__label:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.theme-chip:has(.theme-chip__label:hover) {
+  border-color: var(--color-primary);
+}
+
+/* The whole chip goes red, not just its label — otherwise the edit button
+   beside it keeps the white surface and its white icon disappears. */
+.theme-chip.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.theme-chip.active .theme-chip__label,
+.theme-chip.active .theme-chip__label:hover {
+  background: var(--color-primary);
+  color: var(--text-white);
+}
+
+.theme-chip__edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--border-light);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.theme-chip__edit svg {
+  width: 13px;
+  height: 13px;
+}
+
+.theme-chip__edit:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.theme-chip.active .theme-chip__edit {
+  border-left-color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.theme-chip.active .theme-chip__edit:hover {
+  background: var(--color-primary-hover);
+  color: var(--text-white);
+}
+
+/* A secondary action inside a panel: reads as a control, not as the panel's
+   primary call to action (which is the red export button). */
+.subtle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  margin-top: var(--space-2);
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-medium);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.subtle-btn:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.subtle-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.field-note {
+  margin: var(--space-2) 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.band2-btn {
+  width: 100%;
+  margin-top: var(--space-3);
+}
+
+/* The middle KPI band is the same component as the header band, so it keeps
+   the KPI look and adds only a left rule marking it as the second band. */
+.canvas-element.kpi--band2 {
+  border-left: 3px solid var(--color-info);
+}
+
+/* ----------------------------------------------------
+   THEME EDITOR — dialog shell
+-----------------------------------------------------*/
+body.theme-editor-open {
+  overflow: hidden;
+}
+
+body.theme-editor-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.theme-editor {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+}
+
+.theme-editor[hidden] {
+  display: none;
+}
+
+.theme-editor__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(32, 33, 36, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.theme-editor__dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(1320px, 100%);
+  height: min(880px, 100%);
+  background: var(--bg-app);
+  border-radius: var(--radius-card);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+  animation: theme-editor-in 0.18s ease-out;
+}
+
+@keyframes theme-editor-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-editor__dialog { animation: none; }
+}
+
+.theme-editor__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.theme-editor__identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.theme-editor__name {
+  width: 100%;
+  max-width: 420px;
+  padding: var(--space-1) var(--space-2);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+}
+
+.theme-editor__name:hover {
+  border-color: var(--border-light);
+}
+
+.theme-editor__name:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  background: var(--bg-surface);
+}
+
+.theme-editor__meta {
+  margin: 2px 0 0 var(--space-2);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.theme-editor__head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.theme-editor__file {
+  display: none;
+}
+
+.theme-btn {
+  font-size: 13px;
+  padding: var(--space-2) var(--space-3);
+  white-space: nowrap;
+}
+
+.theme-btn--ghost {
+  background: transparent;
+  border-color: var(--border-medium);
+  color: var(--text-secondary);
+}
+
+.theme-btn--ghost:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.theme-btn--danger {
+  background: transparent;
+  border-color: var(--border-medium);
+  color: var(--color-error);
+}
+
+.theme-btn--danger:hover {
+  background: var(--color-error-light);
+  border-color: var(--color-error);
+}
+
+.theme-btn--danger[hidden] {
+  display: none;
+}
+
+.theme-editor__body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  min-height: 0;
+}
+
+/* ----------------------------------------------------
+   THEME EDITOR — controls pane
+-----------------------------------------------------*/
+.theme-editor__controls {
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-4) var(--space-8);
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-light);
+}
+
+.theme-group + .theme-group {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-divider);
+}
+
+.theme-group__title {
+  margin: 0 0 var(--space-3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.theme-field {
+  padding: var(--space-2);
+  margin: 0 calc(var(--space-2) * -1);
+  border-radius: var(--radius-control);
+  transition: background 0.15s ease-out;
+}
+
+.theme-field + .theme-field,
+.theme-field + .theme-band2 {
+  margin-top: var(--space-1);
+}
+
+/* The link between a control and the region it governs, lit from whichever
+   side the pointer is on. */
+.theme-field.is-linked {
+  background: var(--color-primary-light);
+}
+
+.theme-field__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.theme-field__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.theme-field__range {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--color-primary);
+}
+
+.theme-field__number {
+  width: 68px;
+  flex-shrink: 0;
+  padding: 4px var(--space-2);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+}
+
+.theme-field__number:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.theme-field__unit {
+  width: 20px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.theme-field__hint {
+  margin: var(--space-1) 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.theme-field--switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-control);
+}
+
+.theme-toggle__option {
+  padding: 4px var(--space-3);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+}
+
+.theme-toggle__option:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.theme-toggle__option.is-active,
+.theme-toggle__option.is-active:hover {
+  background: var(--color-primary);
+  color: var(--text-white);
+}
+
+.theme-check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+}
+
+.theme-band2__detail[hidden] {
+  display: none;
+}
+
+.theme-band2__detail {
+  margin-top: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-info);
+}
+
+.theme-editor__reset {
+  width: 100%;
+  margin-top: var(--space-6);
+}
+
+/* ----------------------------------------------------
+   THEME EDITOR — preview stage
+-----------------------------------------------------*/
+.theme-editor__stage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-4) var(--space-6) var(--space-4);
+}
+
+.theme-stage__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.theme-stage__toolbar-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.theme-toggle--sm .theme-toggle__option {
+  padding: 3px var(--space-2);
+  font-size: 11px;
+}
+
+.theme-stage__rows {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.theme-stage__rows .theme-field__number {
+  width: 56px;
+}
+
+.theme-stage__frame {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: var(--space-4);
+  background:
+    repeating-conic-gradient(var(--bg-secondary) 0 25%, transparent 0 50%)
+    0 0 / 16px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+}
+
+.theme-preview {
+  position: relative;
+  background: var(--bg-surface);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.12);
+}
+
+.theme-region {
+  position: absolute;
+  border-radius: 2px;
+  transition: box-shadow 0.15s ease-out;
+}
+
+.theme-region.is-linked {
+  box-shadow: 0 0 0 2px var(--color-primary);
+  z-index: 6;
+}
+
+/* The usable-area outline sits behind everything: it is context, not a
+   component. */
+.theme-region--usable {
+  border: 1px dashed var(--border-medium);
+  background: transparent;
+}
+
+.theme-region--title {
+  background: #eceff3;
+  border: 1px solid var(--border-medium);
+}
+
+.theme-region--slicer {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+}
+
+.theme-region--kpi {
+  background: #fff;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.theme-region--band2 {
+  border-left: 3px solid var(--color-info);
+}
+
+.theme-region--chart {
+  background: #fbfbfc;
+  border: 1px solid var(--border-light);
+}
+
+.theme-region--chart.is-too-small {
+  border-color: var(--color-error);
+  background: var(--color-error-light);
+}
+
+/* Gap rulers make the two spacing values visible: without them the only
+   evidence of a gap is the emptiness between two boxes. */
+.theme-region--gap {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(214, 0, 50, 0.10) 0 4px,
+    transparent 4px 8px
+  );
+  border: 0;
+  z-index: 4;
+}
+
+.theme-gap__value {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0 4px;
+  font-size: 9px;
+  line-height: 1.4;
+  white-space: nowrap;
+  color: var(--color-primary);
+  background: var(--bg-surface);
+  border-radius: 2px;
+}
+
+/* Cell subdivisions: what turns a plain rectangle into "the seven slicers
+   this theme will produce". */
+.theme-cells {
+  position: absolute;
+  inset: 3px;
+  display: flex;
+  pointer-events: none;
+}
+
+.theme-cells--row { flex-direction: row; }
+.theme-cells--column { flex-direction: column; }
+
+.theme-cell {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border: 1px dashed rgba(95, 99, 104, 0.35);
+  border-radius: 2px;
+}
+
+/* Tags sit *inside* their region rather than hanging off its top edge: a
+   region's neighbour is often only a few scaled pixels away, and an outside
+   tag would paint over it. */
+.theme-tag {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  z-index: 5;
+  padding: 1px 5px;
+  font-size: 9px;
+  line-height: 1.5;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+}
+
+.theme-tag--wrap {
+  white-space: normal;
+  max-width: calc(100% - 6px);
+}
+
+.theme-tag--usable {
+  left: auto;
+  right: 3px;
+  top: -9px;              /* the outline has no interior to sit in */
+  color: var(--text-muted);
+}
+
+/* Drag strips on region edges. Kept generously thick relative to the preview
+   scale so they stay grabbable even on a small canvas. */
+.theme-handle {
+  position: absolute;
+  z-index: 7;
+}
+
+.theme-handle--y {
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 9px;
+  cursor: ns-resize;
+}
+
+.theme-handle--x {
+  top: 0;
+  bottom: 0;
+  right: -4px;
+  width: 9px;
+  cursor: ew-resize;
+}
+
+.theme-handle--left {
+  right: auto;
+  left: -4px;
+}
+
+.theme-handle::after {
+  content: "";
+  position: absolute;
+  inset: 4px 0;
+  border-radius: 2px;
+  background: var(--color-primary);
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+
+.theme-handle--x::after {
+  inset: 0 4px;
+}
+
+.theme-handle:hover::after {
+  opacity: 0.8;
+}
+
+.theme-stage__readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.theme-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.theme-stat__label {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.theme-stat__value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.theme-stage__issues {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  max-height: 96px;
+  overflow-y: auto;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.theme-issue {
+  padding: 4px var(--space-3);
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: var(--radius-control);
+}
+
+.theme-issue--ok {
+  color: var(--color-success);
+  background: rgba(46, 158, 68, 0.08);
+}
+
+.theme-issue--warning {
+  color: #8a5b00;
+  background: var(--color-warning-light);
+}
+
+.theme-issue--error {
+  color: var(--color-error);
+  background: var(--color-error-light);
+}
+
+@media (max-width: 1100px) {
+  .theme-editor {
+    padding: 0;
+  }
+
+  .theme-editor__dialog {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .theme-editor__body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 45%) minmax(0, 55%);
+  }
+
+  .theme-editor__controls {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+}

@@ -43,6 +43,14 @@ export function initState() {
     //
     state.setSlicers(initialSlicers);
     state.setKpis(initialKpis);
+    // The middle band starts with the count the theme suggests, so enabling
+    // it in the editor shows something on the canvas straight away rather
+    // than an invisible reserved strip.
+    state.setKpis2(
+        state.hasKpiBand2()
+            ? Array.from({ length: state.KPI_BAND_2.defaultCount }, () => ({ height: null, locked: false }))
+            : []
+    );
     state.setChartRows(initialChartRows);
     state.setWarnings(initialWarnings);
 }

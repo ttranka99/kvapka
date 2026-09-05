@@ -1,6 +1,7 @@
 import * as state from "../state/state.js";
 import { addWarning } from "../ui/warnings.js";
 import { distributeInSteps } from "./sizeStep.js";
+import { kpiBand2Top } from "./computeKpiBand2.js";
 
 const MAX_PER_ROW_INFO = "Dosažen maximální počet KPI. Další KPI budou umístěny na další řádek.";
 const HARD_LIMIT_ERROR = "Dosaženo maximálního počtu KPI. Odeberte KPI.";
@@ -9,6 +10,8 @@ const ROW1_MANUAL_WIDTH_SUM_ERROR = "The sum of manually set KPI widths exceeds 
 const ROW1_OVERFLOW_ERROR = "KPI se nevejdou do dostupné šířky – uprav šířky nebo odeber KPI.";
 const ROW2_MANUAL_WIDTH_SUM_ERROR = "The sum of manually set KPI widths on the second row exceeds the available width.";
 const ROW2_OVERFLOW_ERROR = "KPI se nevejdou do dostupné šířky – upravte šířku nebo odeberte KPI.";
+const BAND2_OVERFLOW_ERROR = "KPI v prostředním pásu se nevejdou do dostupné šířky – upravte šířku nebo odeberte KPI.";
+const BAND2_LIMIT_WARNING = "Prostřední pás KPI překračuje vybraný limit na řádek.";
 
 // Tracks which conditions this module has already surfaced a notification
 // for, independent of whether that notification has since timed out into the
@@ -46,6 +49,51 @@ function syncWarning(condition, msg, type) {
   // entry is currently in.
 }
 
+// The width rule for a single row of KPI cards, shared by the header band's
+// first row and the middle band (which is always one row). Three cases, in
+// the order they're tested:
+//   0) three or fewer, none locked → a fixed 250px card each, so a sparse row
+//      reads as a few cards rather than three enormous slabs;
+//   1) any card locked → the locked widths are honoured and the rest split
+//      what's left, left to right (there's no symmetry left to preserve);
+//   2) otherwise → an even, symmetric split of the usable width.
+function kpiRowWidths(row, availableWidth) {
+  const n = row.length;
+  const totalGaps = (n - 1) * state.GAP_SMALL;
+  const usable = availableWidth - totalGaps;
+  const anyLocked = row.some(k => k.locked);
+
+  if (!anyLocked && n <= 3) {
+    return { widths: Array(n).fill(250), manualSumExceeded: false };
+  }
+
+  if (anyLocked) {
+    const lockedSum = row
+      .filter(k => k.locked)
+      .reduce((sum, k) => sum + (k.width ?? 0), 0);
+
+    const remaining = usable - lockedSum;
+    if (remaining < 0) return { widths: [], manualSumExceeded: true };
+
+    const unlockedCount = row.filter(k => !k.locked).length;
+    if (unlockedCount === 0) return { widths: row.map(k => k.width), manualSumExceeded: false };
+
+    const shares = distributeInSteps(remaining, unlockedCount, false);
+    let next = 0;
+    return {
+      widths: row.map(k => (k.locked ? k.width : shares[next++])),
+      manualSumExceeded: false
+    };
+  }
+
+  return { widths: distributeInSteps(usable, n), manualSumExceeded: false };
+}
+
+function rowFits(widths, count, availableWidth) {
+  const totalGaps = (count - 1) * state.GAP_SMALL;
+  return widths.reduce((s, w) => s + w, 0) + totalGaps <= availableWidth;
+}
+
 export function computeKpiLayout(v) {
   syncWarning(state.kpis.length === state.MAX_KPIS, MAX_PER_ROW_INFO, "info");
   syncWarning(
@@ -75,52 +123,11 @@ export function computeKpiLayout(v) {
   const totalGaps1 = (row1.length - 1) * state.GAP_SMALL;
   const totalGaps2 = (row2.length - 1) * state.GAP_SMALL;
 
-  let widths1;
-  let row1ManualWidthSumExceeded = false;
-  const anyLocked1 = row1.some(k => k.locked);
+  const solved1 = kpiRowWidths(row1, v.contentWidth);
+  const widths1 = solved1.widths;
 
-  // 0) If KPI count is 3 or fewer → fixed width 250
-  if (!anyLocked1 && row1.length <= 3) {
-    widths1 = Array(row1.length).fill(250);
-  }
-
-  // 1) If there are locked KPI, use the original logic
-  else if (anyLocked1) {
-    const lockedSum = row1
-      .filter(k => k.locked)
-      .reduce((sum, k) => sum + (k.width ?? 0), 0);
-
-    let remaining = v.contentWidth - totalGaps1 - lockedSum;
-
-    if (remaining < 0) {
-      row1ManualWidthSumExceeded = true;
-      widths1 = [];
-    } else {
-      const unlocked = row1.filter(k => !k.locked);
-      const u = unlocked.length;
-
-      if (u === 0) {
-        widths1 = row1.map(k => k.width);
-      } else {
-        const shares = distributeInSteps(remaining, u, false);
-        let next = 0;
-        widths1 = row1.map(k => (k.locked ? k.width : shares[next++]));
-      }
-    }
-  }
-
-  // 2) If no locked KPI and KPI count >= 4 → symmetric width distribution
-  else {
-    const n1 = row1.length;
-    const usable = v.contentWidth - totalGaps1;
-
-    // Even distribution, leftover chunks spread symmetrically from the edges
-    // towards the center
-    widths1 = distributeInSteps(usable, n1);
-  }
-
-  syncWarning(row1ManualWidthSumExceeded, ROW1_MANUAL_WIDTH_SUM_ERROR, "error");
-  if (row1ManualWidthSumExceeded) {
+  syncWarning(solved1.manualSumExceeded, ROW1_MANUAL_WIDTH_SUM_ERROR, "error");
+  if (solved1.manualSumExceeded) {
     syncWarning(false, ROW1_OVERFLOW_ERROR, "error");
     syncWarning(false, ROW2_MANUAL_WIDTH_SUM_ERROR, "error");
     syncWarning(false, ROW2_OVERFLOW_ERROR, "error");
@@ -143,7 +150,6 @@ export function computeKpiLayout(v) {
     const n2 = row2.length;
     const anyLocked2 = row2.some(k => k.locked);
     const usable2 = v.contentWidth - totalGaps2;
-
 
     // 1) If there are locked KPI → use original logic
     if (anyLocked2) {
@@ -238,6 +244,7 @@ export function computeKpiLayout(v) {
         width: w,
         height: h,
         index: i,
+        band: 0,
         stateRef: k
       };
 
@@ -267,6 +274,7 @@ export function computeKpiLayout(v) {
         width: w,
         height: h,
         index: state.MAX_KPIS + i,
+        band: 0,
         stateRef: k
       };
 
@@ -278,4 +286,52 @@ export function computeKpiLayout(v) {
   }
 
   return rows;
+}
+
+/**
+ * The middle KPI band — always a single row, since its whole point is to
+ * break up the chart area rather than become a second stack of cards. Its
+ * width rule is the header band's, so the two read as the same component
+ * wherever they sit; only its Y comes from elsewhere (the solved chart row
+ * heights, via kpiBand2Top).
+ *
+ * Returns the same [row] shape as computeKpiLayout so renderers and the
+ * exporter can treat both bands identically.
+ */
+export function computeKpiBand2Layout(v, heights) {
+  if (!v.band2Active || state.kpis2.length === 0) {
+    syncWarning(false, BAND2_OVERFLOW_ERROR, "error");
+    syncWarning(false, BAND2_LIMIT_WARNING, "warning");
+    return [];
+  }
+
+  const row = state.kpis2;
+  syncWarning(row.length > state.MAX_KPIS, BAND2_LIMIT_WARNING, "warning");
+
+  const solved = kpiRowWidths(row, v.contentWidth);
+  const fits = !solved.manualSumExceeded && rowFits(solved.widths, row.length, v.contentWidth);
+
+  syncWarning(!fits, BAND2_OVERFLOW_ERROR, "error");
+  if (!fits) return [];
+
+  const y = kpiBand2Top(v, heights);
+  if (y === null) return [];
+
+  let x = v.contentLeft;
+  const items = row.map((k, i) => {
+    const w = solved.widths[i];
+    const item = {
+      x,
+      y,
+      width: w,
+      height: k.height ?? state.KPI_MIN_HEIGHT,
+      index: i,
+      band: 1,
+      stateRef: k
+    };
+    x += w + state.GAP_SMALL;
+    return item;
+  });
+
+  return [items];
 }

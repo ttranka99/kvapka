@@ -1,6 +1,13 @@
 // The layout grid step: every computed width/height should land on a multiple
-// of 5 so the numbers stay readable and export cleanly to Power BI.
-export const STEP = 5;
+// of this so the numbers stay readable and export cleanly to Power BI. 5 is
+// the default; a theme may choose its own (see theme/themeModel.js), which is
+// why this is a mutable binding set through setStep() rather than a const.
+export let STEP = 5;
+
+export function setStep(v) {
+  const n = Math.round(Number(v));
+  STEP = Number.isFinite(n) && n >= 1 ? n : 5;
+}
 
 export function snapToStep(v) {
   return Math.round(v / STEP) * STEP;

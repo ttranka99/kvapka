@@ -1,6 +1,7 @@
 import {
   getSlicers,
   getKpis,
+  getKpis2,
   getChartRows,
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
@@ -14,12 +15,15 @@ import {
   MAX_SLICERS,
   MAX_KPIS,
   SECOND_ROW_MAX_ITEMS,
-  isVerticalSlicers
+  isVerticalSlicers,
+  hasKpiBand2,
+  kpiBand2AfterRow
 } from "../state/state.js";
 
 export function computeVerticalLayout() {
   const slicers = getSlicers();
   const kpis = getKpis();
+  const kpis2 = getKpis2();
   const chartRows = getChartRows();
 
   const vertical = isVerticalSlicers();
@@ -122,7 +126,38 @@ export function computeVerticalLayout() {
         : slicersBottom + GAP_KPI_TO_CHARTS;
 
   const chartsBottom = CANVAS_HEIGHT - MARGIN;
-  const chartsHeight = chartsBottom - chartsTop;
+
+  // SECOND KPI BAND
+  //
+  // A band the theme can place *between* two chart rows instead of under the
+  // header. It is carved out of the chart area rather than added below it, so
+  // the layout still ends exactly at the bottom margin: the rows share
+  // whatever is left after the band and its two block gaps are taken out.
+  //
+  // Only its height is settled here. Where it actually lands depends on the
+  // solved row heights, which are computed one layer up — see
+  // kpiBand2Top() in computeKpiBand2.js.
+  const band2Active = hasKpiBand2() && kpis2.length > 0;
+  const band2Row = band2Active ? kpiBand2AfterRow() : -1;
+  const kpiBand2Height = band2Active
+    ? Math.max(...kpis2.map(k => k.height ?? KPI_MIN_HEIGHT))
+    : 0;
+
+  // How much height the band costs the chart rows. Landing *between* two rows
+  // it replaces the small gap that boundary already had, so only the
+  // difference comes out of the rows' budget; landing below the last row
+  // there is no gap to replace and it costs its own height plus the one block
+  // gap above it. Getting this wrong leaves the layout short of (or over) the
+  // bottom margin by exactly one gap.
+  const kpiBand2Reserved = !band2Active
+    ? 0
+    : chartRows.length === 0
+      ? kpiBand2Height
+      : band2Row < chartRows.length - 1
+        ? kpiBand2Height + 2 * GAP_KPI_TO_CHARTS - GAP_SMALL
+        : kpiBand2Height + GAP_KPI_TO_CHARTS;
+
+  const chartsHeight = chartsBottom - chartsTop - kpiBand2Reserved;
 
   return {
     TITLE_Y,
@@ -140,6 +175,10 @@ export function computeVerticalLayout() {
     chartsTop,
     chartsBottom,
     chartsHeight,
-    hasRow2
+    hasRow2,
+    band2Active,
+    kpiBand2Height,
+    kpiBand2Reserved,
+    kpiBand2AfterRow: band2Row
   };
 }

@@ -1,7 +1,7 @@
 import * as state from "../state/state.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeSlicersLayout } from "../layout/computeSlicersLayout.js";
-import { computeKpiLayout } from "../layout/computeKpiLayout.js";
+import { computeKpiLayout, computeKpiBand2Layout } from "../layout/computeKpiLayout.js";
 import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
 import {
@@ -350,14 +350,19 @@ export function renderLayout() {
     });
   });
 
-  const kpiRows = computeKpiLayout(v);
+  // Both KPI bands render through the same pass — the middle band differs
+  // only in where it sits (inside the chart area) and in the list its items
+  // come from, which computeKpiBand2Layout has already resolved.
+  const chartRowHeights = computeChartRowHeights(v);
+  const kpiRows = [...computeKpiLayout(v), ...computeKpiBand2Layout(v, chartRowHeights)];
 
   kpiRows.forEach(row => {
     row.forEach(item => {
-      const domId = `kpi-${item.index}`;
+      const band = item.band ?? 0;
+      const domId = band === 1 ? `kpi-b1-${item.index}` : `kpi-${item.index}`;
       const el = document.createElement("div");
       el.id = domId;
-      el.className = "canvas-element kpi";
+      el.className = "canvas-element kpi" + (band === 1 ? " kpi--band2" : "");
       el.style.left = scale(item.x) + "px";
       el.style.top = scale(item.y) + "px";
       el.style.width = scale(item.width) + "px";
@@ -365,6 +370,8 @@ export function renderLayout() {
 
       const label = document.createElement("div");
       label.className = "canvas-element-label";
+      // Band 2 numbering restarts at 1 — it is its own row of cards, not a
+      // continuation of the header band's.
       label.textContent = `KPI ${item.index + 1}`;
       el.appendChild(label);
 
@@ -377,7 +384,7 @@ export function renderLayout() {
       removeBtn.title = "Odebrat KPI";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        handleRemoveKpi(item.index);
+        handleRemoveKpi(item.index, band);
       });
 
       controls.appendChild(removeBtn);
@@ -406,7 +413,7 @@ export function renderLayout() {
           height: scale(item.height),
           edge: "right"
         },
-        onClick: () => handleAddKpi(item.index),
+        onClick: () => handleAddKpi(item.index, band),
         title: "Přidat KPI"
       });
     });

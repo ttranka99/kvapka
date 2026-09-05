@@ -9,13 +9,17 @@ import { initTabs } from "./state/tabs.js";
 import { initTabsUI } from "./ui/tabs.js";
 import * as state from "./state/state.js";
 import { canAddSlicer, slicerLimitMessage } from "./events/slicerEvents.js";
+import { handleAppendKpi } from "./events/kpiEvents.js";
+import { initThemePicker, renderThemeSelector, syncRowLimitOptions, defaultThemeLabel } from "./ui/themePicker.js";
 
 const addKpiBtn = document.getElementById("add-kpi");
+const addKpiBand2Btn = document.getElementById("add-kpi-band2");
+const addKpiBand2Field = document.getElementById("add-kpi-band2-field");
 const addSlicerBtn = document.getElementById("add-slicer");
 const addChartSplitBtn = document.getElementById("add-chart-split");
-const templateButtons = document.querySelectorAll(".template-option[data-template]");
 const orientationButtons = document.querySelectorAll(".template-option[data-orientation]");
 const canvasSizeLabel = document.getElementById("canvas-size-label");
+const scopeNote = document.getElementById("theme-scope-note");
 const slicersPerRowSelect = document.getElementById("slicers-per-row");
 const slicersPerRowField = document.getElementById("slicers-per-row-field");
 const kpisPerRowSelect = document.getElementById("kpis-per-row");
@@ -33,20 +37,8 @@ function addSlicer() {
   renderLayout();
 }
 
-// Appends a new KPI at the end of the list (used by the sidebar "KPI" button).
-// Per-item insertion at an arbitrary index is handled separately by handleAddKpi
-// in events/kpiEvents.js, used by the "+" controls on the canvas.
-function addKPI() {
-  if (state.kpis.length >= state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS) {
-    addWarning("Bylo dosaženo maximálního počtu KPI.", "error");
-    return;
-  }
-
-  state.setKpis([...state.kpis, { height: null, locked: false }]);
-  renderLayout();
-}
-
-addKpiBtn.addEventListener("click", addKPI);
+addKpiBtn.addEventListener("click", () => handleAppendKpi(0));
+addKpiBand2Btn.addEventListener("click", () => handleAppendKpi(1));
 addSlicerBtn.addEventListener("click", addSlicer);
 
 // Splits the currently selected top-level chart into a vertical stack of
@@ -78,11 +70,12 @@ addChartSplitBtn.addEventListener("mouseleave", () => {
 });
 
 function syncTemplateControls() {
-  templateButtons.forEach(button => {
-    button.classList.toggle("active", button.dataset.template === state.activeTemplate);
-  });
-
+  renderThemeSelector();
   canvasSizeLabel.textContent = `Power BI plátno ${state.CANVAS_WIDTH} × ${state.CANVAS_HEIGHT}`;
+  // Spelling out both halves of the split: what this page uses, and what a
+  // brand-new page would start on.
+  scopeNote.textContent =
+    `Tato stránka: ${state.activeTheme.label} · nové stránky: ${defaultThemeLabel()}`;
 }
 
 function syncOrientationControls() {
@@ -101,26 +94,16 @@ function syncOrientationControls() {
   slicersPerRowSelect.disabled = vertical;
 }
 
-function syncRowLimitControls() {
-  slicersPerRowSelect.value = String(state.MAX_SLICERS);
-  kpisPerRowSelect.value = String(state.MAX_KPIS);
+// The middle KPI band exists only while the active theme defines one, so its
+// button collapses away with the same animation the slicers-per-row row uses.
+function syncBand2Controls() {
+  const enabled = state.hasKpiBand2();
+  addKpiBand2Field.classList.toggle("expanded", enabled);
+  addKpiBand2Btn.disabled = !enabled;
 }
 
-function initTemplateControls() {
-  templateButtons.forEach(button => {
-    button.addEventListener("click", () => {
-      if (button.dataset.template === state.activeTemplate) return;
-
-      state.setLayoutTemplate(button.dataset.template);
-      state.resetSizingLocks();
-      state.setWarnings([]);
-      setSelected(null);
-      syncTemplateControls();
-      syncOrientationControls();
-      renderLayout();
-      renderWarnings();
-    });
-  });
+function syncRowLimitControls() {
+  syncRowLimitOptions();
 }
 
 function initOrientationControls() {
@@ -176,6 +159,7 @@ function refreshUIFromState() {
   setSelected(null);
   syncTemplateControls();
   syncOrientationControls();
+  syncBand2Controls();
   syncRowLimitControls();
   renderLayout();
   renderWarnings();
@@ -192,11 +176,12 @@ function debounce(fn, waitMs) {
 function start() {
   initTabs();
   initTabsUI({ refreshUI: refreshUIFromState });
-  initTemplateControls();
+  initThemePicker({ refreshUI: refreshUIFromState });
   initOrientationControls();
   initRowLimitControls();
   syncTemplateControls();
   syncOrientationControls();
+  syncBand2Controls();
   syncRowLimitControls();
   renderLayout();
   initResizeEvents();

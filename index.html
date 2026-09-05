@@ -16,6 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="assets/style.css" />
+    <link rel="stylesheet" href="assets/theme-editor.css" />
 </head>
 
 <body>
@@ -53,10 +54,22 @@
                     </div>
                     <div class="panel-field">
                         <h3 class="field-label" id="label-resolution">Rozlišení</h3>
-                        <div class="template-selector" role="group" aria-labelledby="label-resolution">
-                            <button type="button" class="template-option active" data-template="FULL_HD">FULL HD</button>
-                            <button type="button" class="template-option" data-template="HD">HD</button>
+                        <!-- Chips are built by ui/themePicker.js: the two built-in
+                             presets first, then every saved custom theme. -->
+                        <div class="theme-selector" id="theme-selector" role="group" aria-labelledby="label-resolution"></div>
+                        <button type="button" class="full-btn subtle-btn" id="new-theme">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+                            <span>Vlastní šablona…</span>
+                        </button>
+                    </div>
+
+                    <div class="panel-field">
+                        <h3 class="field-label" id="label-theme-scope">Platnost šablony</h3>
+                        <div class="template-selector" role="group" aria-labelledby="label-theme-scope">
+                            <button type="button" class="template-option theme-scope-option active" data-scope="page">Tato stránka</button>
+                            <button type="button" class="template-option theme-scope-option" data-scope="global">Všechny</button>
                         </div>
+                        <p class="field-note" id="theme-scope-note"></p>
                     </div>
 
                     <div class="panel-field">
@@ -74,24 +87,16 @@
                             <div class="collapsible-inner">
                                 <div class="panel-row">
                                     <label for="slicers-per-row">Slicery na řádek</label>
-                                    <select id="slicers-per-row">
-                                        <option value="4">4</option>
-                                        <option value="5">5</option>
-                                        <option value="6">6</option>
-                                        <option value="7" selected>7</option>
-                                    </select>
+                                    <!-- Options come from the active theme's
+                                         min/max per-row bounds (themePicker.js). -->
+                                    <select id="slicers-per-row"></select>
                                 </div>
                             </div>
                         </div>
 
                         <div class="panel-row">
                             <label for="kpis-per-row">KPI na řádek</label>
-                            <select id="kpis-per-row">
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6" selected>6</option>
-                                <option value="7">7</option>
-                            </select>
+                            <select id="kpis-per-row"></select>
                         </div>
                     </div>
 
@@ -156,6 +161,13 @@
                         <button id="add-slicer" class="full-btn">Slicer</button>
                         <button id="add-kpi" class="full-btn">KPI</button>
                         <button id="add-chart-split" class="full-btn hidden">Graf</button>
+                    </div>
+                    <!-- Only shown while the active theme defines a second KPI
+                         band (see syncBand2Controls in app.js). -->
+                    <div class="collapsible" id="add-kpi-band2-field">
+                        <div class="collapsible-inner">
+                            <button id="add-kpi-band2" class="full-btn band2-btn">KPI – prostřední pás</button>
+                        </div>
                     </div>
                 </section>
             </div>

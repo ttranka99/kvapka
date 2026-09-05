@@ -88,6 +88,15 @@ export function computeChartsLayout(v) {
 
     rowsLayout.push(items);
     currentY += rowHeight + state.GAP_SMALL;
+
+    // The middle KPI band is carved out between two chart rows: once the row
+    // it sits below is placed, skip past the space computeVerticalLayout()
+    // already reserved for it before laying out the next row. currentY is
+    // already one GAP_SMALL past this row's bottom, and kpiBand2Reserved is
+    // the *extra* on top of that gap, so it adds straight on.
+    if (v.band2Active && rowIndex === v.kpiBand2AfterRow) {
+      currentY += v.kpiBand2Reserved;
+    }
   });
 
   return rowsLayout;

@@ -1,5 +1,7 @@
 import * as state from "./state.js";
 import { initState } from "./initState.js";
+import { getTheme, getDefaultThemeId } from "../theme/themeStore.js";
+import { normalizeTheme } from "../theme/themeModel.js";
 
 export const MAX_TABS = 12;
 
@@ -17,9 +19,15 @@ export function captureSnapshot() {
   return {
     slicers: clone(state.slicers),
     kpis: clone(state.kpis),
+    kpis2: clone(state.kpis2),
     chartRows: clone(state.chartRows),
     warnings: clone(state.warnings),
     activeTemplate: state.activeTemplate,
+    // The theme is stored by value as well as by id. A page must keep
+    // rendering exactly as authored even if the custom theme it uses is later
+    // renamed, edited or deleted in the theme editor — the id alone would
+    // silently re-point the page at something else, or at nothing.
+    theme: clone(state.activeTheme),
     maxSlicers: state.MAX_SLICERS,
     maxKpis: state.MAX_KPIS,
     slicerOrientation: state.slicerOrientation,
@@ -28,25 +36,49 @@ export function captureSnapshot() {
 }
 
 export function loadSnapshot(snap) {
-  // setLayoutTemplate resets the column width to the template default, so
-  // the page's own dragged width has to be restored after it, not before.
-  state.setLayoutTemplate(snap.activeTemplate);
+  // applyTheme resets the column width, the per-row limits and the slicer
+  // orientation to the theme's defaults, so the page's own values have to be
+  // restored after it, not before.
+  state.applyTheme(snap.theme ?? getTheme(snap.activeTemplate) ?? normalizeTheme({}));
   state.setSlicerOrientation(snap.slicerOrientation);
   state.setSlicerColumnWidth(snap.slicerColumnWidth);
   state.setMaxSlicers(snap.maxSlicers);
   state.setMaxKpis(snap.maxKpis);
   state.setSlicers(clone(snap.slicers));
   state.setKpis(clone(snap.kpis));
+  state.setKpis2(clone(snap.kpis2 ?? []));
   state.setChartRows(clone(snap.chartRows));
   state.setWarnings(clone(snap.warnings));
 }
 
+/**
+ * Re-points a page at a theme that has just been edited or deleted. Snapshots
+ * hold themes by value (see captureSnapshot), so a saved edit only reaches
+ * the pages using it when this is called for them.
+ */
+export function retargetTabsToTheme(themeId, theme) {
+  tabs.forEach(tab => {
+    if (tab.snapshot && tab.snapshot.activeTemplate === themeId) {
+      tab.snapshot.theme = theme ? clone(theme) : tab.snapshot.theme;
+    }
+  });
+}
+
+/** Every theme id currently in use by a page, including the live one. */
+export function themeIdsInUse() {
+  const ids = tabs
+    .map((tab, i) => (i === activeTabIndex ? state.activeTemplate : tab.snapshot?.activeTemplate))
+    .filter(Boolean);
+  return [...new Set(ids)];
+}
+
 // Seeds live state with fresh-page defaults (reuses initState — no duplicated defaults)
 function loadDefaults() {
-  state.setLayoutTemplate("FULL_HD");   // also restores the default column width
-  state.setSlicerOrientation("horizontal");
-  state.setMaxSlicers(7);
-  state.setMaxKpis(6);
+  // A new page starts on the *global* default theme, which the user picks in
+  // the sidebar. Individual pages then override it as they like — that split
+  // is the whole point of having a global default at all.
+  const theme = getTheme(getDefaultThemeId());
+  state.applyTheme(theme ?? normalizeTheme({}));
   initState();
 }
 
@@ -90,4 +122,29 @@ export function removeTab(index) {
 export function renameTab(index, name) {
   const trimmed = String(name).trim();
   if (trimmed && tabs[index]) tabs[index].name = trimmed;   // empty → keep old name
+}
+
+/**
+ * Applies a theme to every page at once — the "global" half of the
+ * global/per-page split. Each page keeps its own elements; only the layout
+ * rules change under them, and the locked sizes those rules could invalidate
+ * are reset per page exactly as a single-page theme switch does.
+ */
+export function applyThemeToAllTabs(theme) {
+  // Every page but the active one lives in a snapshot, and the only way to
+  // re-solve one is to make it live for a moment — the same swap-in/swap-out
+  // the exporter does. The caller applies the theme to the active page
+  // itself, since that one also has to refresh the UI around it.
+  const live = captureSnapshot();
+
+  tabs.forEach((tab, i) => {
+    if (i === activeTabIndex || !tab.snapshot) return;
+    loadSnapshot(tab.snapshot);
+    state.applyTheme(theme);
+    state.resetSizingLocks();
+    state.setWarnings([]);
+    tab.snapshot = captureSnapshot();
+  });
+
+  loadSnapshot(live);
 }
