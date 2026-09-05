@@ -6,10 +6,10 @@ import { distributeInSteps } from "./sizeStep.js";
 export function computeChartsLayout(v) {
   const heights = computeChartRowHeights(v);
   const rowsLayout = [];
-  let currentY = v.chartsTop;
 
   state.chartRows.forEach((row, rowIndex) => {
     const rowHeight = heights[rowIndex];
+    const y = v.rowTops[rowIndex];
     const items = [];
     const n = row.items.length;
 
@@ -57,14 +57,14 @@ export function computeChartsLayout(v) {
         rowIndex,
         indexInRow: i,
         x,
-        y: currentY,
+        y,
         width: w,
         height: rowHeight
       };
 
       if (item.stack && item.stack.length >= 2) {
         const subHeights = computeStackHeights(item.stack, rowHeight);
-        let subY = currentY;
+        let subY = y;
         layoutItem.subCharts = subHeights.map((h, stackIndex) => {
           const sub = {
             type: "chart",
@@ -87,16 +87,6 @@ export function computeChartsLayout(v) {
     });
 
     rowsLayout.push(items);
-    currentY += rowHeight + state.GAP_SMALL;
-
-    // The middle KPI band is carved out between two chart rows: once the row
-    // it sits below is placed, skip past the space computeVerticalLayout()
-    // already reserved for it before laying out the next row. currentY is
-    // already one GAP_SMALL past this row's bottom, and kpiBand2Reserved is
-    // the *extra* on top of that gap, so it adds straight on.
-    if (v.band2Active && rowIndex === v.kpiBand2AfterRow) {
-      currentY += v.kpiBand2Reserved;
-    }
   });
 
   return rowsLayout;

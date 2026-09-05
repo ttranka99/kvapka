@@ -87,7 +87,16 @@ function buildEffectiveStack(sectionsSlice, ctx) {
 // boundaryGap() between consecutive entries. Charts entries are expanded
 // into their rows (using the already-solved `rowHeights`) and write into
 // `rowTops`; every other entry just occupies its measured height.
-function placeStack(effectiveStack, startY, vertical, rowHeights, rowTops) {
+//
+// `band2` (optional: { row, reserved }) is the legacy second-KPI-band notch
+// — see the block comment where it's computed in computeVerticalLayout().
+// It isn't a stack entry of its own (nothing here reflects it in
+// `sections`), so the one row it sits below needs its usual advance to the
+// next row widened by `reserved` to leave the band room. `reserved` already
+// nets out the GAP_SMALL a plain row-to-row boundary would have contributed
+// (see the comment there), so it's simply added on top of the normal
+// per-row advance rather than replacing it.
+function placeStack(effectiveStack, startY, vertical, rowHeights, rowTops, band2 = null) {
   let y = startY;
   const placed = [];
   effectiveStack.forEach((entry, i) => {
@@ -101,6 +110,7 @@ function placeStack(effectiveStack, startY, vertical, rowHeights, rowTops) {
         const rowIndex = startRow + r;
         rowTops[rowIndex] = rowY;
         rowY += rowHeights[rowIndex] + (r < count - 1 ? state.GAP_SMALL : 0);
+        if (band2 && rowIndex === band2.row) rowY += band2.reserved;
       }
       height = rowY - top;
     } else {
@@ -288,7 +298,6 @@ export function computeVerticalLayout() {
       : band2Row < chartRows.length - 1
         ? kpiBand2Height + 2 * state.GAP_KPI_TO_CHARTS - state.GAP_SMALL
         : kpiBand2Height + state.GAP_KPI_TO_CHARTS;
-  const kpiBand2AfterRow = band2Row;
 
   // The rows' shared budget: everything left in the chart region once its
   // own fixed content (a KPI section actually present in the walk, plus the
@@ -307,7 +316,8 @@ export function computeVerticalLayout() {
 
   const rowTops = new Array(chartRows.length).fill(0);
   const { placed: placedInterior } = placeStack(
-    interiorEffective, chartsTop, vertical, rowHeights, rowTops
+    interiorEffective, chartsTop, vertical, rowHeights, rowTops,
+    band2Active ? { row: band2Row, reserved: kpiBand2Reserved } : null
   );
 
   const placed = placedPrefix.concat(placedInterior);
@@ -332,10 +342,7 @@ export function computeVerticalLayout() {
     chartsBottom,
     chartsHeight,
     hasRow2,
-    band2Active,
     kpiBand2Height,
-    kpiBand2Reserved,
-    kpiBand2AfterRow,
 
     // New in the section-walk rewrite.
     sections: placed,

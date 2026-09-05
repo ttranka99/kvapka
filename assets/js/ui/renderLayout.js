@@ -353,8 +353,7 @@ export function renderLayout() {
   // Both KPI bands render through the same pass — the middle band differs
   // only in where it sits (inside the chart area) and in the list its items
   // come from, which computeKpiBand2Layout has already resolved.
-  const chartRowHeights = computeChartRowHeights(v);
-  const kpiRows = [...computeKpiLayout(v), ...computeKpiBand2Layout(v, chartRowHeights)];
+  const kpiRows = [...computeKpiLayout(v), ...computeKpiBand2Layout(v)];
 
   kpiRows.forEach(row => {
     row.forEach(item => {

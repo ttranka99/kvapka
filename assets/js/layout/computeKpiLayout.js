@@ -1,7 +1,6 @@
 import * as state from "../state/state.js";
 import { addWarning } from "../ui/warnings.js";
 import { distributeInSteps } from "./sizeStep.js";
-import { kpiBand2Top } from "./computeKpiBand2.js";
 
 const MAX_PER_ROW_INFO = "Dosažen maximální počet KPI. Další KPI budou umístěny na další řádek.";
 const HARD_LIMIT_ERROR = "Dosaženo maximálního počtu KPI. Odeberte KPI.";
@@ -292,14 +291,20 @@ export function computeKpiLayout(v) {
  * The middle KPI band — always a single row, since its whole point is to
  * break up the chart area rather than become a second stack of cards. Its
  * width rule is the header band's, so the two read as the same component
- * wherever they sit; only its Y comes from elsewhere (the solved chart row
- * heights, via kpiBand2Top).
+ * wherever they sit; only its Y comes from elsewhere.
+ *
+ * That Y used to be solved independently here (a second call to
+ * computeChartRowHeights, walking the rows by hand to find where the band
+ * lands). computeVerticalLayout() already knows this — v.rowTops/v.rowHeights
+ * are the same solved rows the charts themselves render from — so this just
+ * reads the placed row's bottom edge instead of re-deriving it.
  *
  * Returns the same [row] shape as computeKpiLayout so renderers and the
  * exporter can treat both bands identically.
  */
-export function computeKpiBand2Layout(v, heights) {
-  if (!v.band2Active || state.kpis2.length === 0) {
+export function computeKpiBand2Layout(v) {
+  const active = state.hasKpiBand2() && state.kpis2.length > 0;
+  if (!active) {
     syncWarning(false, BAND2_OVERFLOW_ERROR, "error");
     syncWarning(false, BAND2_LIMIT_WARNING, "warning");
     return [];
@@ -314,8 +319,13 @@ export function computeKpiBand2Layout(v, heights) {
   syncWarning(!fits, BAND2_OVERFLOW_ERROR, "error");
   if (!fits) return [];
 
-  const y = kpiBand2Top(v, heights);
-  if (y === null) return [];
+  // No chart rows: the band simply takes the top of the (empty) chart area.
+  const afterRow = state.kpiBand2AfterRow();
+  const y = v.rowTops.length === 0
+    ? v.chartsTop
+    : v.rowTops[Math.min(afterRow, v.rowTops.length - 1)]
+      + v.rowHeights[Math.min(afterRow, v.rowHeights.length - 1)]
+      + state.GAP_KPI_TO_CHARTS;
 
   let x = v.contentLeft;
   const items = row.map((k, i) => {
