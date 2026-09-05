@@ -88,8 +88,7 @@ function applyWidthValue(info, val) {
       return item.locked ? item : { ...item, width: null, locked: false };
     });
 
-    const vLayout = computeVerticalLayout();
-    if (!canAddChart(rowsCopy, vLayout)) {
+    if (!canAddChart(rowsCopy)) {
       addWarning("Zadaná šířka se nevejde, upravte hodnotu.", "error");
       renderWarnings();
       return;

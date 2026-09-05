@@ -27,7 +27,12 @@ export function computeChartRowHeights(v) {
   const n = rows.length;
   if (n === 0) return [];
 
-  const totalGaps = (n - 1) * state.GAP_SMALL;
+  // chartRowGapCount accounts for every chart group's own internal gaps
+  // (rows within a group are always GAP_SMALL apart) minus the boundary gaps
+  // between groups, which computeVerticalLayout already counted once as
+  // part of its own boundary walk. Fall back to the old n-1 assumption
+  // (a single, unbroken block of rows) if it's ever missing.
+  const totalGaps = (v.chartRowGapCount ?? n - 1) * state.GAP_SMALL;
   const lockedSum = rows
     .filter(r => r.locked)
     .reduce((s, r) => s + (r.height ?? 0), 0);

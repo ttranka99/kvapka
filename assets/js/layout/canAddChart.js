@@ -1,18 +1,28 @@
 import * as state from "../state/state.js";
+import { computeVerticalLayout } from "./computeVerticalLayout.js";
 import { computeChartRowHeights } from "./computeChartRowHeights.js";
 import { rowEffectiveMinHeight } from "./computeStackHeights.js";
 
-export function canAddChart(simulatedChartRows, vLayout) {
+// Whether `simulatedChartRows` would fit the canvas. Since chart groups can
+// now carve up the vertical budget differently depending on how many rows
+// exist (a fixed-count group ahead of the open-ended one absorbs a
+// different remainder), `chartsHeight` itself depends on the row count —
+// unlike the old single-block layout, it can no longer be solved once from
+// the real rows and reused for a simulated count. So the swap-in/swap-out
+// window now covers computeVerticalLayout() too, and this computes its own
+// `v` for the simulated rows rather than taking one from the caller.
+export function canAddChart(simulatedChartRows) {
   const original = state.chartRows;
   state.setChartRows(simulatedChartRows);
 
   state.setWarnings([]);
+  const vLayout = computeVerticalLayout();
   const heights = computeChartRowHeights(vLayout);
 
   state.setChartRows(original);
 
   const n = simulatedChartRows.length;
-  const totalGaps = (n - 1) * state.GAP_SMALL;
+  const totalGaps = (vLayout.chartRowGapCount ?? n - 1) * state.GAP_SMALL;
   const totalHeight = heights.reduce((s, h) => s + h, 0) + totalGaps;
 
   if (heights.some((h, i) => h < rowEffectiveMinHeight(simulatedChartRows[i]))) return false;

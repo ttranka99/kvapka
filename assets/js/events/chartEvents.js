@@ -50,8 +50,7 @@ export function handleAddChartLeft(rowIndex, itemIndex) {
   // Insert new chart (unlocked)
   simulatedRow.items.splice(itemIndex, 0, { width: null, locked: false });
 
-  const vLayout = computeVerticalLayout();
-  if (!canAddChart(simulated, vLayout)) {
+  if (!canAddChart(simulated)) {
     addWarning("Nedostatek prostoru pro přidání grafu", "error");
     return;
   }
@@ -90,8 +89,7 @@ export function handleAddChartRight(rowIndex, itemIndex) {
   // Insert new chart (unlocked)
   simulatedRow.items.splice(itemIndex + 1, 0, { width: null, locked: false });
 
-  const vLayout = computeVerticalLayout();
-  if (!canAddChart(simulated, vLayout)) {
+  if (!canAddChart(simulated)) {
     addWarning("Nelze přidat graf, ostatní grafy by byly příliš malé.", "error");
     return;
   }
@@ -123,8 +121,7 @@ export function handleAddChartRow(rowIndex) {
 
   simulated.splice(rowIndex + 1, 0, { height: null, locked: false, items: [{}] });
 
-  const vLayout = computeVerticalLayout();
-  if (!canAddChart(simulated, vLayout)) {
+  if (!canAddChart(simulated)) {
     addWarning("Nelze přidat další graf, upravte výšky řad grafů.", "error");
     return;
   }
