@@ -12,7 +12,7 @@
 // applies it, the editor renders its controls from it, and validation clamps
 // against it. Adding a tunable means adding one entry here, nothing else.
 
-export const THEME_SCHEMA = "kb-layout-theme@1";
+export const THEME_SCHEMA = "kb-layout-theme@2";
 
 // Every editable numeric constant, in the order the editor shows it.
 //   key    — property name on the theme object
@@ -105,6 +105,22 @@ export const DEFAULT_KPI_BAND_2 = Object.freeze({
   defaultCount: 4
 });
 
+// The generalised replacement for the hardcoded title/slicer/KPI/charts
+// stack: an ordered list of bands a later stage will let the user reorder
+// and repeat (charts sections may occur more than once — that's how "a KPI
+// band between two chart rows" is expressed once kpiBand2 goes away). A
+// function, not a shared array literal, so every theme that falls back to
+// this default gets its own objects instead of aliasing BASE's.
+const DEFAULT_SECTIONS = () => [
+  { type: "title", gapBefore: "auto" },
+  { type: "slicers", id: "slicers", gapBefore: "auto" },
+  { type: "kpi", id: "kpi-1", defaultCount: 0, allowSecondRow: true, gapBefore: "auto" },
+  { type: "charts", id: "charts-1", rows: null, gapBefore: "auto" }
+];
+
+const SECTION_TYPES = ["title", "slicers", "kpi", "charts"];
+const GAP_BEFORE_VALUES = ["auto", "small", "block"];
+
 const BASE = {
   schema: THEME_SCHEMA,
   id: "FULL_HD",
@@ -136,8 +152,13 @@ const BASE = {
   defaultSlicersPerRow: 7,
   defaultKpisPerRow: 6,
   defaultSlicerOrientation: "horizontal",
+  // Which side of the canvas the slicer column stands on when slicers are
+  // vertical. Horizontal slicer bands ignore this; it only matters once a
+  // later stage lets the column move.
+  slicerSide: "left",
   step: 5,
-  kpiBand2: { ...DEFAULT_KPI_BAND_2 }
+  kpiBand2: { ...DEFAULT_KPI_BAND_2 },
+  sections: DEFAULT_SECTIONS()
 };
 
 export const BUILTIN_THEMES = [
@@ -171,6 +192,128 @@ function num(value, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+// A charts section's `rows`, coerced to null or a positive integer. Garbage
+// (strings, negatives, zero) collapses to null — the "absorb everything"
+// state — rather than being rejected, since a merge or the final "last
+// charts section must be open-ended" rule needs *some* answer either way.
+function rowsValue(v) {
+  if (v === null || v === undefined) return null;
+  const n = Math.round(num(v, NaN));
+  return Number.isFinite(n) && n >= 1 ? n : null;
+}
+
+// Builds the legacy title/slicers/kpi/charts stack from a theme that has no
+// `sections` array of its own, folding `kpiBand2` in as a second KPI band
+// wedged into the chart rows. This is the migration path for every theme
+// saved before `sections` existed, and it must keep working forever — a
+// theme that loses its sections should fall back to this default shape,
+// never to an empty one.
+function synthesizeSectionsFromLegacy(src) {
+  const sections = DEFAULT_SECTIONS();
+  const band = src && src.kpiBand2;
+  if (band && band.enabled === true) {
+    const afterRow = Math.max(0, Math.round(num(band.afterRow, 0)));
+    sections[3].rows = Math.max(1, afterRow + 1);
+    sections.push({
+      type: "kpi",
+      id: "kpi-2",
+      defaultCount: Math.min(12, Math.max(1, Math.round(num(band.defaultCount, 4)))),
+      allowSecondRow: false,
+      gapBefore: "auto"
+    });
+    sections.push({ type: "charts", id: "charts-2", rows: null, gapBefore: "auto" });
+  }
+  return sections;
+}
+
+// Repairs an arbitrary array into a valid sections list rather than
+// rejecting it outright — this runs on every localStorage read, so a bug
+// here silently destroys saved layouts. See the numbered rules in the
+// module's design notes; each step below corresponds to one of them.
+function normalizeSections(rawSections) {
+  // 1. Keep only objects whose type is one of the four known kinds.
+  let list = (Array.isArray(rawSections) ? rawSections : [])
+    .filter(s => s && typeof s === "object" && SECTION_TYPES.includes(s.type))
+    .map(s => ({ ...s }));
+
+  // 2. Exactly one title, pinned to index 0.
+  const titles = list.filter(s => s.type === "title");
+  list = list.filter(s => s.type !== "title");
+  list.unshift(titles[0] || { type: "title" });
+
+  // 3. At most one slicers band. If the input dropped it entirely, put a
+  // default one right after the title — every layout needs somewhere for
+  // the slicer controls to live, even if nobody has touched this section.
+  const slicerSections = list.filter(s => s.type === "slicers");
+  list = list.filter(s => s.type !== "slicers");
+  list.splice(1, 0, slicerSections[0] || { type: "slicers", id: "slicers" });
+
+  // 4. At least one charts band.
+  if (!list.some(s => s.type === "charts")) {
+    list.push({ type: "charts", rows: null });
+  }
+
+  // 5. Merge adjacent charts sections: a null `rows` (open-ended) absorbs
+  // and wins over a fixed count sitting next to it, otherwise the counts add.
+  const merged = [];
+  list.forEach(s => {
+    const prev = merged[merged.length - 1];
+    if (prev && prev.type === "charts" && s.type === "charts") {
+      const a = rowsValue(prev.rows);
+      const b = rowsValue(s.rows);
+      prev.rows = (a === null || b === null) ? null : a + b;
+    } else {
+      merged.push(s);
+    }
+  });
+  list = merged;
+
+  // 6. Ids unique and present (title carries none).
+  const seen = new Set();
+  list.forEach(s => {
+    if (s.type === "title") {
+      delete s.id;
+      return;
+    }
+    if (typeof s.id !== "string" || !s.id.trim() || seen.has(s.id)) {
+      if (s.type === "slicers") {
+        s.id = "slicers";
+      } else {
+        let n = 1;
+        let id = `${s.type}-${n}`;
+        while (seen.has(id)) id = `${s.type}-${++n}`;
+        s.id = id;
+      }
+    }
+    seen.add(s.id);
+  });
+
+  // 7 & 8: per-type field coercion.
+  let lastChartsIndex = -1;
+  list.forEach((s, i) => {
+    if (s.type === "kpi") {
+      s.defaultCount = Math.min(12, Math.max(0, Math.round(num(s.defaultCount, 0))));
+      s.allowSecondRow = s.allowSecondRow === true;
+    }
+    if (s.type === "charts") {
+      s.rows = rowsValue(s.rows);
+      lastChartsIndex = i;
+    }
+  });
+  // 8 (cont.): at least one charts section must be open-ended, so a fixed
+  // count can never accidentally swallow the rest of the canvas.
+  if (lastChartsIndex >= 0 && !list.some(s => s.type === "charts" && s.rows === null)) {
+    list[lastChartsIndex].rows = null;
+  }
+
+  // 9. gapBefore coerced to one of the three literals.
+  list.forEach(s => {
+    s.gapBefore = GAP_BEFORE_VALUES.includes(s.gapBefore) ? s.gapBefore : "auto";
+  });
+
+  return list;
+}
+
 // Turns anything (a partial object, a parsed JSON file, a half-edited draft)
 // into a theme every solver can safely consume. Unknown keys are dropped
 // rather than carried along, so an imported file cannot smuggle state in.
@@ -195,6 +338,7 @@ export function normalizeTheme(raw) {
   });
 
   out.defaultSlicerOrientation = src.defaultSlicerOrientation === "vertical" ? "vertical" : "horizontal";
+  out.slicerSide = src.slicerSide === "right" ? "right" : "left";
 
   const band = src.kpiBand2 || {};
   out.kpiBand2 = {
@@ -203,6 +347,14 @@ export function normalizeTheme(raw) {
     defaultCount: Math.min(12, Math.max(1, Math.round(num(band.defaultCount, 4))))
   };
 
+  // `sections` is the replacement for `kpiBand2`; the legacy field above is
+  // still emitted (for now) only because other modules still read it
+  // directly, but it is purely a migration source here, not part of the
+  // sections schema itself.
+  out.sections = normalizeSections(
+    Array.isArray(src.sections) ? src.sections : synthesizeSectionsFromLegacy(src)
+  );
+
   return resolveDependencies(out);
 }
 
@@ -210,7 +362,7 @@ export function normalizeTheme(raw) {
 // normalize *and* after every editor keystroke, so the theme in hand is never
 // internally contradictory — e.g. a max that has slipped below its min.
 export function resolveDependencies(theme) {
-  const t = { ...theme, kpiBand2: { ...theme.kpiBand2 } };
+  const t = { ...theme, kpiBand2: { ...theme.kpiBand2 }, sections: theme.sections.map(s => ({ ...s })) };
 
   t.maxPerRow = Math.max(t.minPerRow, t.maxPerRow);
   t.defaultSlicersPerRow = Math.min(t.maxPerRow, Math.max(t.minPerRow, t.defaultSlicersPerRow));
@@ -226,6 +378,12 @@ export function resolveDependencies(theme) {
   t.margin = Math.max(0, Math.min(t.margin, marginCap));
 
   t.kpiBand2.defaultCount = Math.min(t.maxPerRow, Math.max(1, t.kpiBand2.defaultCount));
+
+  // Same clamp, generalised: no KPI band's seed count may exceed the row it
+  // has to fit in.
+  t.sections = t.sections.map(s => s.type === "kpi"
+    ? { ...s, defaultCount: Math.min(t.maxPerRow, Math.max(0, s.defaultCount)) }
+    : s);
 
   return t;
 }
@@ -258,7 +416,8 @@ export function validateTheme(theme) {
   }
 
   // Vertical budget: header + slicer band + KPI band(s) + one chart row.
-  const bandCount = theme.kpiBand2.enabled ? 2 : 1;
+  const kpiSections = theme.sections.filter(s => s.type === "kpi");
+  const bandCount = kpiSections.length || 1;
   const need =
     theme.titleHeight + theme.gapSmall +
     theme.slicerHeight + theme.gapSmall +
@@ -272,17 +431,21 @@ export function validateTheme(theme) {
     issues.push({ severity: "warning", text: "Krok mřížky je větší než mezera mezi prvky — rozměry mohou vycházet hrubě." });
   }
 
+  if (kpiSections.length > 4) {
+    issues.push({ severity: "warning", text: `Rozvržení má ${kpiSections.length} pásů KPI — tolik bandů ztěžuje orientaci.` });
+  }
+
   return issues;
 }
 
 export function cloneTheme(theme) {
-  return { ...theme, kpiBand2: { ...theme.kpiBand2 } };
+  return { ...theme, kpiBand2: { ...theme.kpiBand2 }, sections: theme.sections.map(s => ({ ...s })) };
 }
 
 // Which fields differ between two themes — used to tell the user how far a
 // custom theme has drifted from the preset it was derived from.
 export function diffFromTheme(theme, base) {
-  const keys = FIELDS.map(f => f.key).concat("defaultSlicerOrientation");
+  const keys = FIELDS.map(f => f.key).concat("defaultSlicerOrientation", "slicerSide");
   const changed = keys.filter(k => theme[k] !== base[k]);
 
   const a = theme.kpiBand2;
@@ -290,6 +453,8 @@ export function diffFromTheme(theme, base) {
   const bandDiffers = a.enabled !== b.enabled ||
     (a.enabled && (a.afterRow !== b.afterRow || a.defaultCount !== b.defaultCount));
   if (bandDiffers) changed.push("kpiBand2");
+
+  if (JSON.stringify(theme.sections) !== JSON.stringify(base.sections)) changed.push("sections");
 
   return changed;
 }
