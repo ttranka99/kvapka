@@ -593,16 +593,40 @@ function renderPreview() {
   const g = previewGeometry();
   const px = v => `${v * scale}px`;
 
-  // The usable-area outline: the single clearest way to show what the margin
-  // actually buys, and the drag target for changing it.
-  const usable = region("margin", "theme-region theme-region--usable", {
-    left: t.margin, top: t.margin,
-    width: usableWidth(t), height: usableHeight(t)
-  }, px);
+  // The usable-area outline — context only, no region of its own: it marks
+  // where content may go, and it is nearly the size of the whole preview, so
+  // highlighting it would read as "everything" rather than as one setting.
+  const usable = el("div", "theme-region theme-region--usable");
+  usable.style.left = px(t.margin);
+  usable.style.top = px(t.margin);
+  usable.style.width = px(usableWidth(t));
+  usable.style.height = px(usableHeight(t));
   usable.appendChild(tag(`Použitelná plocha ${usableWidth(t)} × ${usableHeight(t)}`, "theme-tag--usable"));
-  usable.appendChild(dragHandle("margin", "y", -1, scale));
-  usable.appendChild(dragHandle("margin", "x", -1, scale, "left"));
   stage.appendChild(usable);
+
+  // The margin itself, drawn as the four bands of outer space it actually is.
+  // Without these the one thing the margin control governs is empty canvas
+  // with no element in it, so there is nothing to highlight when the control
+  // is hovered and nothing to hover to find the control. All four carry the
+  // same region name and edit the same single value — dragging any inner edge
+  // moves the margin on every side at once, which is what one margin means.
+  const inner = usableHeight(t);
+  [
+    { side: "top", box: { left: 0, top: 0, width: t.canvasWidth, height: t.margin }, axis: "y", sign: 1 },
+    { side: "bottom", box: { left: 0, top: t.canvasHeight - t.margin, width: t.canvasWidth, height: t.margin }, axis: "y", sign: -1, edge: "top" },
+    { side: "left", box: { left: 0, top: t.margin, width: t.margin, height: inner }, axis: "x", sign: 1 },
+    { side: "right", box: { left: t.canvasWidth - t.margin, top: t.margin, width: t.margin, height: inner }, axis: "x", sign: -1, edge: "left" }
+  ].forEach(band => {
+    const node = region("margin", `theme-region theme-region--margin theme-region--margin-${band.side}`, band.box, px);
+    // The label only fits once the band is a few real pixels tall; below that
+    // it would spill over the header. The drag handle stays either way, so a
+    // margin dragged down to 0 can always be dragged back out.
+    if (band.side === "top" && t.margin * scale >= 11) {
+      node.appendChild(el("span", "theme-margin__value", `Okraj plátna · ${t.margin} px`));
+    }
+    node.appendChild(dragHandle("margin", band.axis, band.sign, scale, band.edge));
+    stage.appendChild(node);
+  });
 
   // Header
   const title = region("title", "theme-region theme-region--title", {

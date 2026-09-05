@@ -513,6 +513,49 @@ body.theme-editor-dragging {
 .theme-region--usable {
   border: 1px dashed var(--border-medium);
   background: transparent;
+  pointer-events: none;
+}
+
+/* The four bands of outer space. Neutral hatching, so they read as the
+   canvas's empty frame rather than as another component — but they are real
+   elements, so the margin can be hovered and dragged from any side. */
+.theme-region--margin {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(95, 99, 104, 0.10) 0 3px,
+    transparent 3px 7px
+  );
+  border-radius: 0;
+  z-index: 3;
+}
+
+.theme-region--margin.is-linked {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(214, 0, 50, 0.22) 0 3px,
+    transparent 3px 7px
+  );
+  box-shadow: none;              /* the fill is the highlight here */
+}
+
+.theme-margin__value {
+  position: absolute;
+  pointer-events: none;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0 5px;
+  font-size: 9px;
+  line-height: 1.5;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  border-radius: 2px;
+}
+
+.theme-region--margin.is-linked .theme-margin__value {
+  color: var(--color-primary);
 }
 
 .theme-region--title {
@@ -648,6 +691,12 @@ body.theme-editor-dragging {
 .theme-handle--left {
   right: auto;
   left: -4px;
+}
+
+/* For a band whose *inner* edge is its top one (the bottom margin). */
+.theme-handle--top {
+  bottom: auto;
+  top: -4px;
 }
 
 .theme-handle::after {
