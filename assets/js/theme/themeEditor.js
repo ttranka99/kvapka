@@ -216,8 +216,8 @@ function buildControlsPane() {
     const section = el("section", "theme-group");
     section.dataset.group = group.id;
 
-    const heading = el("h3", "theme-group__title", group.label);
-    section.appendChild(heading);
+    section.appendChild(el("h3", "theme-group__title", group.label));
+    if (group.note) section.appendChild(el("p", "theme-group__note", group.note));
 
     FIELDS.filter(f => f.group === group.id).forEach(field => {
       section.appendChild(buildField(field));

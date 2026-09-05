@@ -306,6 +306,16 @@ body.theme-editor-dragging {
   color: var(--text-muted);
 }
 
+/* Explains a whole group where per-field hints would just repeat themselves. */
+.theme-group__note {
+  margin: calc(var(--space-2) * -1) 0 var(--space-3);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--border-medium);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
 .theme-field {
   padding: var(--space-2);
   margin: 0 calc(var(--space-2) * -1);

@@ -58,14 +58,22 @@ export const FIELDS = [
   { key: "hardMinChartHeight", group: "charts", label: "Absolutní min. výška", unit: "px", min: 10, max: 400, step: 5, region: "charts",
     hint: "Tvrdé dno, na které smí graf zmenšit, když se řady jinak na plátno nevejdou." },
 
-  // --- Limity a mřížka ---
-  { key: "minPerRow", group: "limits", label: "Min. prvků na řádek", min: 1, max: 12, step: 1, region: null },
-  { key: "maxPerRow", group: "limits", label: "Max. prvků na řádek", min: 1, max: 12, step: 1, region: null },
-  { key: "secondRowMaxItems", group: "limits", label: "Max. na druhém řádku", min: 0, max: 12, step: 1, region: null },
-  { key: "defaultSlicersPerRow", group: "limits", label: "Výchozí slicery / řádek", min: 1, max: 12, step: 1, region: "slicer" },
-  { key: "defaultKpisPerRow", group: "limits", label: "Výchozí KPI / řádek", min: 1, max: 12, step: 1, region: "kpi" },
-  { key: "step", group: "limits", label: "Krok mřížky", unit: "px", min: 1, max: 50, step: 1, region: null,
-    hint: "Všechny dopočítané rozměry přiléhají na násobek této hodnoty." }
+  // --- Počty slicerů a KPI ---
+  //
+  // These bound slicers and KPI cards only. Charts have no per-row count
+  // limit at all — how many fit in a row follows from minChartWidth — so the
+  // labels name the two things they actually govern rather than "prvky".
+  { key: "minPerRow", group: "limits", label: "Min. slicerů / KPI na řádek", min: 1, max: 12, step: 1, region: null },
+  { key: "maxPerRow", group: "limits", label: "Max. slicerů / KPI na řádek", min: 1, max: 12, step: 1, region: null },
+  { key: "secondRowMaxItems", group: "limits", label: "Max. slicerů / KPI na 2. řádku", min: 0, max: 12, step: 1, region: null,
+    hint: "Kolik se jich vejde na druhý řádek, když je první plný. Součet s limitem na řádek je absolutní strop, 0 druhý řádek úplně vypne. Prostředního pásu KPI se to netýká — ten je vždy jednořádkový." },
+  { key: "defaultSlicersPerRow", group: "limits", label: "Výchozí slicery na řádek", min: 1, max: 12, step: 1, region: "slicer",
+    hint: "Hodnota, na které stránka s touto šablonou začíná. V postranním panelu ji lze kdykoli změnit." },
+  { key: "defaultKpisPerRow", group: "limits", label: "Výchozí KPI na řádek", min: 1, max: 12, step: 1, region: "kpi" },
+
+  // --- Mřížka ---
+  { key: "step", group: "grid", label: "Krok mřížky", unit: "px", min: 1, max: 50, step: 1, region: null,
+    hint: "Všechny dopočítané i ručně zadané rozměry přiléhají na násobek této hodnoty." }
 ];
 
 export const GROUPS = [
@@ -75,7 +83,15 @@ export const GROUPS = [
   { id: "slicers", label: "Slicery" },
   { id: "kpis", label: "KPI" },
   { id: "charts", label: "Grafy" },
-  { id: "limits", label: "Limity a mřížka" }
+  {
+    id: "limits",
+    label: "Počty slicerů a KPI",
+    // These two settings only ever fill a dropdown — they read like layout
+    // constraints, so the group says outright what they do and what they
+    // deliberately leave alone.
+    note: "První dvě hodnoty určují rozsah, který nabídnou pole „Slicery na řádek“ a „KPI na řádek“ v postranním panelu. Počet grafů v řadě tím omezen není — ten vychází z minimální šířky grafu."
+  },
+  { id: "grid", label: "Mřížka" }
 ];
 
 export const FIELD_BY_KEY = Object.fromEntries(FIELDS.map(f => [f.key, f]));
