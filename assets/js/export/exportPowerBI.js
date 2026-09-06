@@ -17,7 +17,7 @@ import * as state from "../state/state.js";
 import { getTabs, getActiveTabIndex, captureSnapshot, loadSnapshot } from "../state/tabs.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeSlicersLayout } from "../layout/computeSlicersLayout.js";
-import { computeKpiLayout, computeKpiBand2Layout } from "../layout/computeKpiLayout.js";
+import { computeKpiLayoutForBand } from "../layout/computeKpiLayout.js";
 import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import {
   VISUAL_SCHEMA,
@@ -45,25 +45,25 @@ function collectVisuals() {
 
   const charts = computeChartsLayout(v).flat().flatMap(item => item.subCharts ?? [item]);
   const slicers = computeSlicersLayout(v).flat();
-  const kpis = computeKpiLayout(v).flat();
-  const kpisBand2 = computeKpiBand2Layout(v).flat();
+
+  const kpiBandIds = state.kpiBandIds();
+  const kpiLayouts = kpiBandIds.map(id => computeKpiLayoutForBand(v, id).flat());
+  const kpis = kpiLayouts.flat();
 
   // The slicer/KPI layouts return [] when the row overflows the usable
   // width — in that case the on-screen layout is invalid and so would be
   // the export.
-  if (
-    (state.slicers.length > 0 && slicers.length === 0) ||
-    (state.kpis.length > 0 && kpis.length === 0) ||
-    (state.kpis2.length > 0 && kpisBand2.length === 0)
-  ) {
+  const anyKpiBandInvalid = kpiBandIds.some(
+    (id, i) => state.getKpiBand(id).length > 0 && kpiLayouts[i].length === 0
+  );
+  if ((state.slicers.length > 0 && slicers.length === 0) || anyKpiBandInvalid) {
     return null;
   }
 
   return [
     ...charts.map(item => ({ kind: "chart", template: CHART_TEMPLATE, item })),
     ...slicers.map(item => ({ kind: "slicer", template: SLICER_TEMPLATE, item })),
-    ...kpis.map(item => ({ kind: "kpi", template: KPI_TEMPLATE, item })),
-    ...kpisBand2.map(item => ({ kind: "kpi", template: KPI_TEMPLATE, item }))
+    ...kpis.map(item => ({ kind: "kpi", template: KPI_TEMPLATE, item }))
   ];
 }
 

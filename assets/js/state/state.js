@@ -16,6 +16,7 @@
 import { normalizeTheme, cloneTheme, BUILTIN_THEMES } from "../theme/themeModel.js";
 import { getTheme } from "../theme/themeStore.js";
 import { setStep } from "../layout/sizeStep.js";
+import { addWarning } from "../ui/warnings.js";
 
 export let activeTheme = normalizeTheme(BUILTIN_THEMES[0]);
 export let activeTemplate = activeTheme.id;
@@ -61,27 +62,27 @@ export let SECOND_ROW_MAX_ITEMS = activeTheme.secondRowMaxItems;
 export let MAX_SLICERS = activeTheme.defaultSlicersPerRow;
 export let MAX_KPIS = activeTheme.defaultKpisPerRow;
 
-// The optional second KPI band, placed inside the chart area rather than
-// under the header — { enabled, afterRow, defaultCount }. See
-// layout/computeVerticalLayout.js for how it reserves its slice of height.
-export let KPI_BAND_2 = { ...activeTheme.kpiBand2 };
-
 export let slicerOrientation = activeTheme.defaultSlicerOrientation;
 
 export let slicers = [];
-export let kpis = [];
-// The middle band's KPIs, kept as their own list rather than a flag on
-// entries of `kpis`: the two bands sit in different places on the canvas,
-// have independent counts and independent per-row limits, and every solver
-// that walks a band wants exactly one of them at a time.
-export let kpis2 = [];
+// KPI cards, keyed by the id of the `kpi` section (in theme.sections) they
+// belong to. However many KPI bands a theme defines, each gets exactly one
+// entry here — a page switching between themes with different band counts
+// is reconciled by applyTheme() (see reconcileKpiBands below), never by
+// this module reaching into theme internals itself.
+export let kpiBands = {};
 export let chartRows = [];
 export let selectedElement = null;
 export let warnings = [];
 
 export function setSlicers(v) { slicers = v; }
-export function setKpis(v) { kpis = v; }
-export function setKpis2(v) { kpis2 = v; }
+export function getKpiBand(id) { return kpiBands[id] || []; }
+export function setKpiBands(v) { kpiBands = v; }
+export function setKpiBand(id, list) { kpiBands = { ...kpiBands, [id]: list }; }
+/** Ids of the theme's `kpi` sections, in `sections` order. */
+export function kpiBandIds() {
+  return activeTheme.sections.filter(s => s.type === "kpi").map(s => s.id);
+}
 export function setChartRows(v) { chartRows = v; }
 export function setSelectedElement(v) { selectedElement = v; }
 export function setWarnings(v) { warnings = v; }
@@ -92,20 +93,6 @@ export function setSlicerOrientation(v) {
 }
 
 export function isVerticalSlicers() { return slicerOrientation === "vertical"; }
-
-/** Whether the theme in force places a second KPI band among the charts. */
-export function hasKpiBand2() { return KPI_BAND_2.enabled === true; }
-
-/**
- * Which chart row the middle KPI band sits below, clamped to the rows that
- * actually exist. A theme may name a row a given page hasn't got (it was
- * authored against a fuller layout), and the band still has to land
- * somewhere sensible — directly under the last row in that case.
- */
-export function kpiBand2AfterRow() {
-  if (!hasKpiBand2()) return -1;
-  return Math.min(KPI_BAND_2.afterRow, Math.max(0, chartRows.length - 1));
-}
 
 export function setSlicerColumnWidth(v) {
   SLICER_COLUMN_WIDTH = Math.min(
@@ -139,6 +126,8 @@ export function setMaxKpis(v) {
  */
 export function applyTheme(theme, options = {}) {
   const t = normalizeTheme(theme);
+  const oldSections = activeTheme.sections;
+  const oldKpiBands = kpiBands;
 
   activeTheme = t;
   activeTemplate = t.id;
@@ -167,7 +156,6 @@ export function applyTheme(theme, options = {}) {
   MIN_COMPONENTS_PER_ROW = t.minPerRow;
   MAX_COMPONENTS_PER_ROW = t.maxPerRow;
   SECOND_ROW_MAX_ITEMS = t.secondRowMaxItems;
-  KPI_BAND_2 = { ...t.kpiBand2 };
 
   setStep(t.step);
 
@@ -183,17 +171,96 @@ export function applyTheme(theme, options = {}) {
     setSlicerOrientation(t.defaultSlicerOrientation);
   }
 
-  // A theme without the middle band must not leave orphaned KPIs stranded
-  // off-canvas — they belong to a band that no longer exists. A theme *with*
-  // one seeds it, so turning the band on shows cards immediately instead of
-  // an empty reserved strip the user has to guess at.
-  if (!KPI_BAND_2.enabled) {
-    kpis2 = [];
-  } else if (kpis2.length === 0 && !options.keepEmptyBand2) {
-    kpis2 = Array.from({ length: KPI_BAND_2.defaultCount }, () => ({ height: null, locked: false }));
-  }
+  kpiBands = reconcileKpiBands(oldSections, t.sections, oldKpiBands, options.keepEmptyBands);
 
   return activeTheme;
+}
+
+/**
+ * Carries a page's KPI cards across a theme switch, however many `kpi`
+ * sections each theme has. Four rules, tried in order for every band in the
+ * *new* theme:
+ *
+ *   1. id match — the same section id existed before: keep its cards
+ *      verbatim (the common case — most theme switches don't touch section
+ *      ids at all).
+ *   2. positional fallback — the Nth still-unmatched new band inherits the
+ *      Nth still-unmatched old band's cards. This is what keeps the header
+ *      KPIs alive when switching between two unrelated themes whose ids
+ *      differ; matching by id alone would silently wipe them.
+ *   3. seed — a band that still has nothing gets `defaultCount` blanks, but
+ *      only when that default is greater than zero. The header band's
+ *      default is 0 (initState.js starts it empty), so this only ever
+ *      fires for a band meant to show something immediately.
+ *
+ * A fourth pass then rehomes any *old* band nothing above claimed: its cards
+ * move to the nearest surviving new band (nearest by position in the theme's
+ * section list) rather than vanishing, and only get dropped — with a
+ * warning — if the new theme has no KPI section left at all.
+ */
+function reconcileKpiBands(oldSections, newSections, oldBands, keepEmptyBands) {
+  const oldKpiSections = oldSections.filter(s => s.type === "kpi");
+  const newKpiSections = newSections.filter(s => s.type === "kpi");
+
+  const next = {};
+  const claimedOldIds = new Set();
+
+  // 1. id match.
+  newKpiSections.forEach(s => {
+    if (oldKpiSections.some(o => o.id === s.id) && oldBands[s.id] !== undefined) {
+      next[s.id] = oldBands[s.id];
+      claimedOldIds.add(s.id);
+    }
+  });
+
+  // 2. positional fallback.
+  const unmatchedOld = oldKpiSections.filter(o => !claimedOldIds.has(o.id));
+  const unmatchedNew = newKpiSections.filter(s => next[s.id] === undefined);
+  unmatchedNew.forEach((s, i) => {
+    const donor = unmatchedOld[i];
+    if (donor && oldBands[donor.id] !== undefined) {
+      next[s.id] = oldBands[donor.id];
+      claimedOldIds.add(donor.id);
+    }
+  });
+
+  // 3. seed.
+  newKpiSections.forEach(s => {
+    if (next[s.id] !== undefined) return;
+    next[s.id] = s.defaultCount > 0 && !keepEmptyBands
+      ? Array.from({ length: s.defaultCount }, () => ({ height: null, locked: false }))
+      : [];
+  });
+
+  // 4. rehome orphans.
+  oldKpiSections
+    .filter(o => !claimedOldIds.has(o.id))
+    .forEach(o => {
+      const cards = oldBands[o.id];
+      if (!cards || cards.length === 0) return;
+
+      if (newKpiSections.length === 0) {
+        addWarning(
+          `Šablona bez pásu KPI — ${cards.length} KPI karet z odstraněného pásu bylo zahozeno.`,
+          "warning"
+        );
+        return;
+      }
+
+      const oldIndex = oldSections.indexOf(o);
+      let nearest = newKpiSections[0];
+      let nearestDist = Infinity;
+      newKpiSections.forEach(s => {
+        const dist = Math.abs(newSections.indexOf(s) - oldIndex);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearest = s;
+        }
+      });
+      next[nearest.id] = [...(next[nearest.id] || []), ...cards];
+    });
+
+  return next;
 }
 
 /**
@@ -232,8 +299,11 @@ export function resetSlicerSizingLocks() {
 }
 
 export function resetKpiSizingLocks() {
-  kpis = kpis.map(k => ({ ...k, width: null, height: null, locked: false }));
-  kpis2 = kpis2.map(k => ({ ...k, width: null, height: null, locked: false }));
+  const next = {};
+  for (const id of Object.keys(kpiBands)) {
+    next[id] = kpiBands[id].map(k => ({ ...k, width: null, height: null, locked: false }));
+  }
+  kpiBands = next;
 }
 
 export function resetChartWidthLocks() {
@@ -271,6 +341,4 @@ export function resetSizingLocks() {
 
 // gettery pro computeVerticalLayout
 export function getSlicers() { return slicers; }
-export function getKpis() { return kpis; }
-export function getKpis2() { return kpis2; }
 export function getChartRows() { return chartRows; }

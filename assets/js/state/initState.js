@@ -13,11 +13,6 @@ export function initState() {
     ];
 
     //
-    // Default KPIs
-    //
-    const initialKpis = [];
-
-    //
     // Default chart rows
     //
     const initialChartRows = [
@@ -42,15 +37,9 @@ export function initState() {
     // Initialize state
     //
     state.setSlicers(initialSlicers);
-    state.setKpis(initialKpis);
-    // The middle band starts with the count the theme suggests, so enabling
-    // it in the editor shows something on the canvas straight away rather
-    // than an invisible reserved strip.
-    state.setKpis2(
-        state.hasKpiBand2()
-            ? Array.from({ length: state.KPI_BAND_2.defaultCount }, () => ({ height: null, locked: false }))
-            : []
-    );
+    // KPI bands are seeded by applyTheme() (see reconcileKpiBands in
+    // state.js), which loadDefaults() in state/tabs.js always calls right
+    // before this — so there's nothing left for initState to do for them.
     state.setChartRows(initialChartRows);
     state.setWarnings(initialWarnings);
 }

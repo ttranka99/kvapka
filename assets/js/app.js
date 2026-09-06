@@ -13,8 +13,7 @@ import { handleAppendKpi } from "./events/kpiEvents.js";
 import { initThemePicker, renderThemeSelector, syncRowLimitOptions, defaultThemeLabel } from "./ui/themePicker.js";
 
 const addKpiBtn = document.getElementById("add-kpi");
-const addKpiBand2Btn = document.getElementById("add-kpi-band2");
-const addKpiBand2Field = document.getElementById("add-kpi-band2-field");
+const addKpiBandsContainer = document.getElementById("add-kpi-bands");
 const addSlicerBtn = document.getElementById("add-slicer");
 const addChartSplitBtn = document.getElementById("add-chart-split");
 const orientationButtons = document.querySelectorAll(".template-option[data-orientation]");
@@ -37,8 +36,7 @@ function addSlicer() {
   renderLayout();
 }
 
-addKpiBtn.addEventListener("click", () => handleAppendKpi(0));
-addKpiBand2Btn.addEventListener("click", () => handleAppendKpi(1));
+addKpiBtn.addEventListener("click", () => handleAppendKpi(state.kpiBandIds()[0]));
 addSlicerBtn.addEventListener("click", addSlicer);
 
 // Splits the currently selected top-level chart into a vertical stack of
@@ -94,12 +92,24 @@ function syncOrientationControls() {
   slicersPerRowSelect.disabled = vertical;
 }
 
-// The middle KPI band exists only while the active theme defines one, so its
-// button collapses away with the same animation the slicers-per-row row uses.
-function syncBand2Controls() {
-  const enabled = state.hasKpiBand2();
-  addKpiBand2Field.classList.toggle("expanded", enabled);
-  addKpiBand2Btn.disabled = !enabled;
+// One "add KPI" button per band beyond the first — the header band's own
+// button is the static #add-kpi above. Rebuilt from scratch on every sync
+// since the number of bands can change (a theme switch, or a page's own
+// section reorder in a later stage), unlike the fixed set of controls
+// elsewhere in the sidebar. The first generated button keeps the id
+// "add-kpi-band2" so the existing two-band case stays addressable by it.
+function syncKpiBandControls() {
+  const extraIds = state.kpiBandIds().slice(1);
+  addKpiBandsContainer.innerHTML = "";
+
+  extraIds.forEach((id, i) => {
+    const btn = document.createElement("button");
+    btn.className = "full-btn band2-btn";
+    if (i === 0) btn.id = "add-kpi-band2";
+    btn.textContent = extraIds.length > 1 ? `KPI – pás ${i + 2}` : "KPI – prostřední pás";
+    btn.addEventListener("click", () => handleAppendKpi(id));
+    addKpiBandsContainer.appendChild(btn);
+  });
 }
 
 function syncRowLimitControls() {
@@ -159,7 +169,7 @@ function refreshUIFromState() {
   setSelected(null);
   syncTemplateControls();
   syncOrientationControls();
-  syncBand2Controls();
+  syncKpiBandControls();
   syncRowLimitControls();
   renderLayout();
   renderWarnings();
@@ -181,7 +191,7 @@ function start() {
   initRowLimitControls();
   syncTemplateControls();
   syncOrientationControls();
-  syncBand2Controls();
+  syncKpiBandControls();
   syncRowLimitControls();
   renderLayout();
   initResizeEvents();

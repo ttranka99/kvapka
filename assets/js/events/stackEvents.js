@@ -97,7 +97,7 @@ export function handleAddStackChart(rowIndex, itemIndex, stackIndex) {
 
   const heights = computeHeightsForRows(rowsCopy, v);
   const n = rowsCopy.length;
-  const totalGaps = (n - 1) * state.GAP_SMALL;
+  const totalGaps = (v.chartRowGapCount ?? n - 1) * state.GAP_SMALL;
   const totalHeight = heights.reduce((s, h) => s + h, 0) + totalGaps;
 
   if (needed > currentRowHeight || totalHeight > v.chartsHeight) {

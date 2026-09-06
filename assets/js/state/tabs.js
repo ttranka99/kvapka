@@ -18,8 +18,7 @@ const clone = v => JSON.parse(JSON.stringify(v));
 export function captureSnapshot() {
   return {
     slicers: clone(state.slicers),
-    kpis: clone(state.kpis),
-    kpis2: clone(state.kpis2),
+    kpiBands: clone(state.kpiBands),
     chartRows: clone(state.chartRows),
     warnings: clone(state.warnings),
     activeTemplate: state.activeTemplate,
@@ -45,8 +44,13 @@ export function loadSnapshot(snap) {
   state.setMaxSlicers(snap.maxSlicers);
   state.setMaxKpis(snap.maxKpis);
   state.setSlicers(clone(snap.slicers));
-  state.setKpis(clone(snap.kpis));
-  state.setKpis2(clone(snap.kpis2 ?? []));
+
+  // Snapshots are in-memory only (they never outlive a page load), so a
+  // shape older than `kpiBands` can only ever come from a half-reloaded
+  // session. Falling back to whatever applyTheme() just seeded (rather than
+  // an empty set of bands) is defensive coding, not a real data migration.
+  if (snap.kpiBands) state.setKpiBands(clone(snap.kpiBands));
+
   state.setChartRows(clone(snap.chartRows));
   state.setWarnings(clone(snap.warnings));
 }

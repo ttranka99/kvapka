@@ -1,7 +1,7 @@
 import * as state from "../state/state.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeSlicersLayout } from "../layout/computeSlicersLayout.js";
-import { computeKpiLayout, computeKpiBand2Layout } from "../layout/computeKpiLayout.js";
+import { computeKpiLayoutForBand } from "../layout/computeKpiLayout.js";
 import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
 import {
@@ -350,18 +350,19 @@ export function renderLayout() {
     });
   });
 
-  // Both KPI bands render through the same pass — the middle band differs
-  // only in where it sits (inside the chart area) and in the list its items
-  // come from, which computeKpiBand2Layout has already resolved.
-  const kpiRows = [...computeKpiLayout(v), ...computeKpiBand2Layout(v)];
+  // Every KPI band renders through the same pass — bands past the first
+  // differ only in where they sit (inside the chart area, typically) and in
+  // the list their items come from, which computeKpiLayoutForBand has
+  // already resolved.
+  const kpiRows = state.kpiBandIds().flatMap(id => computeKpiLayoutForBand(v, id));
 
   kpiRows.forEach(row => {
     row.forEach(item => {
       const band = item.band ?? 0;
-      const domId = band === 1 ? `kpi-b1-${item.index}` : `kpi-${item.index}`;
+      const domId = band === 0 ? `kpi-${item.index}` : `kpi-b${band}-${item.index}`;
       const el = document.createElement("div");
       el.id = domId;
-      el.className = "canvas-element kpi" + (band === 1 ? " kpi--band2" : "");
+      el.className = "canvas-element kpi" + (band === 0 ? "" : " kpi--band2");
       el.style.left = scale(item.x) + "px";
       el.style.top = scale(item.y) + "px";
       el.style.width = scale(item.width) + "px";
@@ -383,7 +384,7 @@ export function renderLayout() {
       removeBtn.title = "Odebrat KPI";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        handleRemoveKpi(item.index, band);
+        handleRemoveKpi(item.index, item.bandId);
       });
 
       controls.appendChild(removeBtn);
@@ -412,7 +413,7 @@ export function renderLayout() {
           height: scale(item.height),
           edge: "right"
         },
-        onClick: () => handleAddKpi(item.index, band),
+        onClick: () => handleAddKpi(item.index, item.bandId),
         title: "Přidat KPI"
       });
     });

@@ -9,8 +9,17 @@ const ROW1_MANUAL_WIDTH_SUM_ERROR = "The sum of manually set KPI widths exceeds 
 const ROW1_OVERFLOW_ERROR = "KPI se nevejdou do dostupné šířky – uprav šířky nebo odeber KPI.";
 const ROW2_MANUAL_WIDTH_SUM_ERROR = "The sum of manually set KPI widths on the second row exceeds the available width.";
 const ROW2_OVERFLOW_ERROR = "KPI se nevejdou do dostupné šířky – upravte šířku nebo odeberte KPI.";
-const BAND2_OVERFLOW_ERROR = "KPI v prostředním pásu se nevejdou do dostupné šířky – upravte šířku nebo odeberte KPI.";
-const BAND2_LIMIT_WARNING = "Prostřední pás KPI překračuje vybraný limit na řádek.";
+
+// Messages for a band that never grows a second row (any `kpi` section past
+// the first, unless a later stage opts more of them into allowSecondRow).
+// Named after the band's own section id so two such bands never share, and
+// therefore never fight over, one warning slot.
+function singleRowMessages(bandId) {
+  return {
+    overflow: `KPI v pásu „${bandId}“ se nevejdou do dostupné šířky – upravte šířku nebo odeberte KPI.`,
+    limit: `KPI v pásu „${bandId}“ překračují vybraný limit na řádek.`
+  };
+}
 
 // Tracks which conditions this module has already surfaced a notification
 // for, independent of whether that notification has since timed out into the
@@ -48,9 +57,9 @@ function syncWarning(condition, msg, type) {
   // entry is currently in.
 }
 
-// The width rule for a single row of KPI cards, shared by the header band's
-// first row and the middle band (which is always one row). Three cases, in
-// the order they're tested:
+// The width rule for a single row of KPI cards, shared by every band's first
+// row (and, for a band that never grows a second row, its only row). Three
+// cases, in the order they're tested:
 //   0) three or fewer, none locked → a fixed 250px card each, so a sparse row
 //      reads as a few cards rather than three enormous slabs;
 //   1) any card locked → the locked widths are honoured and the rest split
@@ -93,15 +102,16 @@ function rowFits(widths, count, availableWidth) {
   return widths.reduce((s, w) => s + w, 0) + totalGaps <= availableWidth;
 }
 
-export function computeKpiLayout(v) {
-  syncWarning(state.kpis.length === state.MAX_KPIS, MAX_PER_ROW_INFO, "info");
+// Header-style layout: up to two rows, capped at MAX_KPIS / SECOND_ROW_MAX_ITEMS.
+function computeTwoRowLayout(v, bandId, top, cards) {
+  syncWarning(cards.length === state.MAX_KPIS, MAX_PER_ROW_INFO, "info");
   syncWarning(
-    state.kpis.length > state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS,
+    cards.length > state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS,
     HARD_LIMIT_ERROR,
     "error"
   );
 
-  const n = state.kpis.length;
+  const n = cards.length;
   if (n === 0) {
     syncWarning(false, SECOND_ROW_LIMIT_WARNING, "warning");
     syncWarning(false, ROW1_MANUAL_WIDTH_SUM_ERROR, "error");
@@ -111,11 +121,8 @@ export function computeKpiLayout(v) {
     return [];
   }
 
-  const row1 = state.kpis.slice(0, state.MAX_KPIS);
-  const row2 = state.kpis.slice(
-    state.MAX_KPIS,
-    state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS
-  );
+  const row1 = cards.slice(0, state.MAX_KPIS);
+  const row2 = cards.slice(state.MAX_KPIS, state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS);
 
   syncWarning(row2.length > state.MAX_KPIS, SECOND_ROW_LIMIT_WARNING, "warning");
 
@@ -227,11 +234,12 @@ export function computeKpiLayout(v) {
   syncWarning(row2Overflows, ROW2_OVERFLOW_ERROR, "error");
   if (row2Overflows) return [];
 
+  const ordinal = state.kpiBandIds().indexOf(bandId);
   const rows = [];
 
   if (row1.length > 0) {
     let x = v.contentLeft;
-    const y = v.kpiTop;
+    const y = top;
 
     const items = row1.map((k, i) => {
       const w = widths1[i];
@@ -243,7 +251,8 @@ export function computeKpiLayout(v) {
         width: w,
         height: h,
         index: i,
-        band: 0,
+        band: ordinal,
+        bandId,
         stateRef: k
       };
 
@@ -261,7 +270,7 @@ export function computeKpiLayout(v) {
       ? Math.max(...row1.map(k => k.height ?? state.KPI_MIN_HEIGHT))
       : state.KPI_MIN_HEIGHT;
 
-    const y = v.kpiTop + row1Height + state.GAP_SMALL;
+    const y = top + row1Height + state.GAP_SMALL;
 
     const items = row2.map((k, i) => {
       const w = widths2[i];
@@ -273,7 +282,8 @@ export function computeKpiLayout(v) {
         width: w,
         height: h,
         index: state.MAX_KPIS + i,
-        band: 0,
+        band: ordinal,
+        bandId,
         stateRef: k
       };
 
@@ -287,56 +297,40 @@ export function computeKpiLayout(v) {
   return rows;
 }
 
-/**
- * The middle KPI band — always a single row, since its whole point is to
- * break up the chart area rather than become a second stack of cards. Its
- * width rule is the header band's, so the two read as the same component
- * wherever they sit; only its Y comes from elsewhere.
- *
- * That Y used to be solved independently here (a second call to
- * computeChartRowHeights, walking the rows by hand to find where the band
- * lands). computeVerticalLayout() already knows this — v.rowTops/v.rowHeights
- * are the same solved rows the charts themselves render from — so this just
- * reads the placed row's bottom edge instead of re-deriving it.
- *
- * Returns the same [row] shape as computeKpiLayout so renderers and the
- * exporter can treat both bands identically.
- */
-export function computeKpiBand2Layout(v) {
-  const active = state.hasKpiBand2() && state.kpis2.length > 0;
-  if (!active) {
-    syncWarning(false, BAND2_OVERFLOW_ERROR, "error");
-    syncWarning(false, BAND2_LIMIT_WARNING, "warning");
+// A band that never grows a second row — its whole point is to break up the
+// chart area (or sit somewhere other than under the header) rather than
+// become a second stack of cards. Its width rule is the header band's, so
+// the two read as the same component wherever they sit.
+function computeSingleRowLayout(v, bandId, top, cards) {
+  const msgs = singleRowMessages(bandId);
+
+  if (cards.length === 0) {
+    syncWarning(false, msgs.overflow, "error");
+    syncWarning(false, msgs.limit, "warning");
     return [];
   }
 
-  const row = state.kpis2;
-  syncWarning(row.length > state.MAX_KPIS, BAND2_LIMIT_WARNING, "warning");
+  const row = cards;
+  syncWarning(row.length > state.MAX_KPIS, msgs.limit, "warning");
 
   const solved = kpiRowWidths(row, v.contentWidth);
   const fits = !solved.manualSumExceeded && rowFits(solved.widths, row.length, v.contentWidth);
 
-  syncWarning(!fits, BAND2_OVERFLOW_ERROR, "error");
+  syncWarning(!fits, msgs.overflow, "error");
   if (!fits) return [];
 
-  // No chart rows: the band simply takes the top of the (empty) chart area.
-  const afterRow = state.kpiBand2AfterRow();
-  const y = v.rowTops.length === 0
-    ? v.chartsTop
-    : v.rowTops[Math.min(afterRow, v.rowTops.length - 1)]
-      + v.rowHeights[Math.min(afterRow, v.rowHeights.length - 1)]
-      + state.GAP_KPI_TO_CHARTS;
-
+  const ordinal = state.kpiBandIds().indexOf(bandId);
   let x = v.contentLeft;
   const items = row.map((k, i) => {
     const w = solved.widths[i];
     const item = {
       x,
-      y,
+      y: top,
       width: w,
       height: k.height ?? state.KPI_MIN_HEIGHT,
       index: i,
-      band: 1,
+      band: ordinal,
+      bandId,
       stateRef: k
     };
     x += w + state.GAP_SMALL;
@@ -344,4 +338,30 @@ export function computeKpiBand2Layout(v) {
   });
 
   return [items];
+}
+
+/**
+ * Lays out one KPI band's cards, whichever one it is — the header band, a
+ * band splitting the chart area, or any further one a theme defines. `v`
+ * already placed every active `kpi` section as part of the section walk
+ * (see computeVerticalLayout.js), so this only has to read that section's
+ * top edge and whether it's allowed to grow a second row; everything past
+ * that is shared width-solving logic.
+ *
+ * Returns the same [row, ...] shape regardless of band, so renderers and the
+ * exporter can treat every band identically.
+ */
+export function computeKpiLayoutForBand(v, bandId) {
+  const cards = state.getKpiBand(bandId);
+  const section = v.sectionById[bandId];
+  const allowSecondRow = section ? section.allowSecondRow === true : false;
+  // A section with zero cards was dropped from the walk entirely (nothing
+  // renders there), so it has no placed `top` — but every code path below
+  // returns [] before ever reading `top` in that case, so the exact
+  // fallback value here is never observed.
+  const top = section ? section.top : v.kpiTop;
+
+  return allowSecondRow
+    ? computeTwoRowLayout(v, bandId, top, cards)
+    : computeSingleRowLayout(v, bandId, top, cards);
 }

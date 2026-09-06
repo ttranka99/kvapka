@@ -87,16 +87,7 @@ function buildEffectiveStack(sectionsSlice, ctx) {
 // boundaryGap() between consecutive entries. Charts entries are expanded
 // into their rows (using the already-solved `rowHeights`) and write into
 // `rowTops`; every other entry just occupies its measured height.
-//
-// `band2` (optional: { row, reserved }) is the legacy second-KPI-band notch
-// — see the block comment where it's computed in computeVerticalLayout().
-// It isn't a stack entry of its own (nothing here reflects it in
-// `sections`), so the one row it sits below needs its usual advance to the
-// next row widened by `reserved` to leave the band room. `reserved` already
-// nets out the GAP_SMALL a plain row-to-row boundary would have contributed
-// (see the comment there), so it's simply added on top of the normal
-// per-row advance rather than replacing it.
-function placeStack(effectiveStack, startY, vertical, rowHeights, rowTops, band2 = null) {
+function placeStack(effectiveStack, startY, vertical, rowHeights, rowTops) {
   let y = startY;
   const placed = [];
   effectiveStack.forEach((entry, i) => {
@@ -110,7 +101,6 @@ function placeStack(effectiveStack, startY, vertical, rowHeights, rowTops, band2
         const rowIndex = startRow + r;
         rowTops[rowIndex] = rowY;
         rowY += rowHeights[rowIndex] + (r < count - 1 ? state.GAP_SMALL : 0);
-        if (band2 && rowIndex === band2.row) rowY += band2.reserved;
       }
       height = rowY - top;
     } else {
@@ -124,8 +114,6 @@ function placeStack(effectiveStack, startY, vertical, rowHeights, rowTops, band2
 
 export function computeVerticalLayout() {
   const slicers = state.getSlicers();
-  const kpis = state.getKpis();
-  const kpis2 = state.getKpis2();
   const chartRows = state.getChartRows();
 
   const vertical = state.isVerticalSlicers();
@@ -177,20 +165,17 @@ export function computeVerticalLayout() {
 
   // --- shared bookkeeping ---------------------------------------------
   //
-  // kpi sections read the legacy arrays positionally: the first one is
-  // state.kpis, the second state.kpis2, anything past that is empty (and so
-  // always drops out of the stack). A later stage generalises per-section
-  // content; until then this ordinal mapping *is* what "the second KPI
-  // band" means. Computed once, up front, so both the prefix (title/
-  // slicers/header KPI) and interior (chart region) walks below agree on
-  // it regardless of which slice of `sections` they each see.
+  // Every `kpi` section's cards live in state.kpiBands, keyed by the
+  // section's own id — however many bands a theme defines, each is read the
+  // same way. Computed once, up front, so both the prefix (title/slicers/
+  // header KPI) and interior (chart region) walks below agree on it
+  // regardless of which slice of `sections` they each see.
   const kpiInfoBySectionId = new Map();
   {
     let ord = 0;
     sections.forEach(s => {
       if (s.type !== "kpi") return;
-      const cards = ord === 0 ? kpis : ord === 1 ? kpis2 : [];
-      kpiInfoBySectionId.set(s.id, { cards, ordinal: ord });
+      kpiInfoBySectionId.set(s.id, { cards: state.getKpiBand(s.id), ordinal: ord });
       ord++;
     });
   }
@@ -219,10 +204,10 @@ export function computeVerticalLayout() {
   // kpiTop/kpiBottom describe the header KPI band's nominal position and
   // are kept as their own formula rather than read off
   // `sectionById["kpi-1"]`: the legacy contract gives them a value even
-  // when state.kpis is empty and the section was dropped from the prefix
-  // entirely (nothing renders there, but downstream code still reads
-  // kpiTop as "where the header band would start"). When the section *is*
-  // active the two agree by construction — both apply the same
+  // when the header band's cards are empty and the section was dropped from
+  // the prefix entirely (nothing renders there, but downstream code still
+  // reads kpiTop as "where the header band would start"). When the section
+  // *is* active the two agree by construction — both apply the same
   // boundary-gap rule to the same position.
   const contentTop = vertical
     ? TITLE_Y + state.TITLE_HEIGHT + state.GAP_KPI_TO_CHARTS
@@ -230,6 +215,8 @@ export function computeVerticalLayout() {
       ? TITLE_Y + state.TITLE_HEIGHT + state.GAP_SMALL
       : slicersBottom + state.GAP_SMALL;
   const kpiTop = contentTop;
+  const firstKpiSection = sections.find(s => s.type === "kpi");
+  const kpis = firstKpiSection ? state.getKpiBand(firstKpiSection.id) : [];
   const kpiRow1 = kpis.slice(0, state.MAX_KPIS);
   const kpiRow2 = kpis.length > state.MAX_KPIS
     ? kpis.slice(state.MAX_KPIS, state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS)
@@ -270,43 +257,15 @@ export function computeVerticalLayout() {
     else interiorFixed += entry.height;
   });
 
-  // --- the second-KPI-band legacy fields ----------------------------------
-  //
-  // theme.sections doesn't carry this band — normalizeTheme() only ever
-  // synthesizes a kpi-2/charts-2 split from theme.kpiBand2 the first time a
-  // theme has no `sections` of its own at all; a theme (or a live draft)
-  // that already has `sections` keeps them untouched even if kpiBand2 is
-  // toggled afterward. So for as long as that's true, this band is real but
-  // invisible to the walk above: read straight from the legacy state, exactly
-  // as it always was, and folded into the chart region's budget as its own
-  // carved-out notch rather than a stack entry.
-  const band2Active = state.hasKpiBand2() && kpis2.length > 0;
-  const band2Row = band2Active ? state.kpiBand2AfterRow() : -1;
-  const kpiBand2Height = band2Active
-    ? Math.max(...kpis2.map(k => k.height ?? state.KPI_MIN_HEIGHT))
-    : 0;
-
-  // How much height the band costs the chart rows. Landing *between* two
-  // rows it replaces the small gap that boundary already had, so only the
-  // difference comes out of the rows' budget; landing below the last row
-  // there is no gap to replace and it costs its own height plus one block
-  // gap above it.
-  const kpiBand2Reserved = !band2Active
-    ? 0
-    : chartRows.length === 0
-      ? kpiBand2Height
-      : band2Row < chartRows.length - 1
-        ? kpiBand2Height + 2 * state.GAP_KPI_TO_CHARTS - state.GAP_SMALL
-        : kpiBand2Height + state.GAP_KPI_TO_CHARTS;
-
   // The rows' shared budget: everything left in the chart region once its
-  // own fixed content (a KPI section actually present in the walk, plus the
-  // legacy band2 notch above) and the gaps around it are taken out.
-  // chartRowGapCount only counts the gaps *within* a chart group — the gaps
-  // between groups are already in interiorGaps above — which is exactly why
-  // computeChartRowHeights needs it instead of assuming every row is n-1
-  // gaps apart.
-  const chartsHeightBudget = chartsBottom - chartsTop - interiorFixed - interiorGaps - kpiBand2Reserved;
+  // own fixed content (any KPI sections actually present in the walk — a
+  // second, third, ... band interrupting the charts is an ordinary stack
+  // entry here, exactly like the header band above) and the gaps around it
+  // are taken out. chartRowGapCount only counts the gaps *within* a chart
+  // group — the gaps between groups are already in interiorGaps above —
+  // which is exactly why computeChartRowHeights needs it instead of
+  // assuming every row is n-1 gaps apart.
+  const chartsHeightBudget = chartsBottom - chartsTop - interiorFixed - interiorGaps;
   const chartRowGapCount = chartRows.length - activeChartGroupCount;
 
   const rowHeights = computeChartRowHeights({
@@ -316,14 +275,13 @@ export function computeVerticalLayout() {
 
   const rowTops = new Array(chartRows.length).fill(0);
   const { placed: placedInterior } = placeStack(
-    interiorEffective, chartsTop, vertical, rowHeights, rowTops,
-    band2Active ? { row: band2Row, reserved: kpiBand2Reserved } : null
+    interiorEffective, chartsTop, vertical, rowHeights, rowTops
   );
 
   const placed = placedPrefix.concat(placedInterior);
   const sectionById = Object.fromEntries(placed.filter(s => s.id).map(s => [s.id, s]));
 
-  const chartsHeight = chartsBottom - chartsTop - interiorFixed - interiorGaps - kpiBand2Reserved;
+  const chartsHeight = chartsBottom - chartsTop - interiorFixed - interiorGaps;
 
   return {
     TITLE_Y,
@@ -342,7 +300,6 @@ export function computeVerticalLayout() {
     chartsBottom,
     chartsHeight,
     hasRow2,
-    kpiBand2Height,
 
     // New in the section-walk rewrite.
     sections: placed,

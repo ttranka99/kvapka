@@ -319,6 +319,56 @@ function buildOrientationControl() {
   return row;
 }
 
+// The middle band is represented purely as sections: a `kpi` section (id
+// "kpi-2") wedged between two `charts` sections. This reads that shape back
+// out of draft.sections rather than a dedicated field — there is no
+// dedicated field any more — so the checkbox and its two number inputs have
+// something to show and to edit.
+function band2Info(theme) {
+  const kpiSections = theme.sections.filter(s => s.type === "kpi");
+  const section = kpiSections[1] || null;
+  if (!section) return { enabled: false, defaultCount: 4, afterRow: 0, section: null, precedingCharts: null };
+
+  const idx = theme.sections.indexOf(section);
+  let precedingCharts = null;
+  for (let i = idx - 1; i >= 0; i--) {
+    if (theme.sections[i].type === "charts") { precedingCharts = theme.sections[i]; break; }
+  }
+  const rows = precedingCharts ? (precedingCharts.rows ?? 1) : 1;
+  return { enabled: true, defaultCount: section.defaultCount, afterRow: Math.max(0, rows - 1), section, precedingCharts };
+}
+
+// Inserts the "kpi-2 between two charts sections" shape right after the
+// theme's first charts section, splitting it at row 1 (afterRow 0) by
+// default — the same split synthesizeSectionsFromLegacy used to produce.
+function addBand2Section(sections) {
+  const list = sections.map(s => ({ ...s }));
+  const firstChartsIdx = list.findIndex(s => s.type === "charts");
+  if (firstChartsIdx === -1) return list;
+
+  list[firstChartsIdx] = { ...list[firstChartsIdx], rows: 1 };
+  list.splice(firstChartsIdx + 1, 0,
+    { type: "kpi", id: "kpi-2", defaultCount: 4, allowSecondRow: false, gapBefore: "auto" },
+    { type: "charts", id: "charts-2", rows: null, gapBefore: "auto" }
+  );
+  return list;
+}
+
+// Removes the kpi-2/charts-2 split, reopening the charts section before it
+// so the chart area goes back to absorbing every row on its own.
+function removeBand2Section(sections) {
+  const list = sections.map(s => ({ ...s }));
+  const kpi2Idx = list.findIndex(s => s.type === "kpi" && s.id === "kpi-2");
+  if (kpi2Idx === -1) return list;
+
+  for (let i = kpi2Idx - 1; i >= 0; i--) {
+    if (list[i].type === "charts") { list[i] = { ...list[i], rows: null }; break; }
+  }
+  return list
+    .filter((s, i) => i !== kpi2Idx)
+    .filter(s => !(s.type === "charts" && s.id === "charts-2"));
+}
+
 function buildBand2Controls() {
   const wrap = el("div", "theme-band2");
 
@@ -330,7 +380,10 @@ function buildBand2Controls() {
   check.id = "theme-band2-enabled";
   check.className = "theme-check";
   check.addEventListener("change", () => {
-    draft.kpiBand2 = { ...draft.kpiBand2, enabled: check.checked };
+    draft = {
+      ...draft,
+      sections: check.checked ? addBand2Section(draft.sections) : removeBand2Section(draft.sections)
+    };
     render();
   });
   toggleRow.appendChild(check);
@@ -340,12 +393,28 @@ function buildBand2Controls() {
     "Samostatný pás KPI uvnitř plochy grafů — například jeden pás pod hlavičkou a druhý uprostřed stránky."));
 
   const detail = el("div", "theme-band2__detail");
-  detail.appendChild(numberRow("kpiBand2.afterRow", "Umístit pod řadu grafů", 1, 12, 1,
-    value => { draft.kpiBand2 = { ...draft.kpiBand2, afterRow: Math.max(0, value - 1) }; render(); },
-    () => draft.kpiBand2.afterRow + 1));
-  detail.appendChild(numberRow("kpiBand2.defaultCount", "Počet KPI v pásu", 1, 12, 1,
-    value => { draft.kpiBand2 = { ...draft.kpiBand2, defaultCount: value }; render(); },
-    () => draft.kpiBand2.defaultCount));
+  detail.appendChild(numberRow("kpiExtraBand.afterRow", "Umístit pod řadu grafů", 1, 12, 1,
+    value => {
+      const info = band2Info(draft);
+      if (!info.precedingCharts) return;
+      draft = {
+        ...draft,
+        sections: draft.sections.map(s => s === info.precedingCharts ? { ...s, rows: Math.max(1, value) } : s)
+      };
+      render();
+    },
+    () => band2Info(draft).afterRow + 1));
+  detail.appendChild(numberRow("kpiExtraBand.defaultCount", "Počet KPI v pásu", 1, 12, 1,
+    value => {
+      const info = band2Info(draft);
+      if (!info.section) return;
+      draft = {
+        ...draft,
+        sections: draft.sections.map(s => s === info.section ? { ...s, defaultCount: value } : s)
+      };
+      render();
+    },
+    () => band2Info(draft).defaultCount));
   wrap.appendChild(detail);
 
   return wrap;
@@ -513,9 +582,10 @@ function renderControls() {
     b.classList.toggle("is-active", b.dataset.previewOrientation === preview.orientation);
   });
 
+  const band2 = band2Info(draft);
   const check = root.querySelector("#theme-band2-enabled");
-  check.checked = draft.kpiBand2.enabled;
-  root.querySelector(".theme-band2__detail").hidden = !draft.kpiBand2.enabled;
+  check.checked = band2.enabled;
+  root.querySelector(".theme-band2__detail").hidden = !band2.enabled;
   root.querySelectorAll("[data-subfield]").forEach(row => {
     if (document.activeElement !== row._input) row._input.value = String(row._read());
   });
@@ -531,7 +601,8 @@ function renderControls() {
 function previewGeometry() {
   const t = draft;
   const vertical = preview.orientation === "vertical";
-  const bandOn = t.kpiBand2.enabled;
+  const band2 = band2Info(t);
+  const bandOn = band2.enabled;
 
   const titleY = t.margin;
   const slicersTop = titleY + t.titleHeight + (vertical ? t.gapKpiToCharts : t.gapSmall);
@@ -548,7 +619,7 @@ function previewGeometry() {
   const chartsBottom = t.canvasHeight - t.margin;
 
   const rowCount = preview.chartRows;
-  const afterRow = Math.min(t.kpiBand2.afterRow, rowCount - 1);
+  const afterRow = Math.min(band2.afterRow, rowCount - 1);
 
   // Same rule as computeVerticalLayout: between two rows the band replaces
   // the small gap already at that boundary, so only the difference is taken
@@ -570,6 +641,7 @@ function previewGeometry() {
     vertical, titleY, slicersTop, contentLeft, contentWidth,
     kpiTop, chartsTop, chartsBottom, chartsHeight,
     rowCount, rowHeight, afterRow, bandTop, bandReserved,
+    bandDefaultCount: band2.defaultCount,
     slicerColumnTop: slicersTop,
     slicerColumnHeight: chartsBottom - slicersTop,
     tooSmall: rowHeight < t.hardMinChartHeight
@@ -697,9 +769,9 @@ function renderPreview() {
       left: g.contentLeft, top: g.bandTop, width: g.contentWidth, height: t.kpiMinHeight
     }, px);
     band.appendChild(tag(
-      `Druhý pás KPI · ${t.kpiBand2.defaultCount}× ${cellWidth(g.contentWidth, t.kpiBand2.defaultCount, t.gapSmall)} px · pod ${g.afterRow + 1}. řadou`
+      `Druhý pás KPI · ${g.bandDefaultCount}× ${cellWidth(g.contentWidth, g.bandDefaultCount, t.gapSmall)} px · pod ${g.afterRow + 1}. řadou`
     ));
-    stackCells(band, t.kpiBand2.defaultCount, t.gapSmall * scale, "row");
+    stackCells(band, g.bandDefaultCount, t.gapSmall * scale, "row");
     stage.appendChild(band);
   }
 

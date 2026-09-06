@@ -96,21 +96,12 @@ export const GROUPS = [
 
 export const FIELD_BY_KEY = Object.fromEntries(FIELDS.map(f => [f.key, f]));
 
-// The KPI band that can sit *inside* the chart area rather than under the
-// header. `afterRow` is a 0-based chart-row index: the band is drawn below
-// that row, so 0 puts it between the first and second row of charts.
-export const DEFAULT_KPI_BAND_2 = Object.freeze({
-  enabled: false,
-  afterRow: 0,
-  defaultCount: 4
-});
-
-// The generalised replacement for the hardcoded title/slicer/KPI/charts
-// stack: an ordered list of bands a later stage will let the user reorder
-// and repeat (charts sections may occur more than once — that's how "a KPI
-// band between two chart rows" is expressed once kpiBand2 goes away). A
-// function, not a shared array literal, so every theme that falls back to
-// this default gets its own objects instead of aliasing BASE's.
+// The generalised title/slicer/KPI/charts stack: an ordered list of bands a
+// later stage will let the user reorder and repeat (charts sections may
+// occur more than once — that's how "a KPI band between two chart rows" is
+// expressed). A function, not a shared array literal, so every theme that
+// falls back to this default gets its own objects instead of aliasing
+// BASE's.
 const DEFAULT_SECTIONS = () => [
   { type: "title", gapBefore: "auto" },
   { type: "slicers", id: "slicers", gapBefore: "auto" },
@@ -157,7 +148,6 @@ const BASE = {
   // later stage lets the column move.
   slicerSide: "left",
   step: 5,
-  kpiBand2: { ...DEFAULT_KPI_BAND_2 },
   sections: DEFAULT_SECTIONS()
 };
 
@@ -200,30 +190,6 @@ function rowsValue(v) {
   if (v === null || v === undefined) return null;
   const n = Math.round(num(v, NaN));
   return Number.isFinite(n) && n >= 1 ? n : null;
-}
-
-// Builds the legacy title/slicers/kpi/charts stack from a theme that has no
-// `sections` array of its own, folding `kpiBand2` in as a second KPI band
-// wedged into the chart rows. This is the migration path for every theme
-// saved before `sections` existed, and it must keep working forever — a
-// theme that loses its sections should fall back to this default shape,
-// never to an empty one.
-function synthesizeSectionsFromLegacy(src) {
-  const sections = DEFAULT_SECTIONS();
-  const band = src && src.kpiBand2;
-  if (band && band.enabled === true) {
-    const afterRow = Math.max(0, Math.round(num(band.afterRow, 0)));
-    sections[3].rows = Math.max(1, afterRow + 1);
-    sections.push({
-      type: "kpi",
-      id: "kpi-2",
-      defaultCount: Math.min(12, Math.max(1, Math.round(num(band.defaultCount, 4)))),
-      allowSecondRow: false,
-      gapBefore: "auto"
-    });
-    sections.push({ type: "charts", id: "charts-2", rows: null, gapBefore: "auto" });
-  }
-  return sections;
 }
 
 // Repairs an arbitrary array into a valid sections list rather than
@@ -319,7 +285,7 @@ function normalizeSections(rawSections) {
 // rather than carried along, so an imported file cannot smuggle state in.
 export function normalizeTheme(raw) {
   const src = raw || {};
-  const out = { ...BASE, kpiBand2: { ...DEFAULT_KPI_BAND_2 } };
+  const out = { ...BASE };
 
   out.schema = THEME_SCHEMA;
   out.id = String(src.id == null ? BASE.id : src.id).trim() || BASE.id;
@@ -340,19 +306,11 @@ export function normalizeTheme(raw) {
   out.defaultSlicerOrientation = src.defaultSlicerOrientation === "vertical" ? "vertical" : "horizontal";
   out.slicerSide = src.slicerSide === "right" ? "right" : "left";
 
-  const band = src.kpiBand2 || {};
-  out.kpiBand2 = {
-    enabled: band.enabled === true,
-    afterRow: Math.max(0, Math.round(num(band.afterRow, 0))),
-    defaultCount: Math.min(12, Math.max(1, Math.round(num(band.defaultCount, 4))))
-  };
-
-  // `sections` is the replacement for `kpiBand2`; the legacy field above is
-  // still emitted (for now) only because other modules still read it
-  // directly, but it is purely a migration source here, not part of the
-  // sections schema itself.
+  // A theme that arrives with no sections of its own (never saved through
+  // this schema at all) falls back to the default single-band shape, never
+  // to an empty one.
   out.sections = normalizeSections(
-    Array.isArray(src.sections) ? src.sections : synthesizeSectionsFromLegacy(src)
+    Array.isArray(src.sections) ? src.sections : DEFAULT_SECTIONS()
   );
 
   return resolveDependencies(out);
@@ -362,7 +320,7 @@ export function normalizeTheme(raw) {
 // normalize *and* after every editor keystroke, so the theme in hand is never
 // internally contradictory — e.g. a max that has slipped below its min.
 export function resolveDependencies(theme) {
-  const t = { ...theme, kpiBand2: { ...theme.kpiBand2 }, sections: theme.sections.map(s => ({ ...s })) };
+  const t = { ...theme, sections: theme.sections.map(s => ({ ...s })) };
 
   t.maxPerRow = Math.max(t.minPerRow, t.maxPerRow);
   t.defaultSlicersPerRow = Math.min(t.maxPerRow, Math.max(t.minPerRow, t.defaultSlicersPerRow));
@@ -377,10 +335,7 @@ export function resolveDependencies(theme) {
   const marginCap = Math.floor((Math.min(t.canvasWidth, t.canvasHeight) - 100) / 2);
   t.margin = Math.max(0, Math.min(t.margin, marginCap));
 
-  t.kpiBand2.defaultCount = Math.min(t.maxPerRow, Math.max(1, t.kpiBand2.defaultCount));
-
-  // Same clamp, generalised: no KPI band's seed count may exceed the row it
-  // has to fit in.
+  // No KPI band's seed count may exceed the row it has to fit in.
   t.sections = t.sections.map(s => s.type === "kpi"
     ? { ...s, defaultCount: Math.min(t.maxPerRow, Math.max(0, s.defaultCount)) }
     : s);
@@ -439,7 +394,7 @@ export function validateTheme(theme) {
 }
 
 export function cloneTheme(theme) {
-  return { ...theme, kpiBand2: { ...theme.kpiBand2 }, sections: theme.sections.map(s => ({ ...s })) };
+  return { ...theme, sections: theme.sections.map(s => ({ ...s })) };
 }
 
 // Which fields differ between two themes — used to tell the user how far a
@@ -447,12 +402,6 @@ export function cloneTheme(theme) {
 export function diffFromTheme(theme, base) {
   const keys = FIELDS.map(f => f.key).concat("defaultSlicerOrientation", "slicerSide");
   const changed = keys.filter(k => theme[k] !== base[k]);
-
-  const a = theme.kpiBand2;
-  const b = base.kpiBand2;
-  const bandDiffers = a.enabled !== b.enabled ||
-    (a.enabled && (a.afterRow !== b.afterRow || a.defaultCount !== b.defaultCount));
-  if (bandDiffers) changed.push("kpiBand2");
 
   if (JSON.stringify(theme.sections) !== JSON.stringify(base.sections)) changed.push("sections");
 

@@ -162,13 +162,10 @@
                         <button id="add-kpi" class="full-btn">KPI</button>
                         <button id="add-chart-split" class="full-btn hidden">Graf</button>
                     </div>
-                    <!-- Only shown while the active theme defines a second KPI
-                         band (see syncBand2Controls in app.js). -->
-                    <div class="collapsible" id="add-kpi-band2-field">
-                        <div class="collapsible-inner">
-                            <button id="add-kpi-band2" class="full-btn band2-btn">KPI – prostřední pás</button>
-                        </div>
-                    </div>
+                    <!-- Filled with one button per KPI band beyond the first
+                         (see syncKpiBandControls in app.js). Empty when the
+                         active theme defines only the header band. -->
+                    <div id="add-kpi-bands"></div>
                 </section>
             </div>
 

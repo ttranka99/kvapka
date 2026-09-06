@@ -31,15 +31,23 @@ function contentFits(contentWidth) {
     if (fixedSum + freeCount * state.MIN_CHART_WIDTH + gaps > contentWidth) return false;
   }
 
-  // KPI rows split at MAX_KPIS exactly as computeKpiLayout does. The middle
-  // band is one more row competing for the same width, so it belongs in the
-  // same test — a column wide enough for the header band can still leave the
-  // middle band without room.
-  const kpiRows = [
-    state.kpis.slice(0, state.MAX_KPIS),
-    state.kpis.slice(state.MAX_KPIS, state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS),
-    state.kpis2
-  ];
+  // Every KPI band is one or two rows competing for the same width — a
+  // header-style band (allowSecondRow) splits at MAX_KPIS exactly as
+  // computeKpiLayout does, any other band is a single row. A column wide
+  // enough for the header band can still leave a later band without room,
+  // so all of them belong in the same test.
+  const kpiRows = [];
+  for (const id of state.kpiBandIds()) {
+    const cards = state.getKpiBand(id);
+    if (cards.length === 0) continue;
+    const section = state.activeTheme.sections.find(s => s.id === id);
+    if (section && section.allowSecondRow) {
+      kpiRows.push(cards.slice(0, state.MAX_KPIS));
+      kpiRows.push(cards.slice(state.MAX_KPIS, state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS));
+    } else {
+      kpiRows.push(cards);
+    }
+  }
 
   for (const row of kpiRows) {
     if (row.length === 0) continue;
