@@ -52,6 +52,7 @@ let preview = {
   chartCols: 2
 };
 let highlightedRegion = null;
+let dragSession = null;       // non-null only for the duration of a pointer reorder drag
 
 const el = (tag, className, text) => {
   const node = document.createElement(tag);
@@ -99,6 +100,11 @@ export function openThemeEditor(options) {
   root.hidden = false;
   document.body.classList.add("theme-editor-open");
   render();
+
+  // A read-only peek at the draft's section order, for the test harness —
+  // draft itself is module-private, and the DOM alone can't tell a raw
+  // sections index from a rendered one.
+  window.__themeDraftSectionsForTest = () => draft.sections.map(s => ({ ...s }));
 
   const nameInput = root.querySelector("#theme-name");
   nameInput.focus();
@@ -652,7 +658,133 @@ function previewLayout() {
   return { ...g, vertical, rowCount: chartRowCount, tooSmall };
 }
 
+// --- Section reordering ---------------------------------------------------
+//
+// A theme's band order lives entirely in draft.sections, and both the
+// keyboard path and the pointer drag (below) mutate it through the same two
+// primitives: mapPlacedToRaw() translates a position in the *rendered*
+// stack (what the user actually sees and grabs) back to an index in the
+// *raw* sections array (which may hold sections the current sample content
+// dropped — an empty KPI band, say), and moveSectionToRawIndex() performs
+// the splice. Only "kpi" and "slicers" sections are grabbable — "title" and
+// "charts" are the substrate everything else is placed against.
+const MOVABLE_SECTION_TYPES = ["kpi", "slicers"];
+
+// There is always exactly one `slicers` section (normalizeSections()
+// guarantees it) — this just finds its id, since every id is the theme
+// author's own rather than a hardcoded "slicers".
+function slicersSectionId(theme) {
+  const s = theme.sections.find(s => s.type === "slicers");
+  return s ? s.id : "slicers";
+}
+
+// A cheap order+shape fingerprint, used to tell a real move from a drop
+// that lands back where it started (which must count as no mutation at
+// all, not a no-op edit).
+function sectionsSignature(list) {
+  return list.map(s => `${s.type}:${s.id ?? ""}:${s.rows ?? ""}`).join("|");
+}
+
+// previewLayout()'s `g.sections` is the rendered stack, in the same
+// relative order as `sections` but with every zero-space entry (an empty
+// KPI band, a slicer band with no slicers) dropped. This walks both in
+// lockstep to recover, for each rendered entry, which raw index it came
+// from — the only thing the splice below actually needs to know.
+function mapPlacedToRaw(sections, placed) {
+  const rawIndex = [];
+  let pi = 0;
+  sections.forEach((s, i) => {
+    if (pi >= placed.length) return;
+    const p = placed[pi];
+    if (p.type === s.type && p.id === s.id) { rawIndex.push(i); pi++; }
+  });
+  return rawIndex;
+}
+
+// Removes the section at `fromRaw` and reinserts it immediately before
+// whatever now sits at `beforeRaw` (an index into the *original* array —
+// the splice below accounts for the shift the removal causes).
+function moveSectionToRawIndex(sections, fromRaw, beforeRaw) {
+  const list = sections.slice();
+  const [item] = list.splice(fromRaw, 1);
+  const insertAt = fromRaw < beforeRaw ? beforeRaw - 1 : beforeRaw;
+  list.splice(insertAt, 0, item);
+  return list;
+}
+
+// The keyboard path: Ctrl+ArrowUp/Down on a grip moves its section past
+// whichever rendered neighbour sits on that side — the same "one slot" a
+// pointer drag would snap to, just without a pointer stream to hit-test.
+// Deterministic, so it's also what the pointer drag's own mutations are
+// proven against.
+function moveSectionOneSlot(sectionType, sectionId, direction) {
+  const g = previewLayout();
+  const sections = draft.sections;
+  const rawIndex = mapPlacedToRaw(sections, g.sections);
+  const gi = g.sections.findIndex(s => s.type === sectionType && s.id === sectionId);
+  if (gi === -1) return;
+
+  const neighborGi = gi + direction;
+  if (neighborGi < 0 || neighborGi >= g.sections.length) return;
+
+  const fromRaw = rawIndex[gi];
+  const neighborRaw = rawIndex[neighborGi];
+  const beforeRaw = direction < 0 ? neighborRaw : neighborRaw + 1;
+
+  const nextSections = moveSectionToRawIndex(sections, fromRaw, beforeRaw);
+  if (sectionsSignature(nextSections) === sectionsSignature(sections)) return;
+
+  draft = normalizeTheme({ ...draft, sections: nextSections });
+  render();
+
+  // render() tore down and rebuilt every node, including the grip that had
+  // focus — put focus back on the (same conceptual) grip in its new spot so
+  // a second Ctrl+ArrowUp/Down keeps working without the user having to
+  // tab back to it.
+  const node = root.querySelector(
+    `.theme-grip[data-section-type="${sectionType}"][data-section-id="${sectionId}"]`
+  );
+  if (node) node.focus();
+}
+
+// Six-dot grab handle, inset into a movable region's top-left corner. Not
+// the region body (already the hover-highlight target) and not its edges
+// (the resize `dragHandle`s) — its own small hit area, so a resize drag and
+// a reorder drag can never fight over the same pointerdown.
+function grip(sectionType, sectionId) {
+  const handle = el("div", "theme-grip");
+  handle.dataset.sectionType = sectionType;
+  handle.dataset.sectionId = sectionId;
+  handle.tabIndex = 0;
+  handle.setAttribute("role", "button");
+  handle.setAttribute("aria-label", "Přesunout pás");
+  handle.title = "Táhnutím, nebo Ctrl+šipkou nahoru/dolů, přesunete tento pás.";
+  for (let i = 0; i < 6; i++) handle.appendChild(el("span", "theme-grip__dot"));
+
+  handle.addEventListener("keydown", e => {
+    if (!e.ctrlKey) return;
+    if (e.key === "ArrowUp") { e.preventDefault(); moveSectionOneSlot(sectionType, sectionId, -1); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); moveSectionOneSlot(sectionType, sectionId, 1); }
+  });
+
+  handle.addEventListener("pointerdown", e => startSectionDrag(e, sectionType, sectionId));
+
+  return handle;
+}
+
+// The pointer drag itself — implemented separately below; kept as its own
+// function so grip() (and its keyboard path) don't need to know anything
+// about it beyond "call this on pointerdown".
+function startSectionDrag(event, sectionType, sectionId) {
+  event.preventDefault();
+  event.stopPropagation();
+}
+
 function renderPreview() {
+  // Exposed for the test harness: a reorder drag must call render() exactly
+  // once (on a successful drop), never on every pointermove.
+  window.__themeRenderPreviewCalls = (window.__themeRenderPreviewCalls || 0) + 1;
+
   const stage = root.querySelector("#theme-preview");
   const frame = root.querySelector(".theme-stage__frame");
   stage.innerHTML = "";
@@ -726,6 +858,7 @@ function renderPreview() {
     stackCells(column, Math.max(2, Math.floor(g.slicerColumnHeight / (t.slicerHeight + t.gapSmall))),
       t.gapSmall * scale, "column");
     column.appendChild(dragHandle("slicerColumnWidth", "x", 1, scale));
+    column.appendChild(grip("slicers", slicersSectionId(t)));
     stage.appendChild(column);
   } else {
     const stripe = region("slicer", "theme-region theme-region--slicer", {
@@ -737,6 +870,7 @@ function renderPreview() {
     ));
     stackCells(stripe, t.defaultSlicersPerRow, t.gapSmall * scale, "row");
     stripe.appendChild(dragHandle("slicerHeight", "y", 1, scale));
+    stripe.appendChild(grip("slicers", slicersSectionId(t)));
     stage.appendChild(stripe);
   }
 
@@ -758,6 +892,7 @@ function renderPreview() {
     ));
     stackCells(kpi, t.defaultKpisPerRow, t.gapSmall * scale, "row");
     kpi.appendChild(dragHandle("kpiMinHeight", "y", 1, scale));
+    kpi.appendChild(grip("kpi", headerKpi.id));
     stage.appendChild(kpi);
   }
 
@@ -788,6 +923,7 @@ function renderPreview() {
       `Druhý pás KPI · ${band2Kpi.defaultCount}× ${cellWidth(g.contentWidth, band2Kpi.defaultCount, t.gapSmall)} px · pod ${afterRow + 1}. řadou`
     ));
     stackCells(band, band2Kpi.defaultCount, t.gapSmall * scale, "row");
+    band.appendChild(grip("kpi", band2Kpi.id));
     stage.appendChild(band);
   }
 

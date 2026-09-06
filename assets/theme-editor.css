@@ -145,6 +145,18 @@ body.theme-editor-dragging {
   user-select: none;
 }
 
+/* While a section is being reordered, its resize edges must not be able to
+   hijack the gesture — a pointer that strays onto one mid-drag should keep
+   reordering, not start resizing. */
+body.theme-editor-reordering {
+  cursor: grabbing;
+  user-select: none;
+}
+
+body.theme-editor-reordering .theme-handle {
+  pointer-events: none;
+}
+
 .theme-editor {
   position: fixed;
   inset: 0;
@@ -725,6 +737,77 @@ body.theme-editor-dragging {
 
 .theme-handle:hover::after {
   opacity: 0.8;
+}
+
+/* The reorder grip — six dots inset into a movable region's top-left
+   corner. Its own small hit area, distinct from the region body (the
+   hover-highlight target) and the edge dragHandles (z-index 7), so none of
+   the three ever compete for the same pointerdown. */
+.theme-grip {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  z-index: 8;
+  width: 14px;
+  height: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 2px;
+  padding: 2px;
+  cursor: grab;
+  border-radius: 2px;
+  outline: none;
+}
+
+.theme-grip:hover,
+.theme-grip:focus-visible {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.theme-grip:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.theme-grip__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+/* The floating copy of a region that follows the pointer during a reorder
+   drag, and the line marking where it would land. Both are display only —
+   render() is not called again until the drop. */
+.theme-ghost {
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0.75;
+  border: 2px solid var(--color-primary);
+  border-radius: 2px;
+  background: rgba(214, 0, 50, 0.08);
+}
+
+.theme-insertion-line {
+  position: absolute;
+  z-index: 21;
+  pointer-events: none;
+  background: var(--color-primary);
+}
+
+.theme-insertion-line--h {
+  height: 3px;
+  left: 0;
+  right: 0;
+  border-radius: 2px;
+}
+
+.theme-insertion-line--v {
+  width: 3px;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
 }
 
 .theme-stage__readout {

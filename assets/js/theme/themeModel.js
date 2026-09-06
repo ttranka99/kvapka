@@ -207,12 +207,24 @@ function normalizeSections(rawSections) {
   list = list.filter(s => s.type !== "title");
   list.unshift(titles[0] || { type: "title" });
 
-  // 3. At most one slicers band. If the input dropped it entirely, put a
-  // default one right after the title — every layout needs somewhere for
-  // the slicer controls to live, even if nobody has touched this section.
+  // 3. At most one slicers band, kept wherever it already sits — the drag
+  // reorder (themeEditor.js) relies on that: moving it past a KPI band
+  // must not have this normalize pass snap it straight back afterward. A
+  // theme that dropped it entirely still gets a default one right after
+  // the title, since every layout needs somewhere for the slicer controls
+  // to live even if nobody has touched this section.
   const slicerSections = list.filter(s => s.type === "slicers");
-  list = list.filter(s => s.type !== "slicers");
-  list.splice(1, 0, slicerSections[0] || { type: "slicers", id: "slicers" });
+  if (slicerSections.length === 0) {
+    list.splice(1, 0, { type: "slicers", id: "slicers" });
+  } else if (slicerSections.length > 1) {
+    let kept = false;
+    list = list.filter(s => {
+      if (s.type !== "slicers") return true;
+      if (kept) return false;
+      kept = true;
+      return true;
+    });
+  }
 
   // 4. At least one charts band.
   if (!list.some(s => s.type === "charts")) {
