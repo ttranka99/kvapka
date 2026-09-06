@@ -1050,12 +1050,42 @@ function startSectionDrag(event, sectionType, sectionId) {
 
     const dx = e.clientX - startClientX;
     const dy = e.clientY - startClientY;
+
+    // The lifted band only moves along the axes that mean something for it.
+    // A KPI band already spans the whole content width, so sideways travel
+    // conveys nothing and just makes it look detached from the layout; it
+    // slides up and down the stack only. The slicer band keeps both axes,
+    // because moving sideways is exactly how you aim at a gutter.
+    const canDock = sectionType === "slicers";
+
+    const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+    // Vertically the whole band is kept on the canvas — off in the backdrop
+    // it reads as a rendering glitch rather than as something being held.
+    const liftY = clamp(dy, stageRect.top - regionRect.top, stageRect.bottom - regionRect.bottom);
+
+    // Horizontally the same rule would be useless: the slicer band already
+    // spans nearly the full canvas width, so keeping every pixel of it on
+    // canvas leaves about 14px of travel and the band stops dead while the
+    // pointer keeps going. Carrying it toward a gutter is the docking
+    // gesture, so it may travel until half of it has left the canvas —
+    // enough to feel carried, never so far it vanishes.
+    const half = regionRect.width / 2;
+    const liftX = canDock
+      ? clamp(dx,
+          stageRect.left - regionRect.left - half,
+          stageRect.right - regionRect.left - half)
+      : 0;
+
     // No transition on this — it has to track the pointer 1:1, every frame,
     // or lifting the band stops feeling like holding it.
-    regionEl.style.transform = `translate(${dx}px, ${dy}px) scale(1.03)`;
+    regionEl.style.transform = `translate(${liftX}px, ${liftY}px) scale(1.03)`;
 
     const cursorThemeX = (e.clientX - stageRect.left) / scale;
     const cursorThemeY = (e.clientY - stageRect.top) / scale;
+    // Intent is read from the raw gesture, not the clamped lift: once the
+    // band is pinned at the canvas edge its own travel stops growing, but
+    // the user pushing further sideways still means "dock me".
     const horizontalDominant = Math.abs(dx) > Math.abs(dy);
     chosenSlot = pickSlot(slots, cursorThemeX, cursorThemeY, sectionType, horizontalDominant);
 
