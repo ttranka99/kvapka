@@ -174,9 +174,15 @@ export function walkSections(theme, content) {
   // content down. Vertical: a fixed-width column down the left side that
   // takes width from that content instead, and consumes no vertical band at
   // all — so every band below is computed exactly as it would be with no
-  // slicers present. These stay their own small formula rather than being
-  // read off the walk below: the column sits *beside* the stack, never
-  // inside it.
+  // slicers present. This formula is the *nominal* title -> slicers
+  // position — right below the title, as if nothing had been reordered —
+  // used as-is for the vertical column (which never appears in the stack
+  // walk below, so there is nothing else to read) and as the fallback for
+  // the horizontal band when it has nothing to show. Once the band DOES
+  // render, the walk below places it whatever order the theme actually
+  // has, and the returned slicersTop/slicersBottom read that placement
+  // instead — see resolvedSlicersTop/resolvedSlicersBottom near the end of
+  // this function.
   const slicersTop = vertical
     // 30px (20px on HD) below the title, per the vertical spec — not the
     // tighter gapSmall the horizontal band sits at.
@@ -249,14 +255,17 @@ export function walkSections(theme, content) {
     theme, prefixEffective, theme.margin, vertical, [], []
   );
 
-  // kpiTop/kpiBottom describe the header KPI band's nominal position and
-  // are kept as their own formula rather than read off
-  // `sectionById["kpi-1"]`: the legacy contract gives them a value even
-  // when the header band's cards are empty and the section was dropped from
-  // the prefix entirely (nothing renders there, but downstream code still
-  // reads kpiTop as "where the header band would start"). When the section
-  // *is* active the two agree by construction — both apply the same
-  // boundary-gap rule to the same position.
+  // kpiTop/kpiBottom (this formula) describe the header KPI band's *nominal*
+  // position, assuming the theme's original title -> slicers -> kpi order —
+  // the fallback for when the header band's cards are empty and the section
+  // was dropped from the walk entirely (nothing renders there, but the
+  // legacy contract still gives kpiTop a value; downstream code — see
+  // computeKpiLayoutForBand() — only ever reads it in that exact case). When
+  // the header band IS active, the returned kpiTop/kpiBottom instead read
+  // its real placed box (resolvedKpiTop/resolvedKpiBottom near the end of
+  // this function), which reflects wherever the theme's sections actually
+  // put it — this formula's "assume nothing was reordered" is only ever
+  // correct for the default order.
   const contentTop = vertical
     ? TITLE_Y + theme.titleHeight + theme.gapKpiToCharts
     : slicerCount === 0
@@ -332,10 +341,32 @@ export function walkSections(theme, content) {
 
   const chartsHeight = chartsBottom - chartsTop - interiorFixed - interiorGaps;
 
+  // slicersTop/slicersBottom/kpiTop/kpiBottom above are *nominal* — the
+  // position those bands would sit at in the theme's original title ->
+  // slicers -> kpi -> charts order. Once the user can drag a band
+  // somewhere else, that formula and "where the walk actually placed it"
+  // can disagree, and every consumer that matters (computeSlicersLayout,
+  // computeKpiLayoutForBand) reads the field named here — so this is the
+  // one place that has to reconcile the two, rather than leaving it to
+  // whoever calls walkSections() next to remember. A horizontal slicers
+  // section always has a home in `sectionById` once it has slicers to
+  // show; when it's the vertical column instead, it has no placed box at
+  // all (buildEffectiveStack() drops it from the stack on purpose — the
+  // column sits *beside* the stack, not in it), so the nominal value
+  // (itself the column's own top) is exactly what's still wanted there.
+  const slicersSectionDef = sections.find(s => s.type === "slicers");
+  const placedSlicers = !vertical && slicersSectionDef ? sectionById[slicersSectionDef.id] : undefined;
+  const resolvedSlicersTop = placedSlicers ? placedSlicers.top : slicersTop;
+  const resolvedSlicersBottom = placedSlicers ? placedSlicers.bottom : slicersBottom;
+
+  const placedHeaderKpi = firstKpiSection ? sectionById[firstKpiSection.id] : undefined;
+  const resolvedKpiTop = placedHeaderKpi ? placedHeaderKpi.top : kpiTop;
+  const resolvedKpiBottom = placedHeaderKpi ? placedHeaderKpi.bottom : kpiBottom;
+
   return {
     TITLE_Y,
-    slicersTop,
-    slicersBottom,
+    slicersTop: resolvedSlicersTop,
+    slicersBottom: resolvedSlicersBottom,
     slicerColumnTop,
     slicerColumnBottom,
     slicerColumnHeight,
@@ -345,8 +376,8 @@ export function walkSections(theme, content) {
     hasColumn,
     contentLeft,
     contentWidth,
-    kpiTop,
-    kpiBottom,
+    kpiTop: resolvedKpiTop,
+    kpiBottom: resolvedKpiBottom,
     chartsTop,
     chartsBottom,
     chartsHeight,
