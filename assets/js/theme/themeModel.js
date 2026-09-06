@@ -279,9 +279,20 @@ function normalizeSections(rawSections) {
     }
   });
   // 8 (cont.): at least one charts section must be open-ended, so a fixed
-  // count can never accidentally swallow the rest of the canvas.
-  if (lastChartsIndex >= 0 && !list.some(s => s.type === "charts" && s.rows === null)) {
-    list[lastChartsIndex].rows = null;
+  // count can never accidentally swallow the rest of the canvas — and at
+  // most one, since computeChartGroups() (chartGroups.js) only resolves
+  // "whatever's left" for the *last* one; an earlier null left over from a
+  // hand-edited or merged theme would silently claim zero rows there
+  // instead. Pin every null but the last to a single row rather than
+  // rejecting the theme outright.
+  if (lastChartsIndex >= 0) {
+    let sawNull = false;
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (list[i].type !== "charts" || list[i].rows !== null) continue;
+      if (!sawNull) { sawNull = true; continue; }
+      list[i].rows = 1;
+    }
+    if (!sawNull) list[lastChartsIndex].rows = null;
   }
 
   // 9. gapBefore coerced to one of the three literals.

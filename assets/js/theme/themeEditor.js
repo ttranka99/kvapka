@@ -236,7 +236,7 @@ function buildControlsPane() {
     // hunting for — orientation is a slicer decision, the middle band a KPI
     // one.
     if (group.id === "slicers") section.appendChild(buildOrientationControl());
-    if (group.id === "kpis") section.appendChild(buildBand2Controls());
+    if (group.id === "kpis") section.appendChild(buildKpiBandsControl());
 
     pane.appendChild(section);
   });
@@ -333,140 +333,169 @@ function buildOrientationControl() {
   return row;
 }
 
-// The middle band is represented purely as sections: a `kpi` section (id
-// "kpi-2") wedged between two `charts` sections. This reads that shape back
-// out of draft.sections rather than a dedicated field — there is no
-// dedicated field any more — so the checkbox and its two number inputs have
-// something to show and to edit.
-function band2Info(theme) {
-  const kpiSections = theme.sections.filter(s => s.type === "kpi");
-  const section = kpiSections[1] || null;
-  if (!section) return { enabled: false, defaultCount: 4, afterRow: 0, section: null, precedingCharts: null };
-
+// The nearest `charts` section before `section` in array order — used only
+// to read the row number a KPI band's label displays ("pod 2. řadou"); the
+// walker (sectionWalker.js) is what actually places the band, this is just
+// static bookkeeping over draft.sections.
+function precedingChartsFor(theme, section) {
   const idx = theme.sections.indexOf(section);
-  let precedingCharts = null;
   for (let i = idx - 1; i >= 0; i--) {
-    if (theme.sections[i].type === "charts") { precedingCharts = theme.sections[i]; break; }
+    if (theme.sections[i].type === "charts") return theme.sections[i];
   }
-  const rows = precedingCharts ? (precedingCharts.rows ?? 1) : 1;
-  return { enabled: true, defaultCount: section.defaultCount, afterRow: Math.max(0, rows - 1), section, precedingCharts };
+  return null;
 }
 
-// Inserts the "kpi-2 between two charts sections" shape right after the
-// theme's first charts section, splitting it at row 1 (afterRow 0) by
-// default — the same split synthesizeSectionsFromLegacy used to produce.
-function addBand2Section(sections) {
-  const list = sections.map(s => ({ ...s }));
-  const firstChartsIdx = list.findIndex(s => s.type === "charts");
-  if (firstChartsIdx === -1) return list;
+// The 1-based chart row a KPI band visually follows, for its preview label.
+function afterRowLabel(theme, section) {
+  const preceding = precedingChartsFor(theme, section);
+  const rows = preceding ? (preceding.rows ?? 1) : 1;
+  return Math.max(0, rows - 1) + 1;
+}
 
-  list[firstChartsIdx] = { ...list[firstChartsIdx], rows: 1 };
-  list.splice(firstChartsIdx + 1, 0,
-    { type: "kpi", id: "kpi-2", defaultCount: 4, allowSecondRow: false, gapBefore: "auto" },
-    { type: "charts", id: "charts-2", rows: null, gapBefore: "auto" }
+// Appends a new KPI band at the end of the stack, with a fresh open-ended
+// charts section absorbing whatever rows are left below it. Exactly one
+// charts section may stay open-ended — computeChartGroups() (chartGroups.js)
+// only resolves "whatever's left" correctly for the *last* one — so the
+// theme's current last section (until now the absorber) is pinned to a
+// single fixed row first; that single row is what ends up sitting between
+// the existing content and the new band, mirroring the previous single
+// "second band"'s default placement. Ids are placeholders; normalizeTheme()'s
+// dedup pass renames them if they collide with anything a previous "+"
+// already added.
+function appendKpiBand(sections) {
+  const list = sections.map(s => ({ ...s }));
+  for (let i = list.length - 1; i >= 0; i--) {
+    if (list[i].type === "charts") {
+      list[i].rows = list[i].rows ?? 1;
+      break;
+    }
+  }
+  list.push(
+    { type: "kpi", id: "kpi-new", defaultCount: 4, allowSecondRow: false, gapBefore: "auto" },
+    { type: "charts", id: "charts-new", rows: null, gapBefore: "auto" }
   );
   return list;
 }
 
-// Removes the kpi-2/charts-2 split, reopening the charts section before it
-// so the chart area goes back to absorbing every row on its own.
-function removeBand2Section(sections) {
-  const list = sections.map(s => ({ ...s }));
-  const kpi2Idx = list.findIndex(s => s.type === "kpi" && s.id === "kpi-2");
-  if (kpi2Idx === -1) return list;
+const GAP_BEFORE_LABELS = { auto: "Auto", small: "Malá", block: "Velká" };
 
-  for (let i = kpi2Idx - 1; i >= 0; i--) {
-    if (list[i].type === "charts") { list[i] = { ...list[i], rows: null }; break; }
-  }
-  return list
-    .filter((s, i) => i !== kpi2Idx)
-    .filter(s => !(s.type === "charts" && s.id === "charts-2"));
+// One row per `kpi` section — replaces the old fixed "header band + one
+// optional second band" checkbox with a list that scales to however many a
+// theme actually defines. defaultCount/allowSecondRow/gapBefore are edited
+// in place; removing a row leaves its cards to state.applyTheme's own
+// reconciliation (reconcileKpiBands in state.js), which rehomes them to
+// the nearest surviving band rather than dropping them.
+function renderKpiBandsList() {
+  const list = root.querySelector("#theme-kpi-bands-list");
+  if (!list) return;
+  list.innerHTML = "";
+
+  draft.sections.filter(s => s.type === "kpi").forEach((section, i) => {
+    const row = el("div", "theme-kpi-band");
+    row.dataset.kpiBandId = section.id;
+    row.dataset.region = "kpi-band2";
+
+    row.appendChild(el("span", "theme-kpi-band__title",
+      i === 0 ? "Pás KPI (hlavička)" : `Pás KPI ${i + 1} · pod ${afterRowLabel(draft, section)}. řadou`));
+
+    const countField = el("label", "theme-kpi-band__field");
+    countField.appendChild(el("span", null, "Počet KPI"));
+    const count = document.createElement("input");
+    count.type = "number";
+    count.min = "0";
+    count.max = "12";
+    count.step = "1";
+    count.value = String(section.defaultCount);
+    count.addEventListener("input", () => {
+      const v = Number(count.value);
+      if (!Number.isFinite(v)) return;
+      draft = normalizeTheme({
+        ...draft,
+        sections: draft.sections.map(s => s === section ? { ...s, defaultCount: Math.max(0, Math.round(v)) } : s)
+      });
+      render();
+    });
+    countField.appendChild(count);
+    row.appendChild(countField);
+
+    const secondRowField = el("label", "theme-kpi-band__field theme-kpi-band__field--check");
+    const secondRow = document.createElement("input");
+    secondRow.type = "checkbox";
+    secondRow.className = "theme-check";
+    secondRow.checked = section.allowSecondRow;
+    secondRow.addEventListener("change", () => {
+      draft = normalizeTheme({
+        ...draft,
+        sections: draft.sections.map(s => s === section ? { ...s, allowSecondRow: secondRow.checked } : s)
+      });
+      render();
+    });
+    secondRowField.appendChild(secondRow);
+    secondRowField.appendChild(el("span", null, "2. řádek"));
+    row.appendChild(secondRowField);
+
+    // The gap immediately above this band. "Auto" derives it from the
+    // layout's usual rule (a wide block gap once charts are involved
+    // above it, a tight one otherwise); the other two pin it regardless
+    // of what ends up around it.
+    const gapField = el("label", "theme-kpi-band__field");
+    gapField.title = "Auto: mezera se odvozuje z rozvržení. Malá/velká: mezera je pevně daná bez ohledu na okolí.";
+    gapField.appendChild(el("span", null, "Mezera před"));
+    const gapSelect = document.createElement("select");
+    gapSelect.className = "theme-kpi-band__gap";
+    ["auto", "small", "block"].forEach(value => {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = GAP_BEFORE_LABELS[value];
+      if (section.gapBefore === value) opt.selected = true;
+      gapSelect.appendChild(opt);
+    });
+    gapSelect.addEventListener("change", () => {
+      draft = normalizeTheme({
+        ...draft,
+        sections: draft.sections.map(s => s === section ? { ...s, gapBefore: gapSelect.value } : s)
+      });
+      render();
+    });
+    gapField.appendChild(gapSelect);
+    row.appendChild(gapField);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "icon-btn theme-kpi-band__remove";
+    removeBtn.title = "Odstranit tento pás KPI";
+    removeBtn.textContent = "×";
+    removeBtn.addEventListener("click", () => {
+      draft = normalizeTheme({ ...draft, sections: draft.sections.filter(s => s !== section) });
+      render();
+    });
+    row.appendChild(removeBtn);
+
+    row.addEventListener("mouseenter", () => setHighlight("kpi-band2"));
+    row.addEventListener("mouseleave", () => setHighlight(null));
+
+    list.appendChild(row);
+  });
 }
 
-function buildBand2Controls() {
-  const wrap = el("div", "theme-band2");
+function buildKpiBandsControl() {
+  const wrap = el("div", "theme-kpi-bands");
 
-  const toggleRow = el("div", "theme-field theme-field--switch");
-  toggleRow.appendChild(el("span", "theme-field__label", "Druhý pás KPI"));
-
-  const check = document.createElement("input");
-  check.type = "checkbox";
-  check.id = "theme-band2-enabled";
-  check.className = "theme-check";
-  check.addEventListener("change", () => {
-    draft = {
-      ...draft,
-      sections: check.checked ? addBand2Section(draft.sections) : removeBand2Section(draft.sections)
-    };
-    render();
-  });
-  toggleRow.appendChild(check);
-  wrap.appendChild(toggleRow);
+  const list = el("div", "theme-kpi-bands__list");
+  list.id = "theme-kpi-bands-list";
+  wrap.appendChild(list);
 
   wrap.appendChild(el("p", "theme-field__hint",
-    "Samostatný pás KPI uvnitř plochy grafů — například jeden pás pod hlavičkou a druhý uprostřed stránky."));
+    "Každý pás KPI je vlastní úsek v rozvržení — první pod hlavičkou, každý další uvnitř plochy grafů."));
 
-  const detail = el("div", "theme-band2__detail");
-  detail.appendChild(numberRow("kpiExtraBand.afterRow", "Umístit pod řadu grafů", 1, 12, 1,
-    value => {
-      const info = band2Info(draft);
-      if (!info.precedingCharts) return;
-      draft = {
-        ...draft,
-        sections: draft.sections.map(s => s === info.precedingCharts ? { ...s, rows: Math.max(1, value) } : s)
-      };
-      render();
-    },
-    () => band2Info(draft).afterRow + 1));
-  detail.appendChild(numberRow("kpiExtraBand.defaultCount", "Počet KPI v pásu", 1, 12, 1,
-    value => {
-      const info = band2Info(draft);
-      if (!info.section) return;
-      draft = {
-        ...draft,
-        sections: draft.sections.map(s => s === info.section ? { ...s, defaultCount: value } : s)
-      };
-      render();
-    },
-    () => band2Info(draft).defaultCount));
-  wrap.appendChild(detail);
+  const addBtn = button("+ přidat pás KPI", "ghost", () => {
+    draft = normalizeTheme({ ...draft, sections: appendKpiBand(draft.sections) });
+    render();
+  });
+  addBtn.id = "theme-kpi-band-add";
+  wrap.appendChild(addBtn);
 
   return wrap;
-}
-
-// A plain labelled number input for the handful of values that aren't part of
-// the FIELDS table (the band's own two settings, which live on a sub-object).
-function numberRow(key, label, min, max, step, onCommit, read) {
-  const row = el("div", "theme-field");
-  row.dataset.subfield = key;
-  row.dataset.region = "kpi-band2";
-
-  const lab = el("label", "theme-field__label", label);
-  lab.htmlFor = `theme-input-${key}`;
-  row.appendChild(lab);
-
-  const controls = el("div", "theme-field__controls");
-  const number = document.createElement("input");
-  number.type = "number";
-  number.id = `theme-input-${key}`;
-  number.className = "theme-field__number";
-  number.min = String(min);
-  number.max = String(max);
-  number.step = String(step);
-  number.addEventListener("input", () => {
-    const v = Number(number.value);
-    if (Number.isFinite(v)) onCommit(Math.min(max, Math.max(min, Math.round(v))));
-  });
-  controls.appendChild(number);
-  row.appendChild(controls);
-
-  row._read = read;
-  row._input = number;
-
-  row.addEventListener("mouseenter", () => setHighlight("kpi-band2"));
-  row.addEventListener("mouseleave", () => setHighlight(null));
-
-  return row;
 }
 
 function buildStagePane() {
@@ -598,13 +627,7 @@ function renderControls() {
     b.classList.toggle("is-active", b.dataset.previewOrientation === preview.orientation);
   });
 
-  const band2 = band2Info(draft);
-  const check = root.querySelector("#theme-band2-enabled");
-  check.checked = band2.enabled;
-  root.querySelector(".theme-band2__detail").hidden = !band2.enabled;
-  root.querySelectorAll("[data-subfield]").forEach(row => {
-    if (document.activeElement !== row._input) row._input.value = String(row._read());
-  });
+  renderKpiBandsList();
 
   root.querySelector("#theme-preview-rows").value = String(preview.chartRows);
 }
@@ -1106,10 +1129,12 @@ function renderPreview() {
   // showing (thanks to previewLayout()'s at-least-one-sample-card seeding,
   // that's every kpi section the theme defines) its real top/height, so
   // there is nothing left to recompute here. The header band is the first
-  // of them; the classic "second" band, if the theme has one, is the second.
+  // of them; a theme may define any number of others interrupting the
+  // chart area, each rendered generically below (there used to be exactly
+  // one, hardcoded — "the second band" — before bands became a list).
   const kpiEntries = g.sections.filter(s => s.type === "kpi");
   const headerKpi = kpiEntries[0] || null;
-  const band2Kpi = kpiEntries[1] || null;
+  const extraKpis = kpiEntries.slice(1);
 
   if (headerKpi) {
     const kpi = region("kpi", "theme-region theme-region--kpi", {
@@ -1142,18 +1167,19 @@ function renderPreview() {
     stage.appendChild(row);
   }
 
-  if (band2Kpi) {
-    const afterRow = band2Info(t).afterRow;
+  extraKpis.forEach(entry => {
+    const section = t.sections.find(s => s.type === "kpi" && s.id === entry.id);
+    const rowLabel = afterRowLabel(t, section);
     const band = region("kpi-band2", "theme-region theme-region--kpi theme-region--band2", {
-      left: g.contentLeft, top: band2Kpi.top, width: g.contentWidth, height: band2Kpi.height
+      left: g.contentLeft, top: entry.top, width: g.contentWidth, height: entry.height
     }, px);
     band.appendChild(tag(
-      `Druhý pás KPI · ${band2Kpi.defaultCount}× ${cellWidth(g.contentWidth, band2Kpi.defaultCount, t.gapSmall)} px · pod ${afterRow + 1}. řadou`
+      `Pás KPI · ${entry.defaultCount}× ${cellWidth(g.contentWidth, entry.defaultCount, t.gapSmall)} px · pod ${rowLabel}. řadou`
     ));
-    stackCells(band, band2Kpi.defaultCount, t.gapSmall * scale, "row");
-    band.appendChild(grip("kpi", band2Kpi.id));
+    stackCells(band, entry.defaultCount, t.gapSmall * scale, "row");
+    band.appendChild(grip("kpi", entry.id));
     stage.appendChild(band);
-  }
+  });
 
   // Gap rulers — the two spacing values are otherwise invisible negative
   // space, so each gets a measured, draggable strip of its own. Which gap
