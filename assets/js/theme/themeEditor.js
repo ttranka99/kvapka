@@ -903,8 +903,15 @@ function buildDropSlots(theme, g, rawIndex, sections, draggedType, draggedRaw) {
 // x-containment while dragging the slicers section — the point of a gutter
 // is to be droppable without having to line the cursor up with any
 // particular row.
-function pickSlot(slots, cursorX, cursorY, draggedType) {
-  if (draggedType === "slicers") {
+// `horizontalDominant` is |dx| > |dy| from the pointerdown origin — a
+// gutter only wins when the pointer is inside its x-range AND the drag has
+// actually moved sideways to get there. Without that second half, the
+// slicers grip (inset into the band's own top-left corner, which already
+// sits inside the left gutter's x-range before the drag starts) would
+// resolve every purely vertical drag to a gutter dock, making the band
+// impossible to reorder within the stack at all.
+function pickSlot(slots, cursorX, cursorY, draggedType, horizontalDominant) {
+  if (draggedType === "slicers" && horizontalDominant) {
     const gutter = slots.find(s => s.kind === "gutter" && cursorX >= s.x0 && cursorX <= s.x1);
     if (gutter) return gutter;
   }
@@ -932,9 +939,13 @@ function startSectionDrag(event, sectionType, sectionId) {
   const g = previewLayout();
   const sections = draft.sections;
   const rawIndex = mapPlacedToRaw(sections, g.sections);
-  const draggedGi = g.sections.findIndex(s => s.type === sectionType && s.id === sectionId);
-  if (draggedGi === -1) return;
-  const draggedRaw = rawIndex[draggedGi];
+  // A docked (vertical) slicers section sits *beside* the rendered stack,
+  // not inside it — sectionWalker.js's buildEffectiveStack() deliberately
+  // skips it there, so it never appears in g.sections. Its raw index has
+  // to come straight from `sections` instead, or dragging the docked
+  // column's grip would silently find nothing to drag.
+  const draggedRaw = sections.findIndex(s => s.type === sectionType && s.id === sectionId);
+  if (draggedRaw === -1) return;
 
   const slots = buildDropSlots(theme, g, rawIndex, sections, sectionType, draggedRaw);
 
@@ -977,13 +988,17 @@ function startSectionDrag(event, sectionType, sectionId) {
     }
   };
 
+  const startClientX = event.clientX;
+  const startClientY = event.clientY;
+
   const move = e => {
     ghost.style.left = `${e.clientX + offsetX - stageRect.left}px`;
     ghost.style.top = `${e.clientY + offsetY - stageRect.top}px`;
 
     const cursorThemeX = (e.clientX - stageRect.left) / scale;
     const cursorThemeY = (e.clientY - stageRect.top) / scale;
-    chosenSlot = pickSlot(slots, cursorThemeX, cursorThemeY, sectionType);
+    const horizontalDominant = Math.abs(e.clientX - startClientX) > Math.abs(e.clientY - startClientY);
+    chosenSlot = pickSlot(slots, cursorThemeX, cursorThemeY, sectionType, horizontalDominant);
     showLine(chosenSlot);
   };
 
