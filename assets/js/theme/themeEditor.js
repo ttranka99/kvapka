@@ -774,15 +774,31 @@ function moveSectionOneSlot(sectionType, sectionId, direction) {
 // the region body (already the hover-highlight target) and not its edges
 // (the resize `dragHandle`s) — its own small hit area, so a resize drag and
 // a reorder drag can never fight over the same pointerdown.
-function grip(sectionType, sectionId) {
-  const handle = el("div", "theme-grip");
+// The drag handle IS the region's label chip, with the grip dots as its
+// leading glyph — not a separate widget sitting on top of one.
+//
+// Both wanted the same spot (a region's top-left corner, the only place a
+// short label reads cleanly against the cell decoration), so as two elements
+// they overlapped and the dots appeared to sit underneath the text. Merging
+// them removes the collision by construction, and it puts the affordance on
+// the one thing in the region that already names it: you grab the label of
+// the band you want to move. Non-movable regions (the header, chart rows,
+// the gap rulers) keep a plain tag() chip with no dots and no grab cursor,
+// so "has dots" reads as "this one moves".
+function grip(sectionType, sectionId, text, extra) {
+  const handle = el("span", `theme-tag theme-grip${extra ? " " + extra : ""}`);
   handle.dataset.sectionType = sectionType;
   handle.dataset.sectionId = sectionId;
   handle.tabIndex = 0;
   handle.setAttribute("role", "button");
-  handle.setAttribute("aria-label", "Přesunout pás");
+  handle.setAttribute("aria-label", `Přesunout pás: ${text}`);
   handle.title = "Táhnutím, nebo Ctrl+šipkou nahoru/dolů, přesunete tento pás.";
-  for (let i = 0; i < 6; i++) handle.appendChild(el("span", "theme-grip__dot"));
+
+  const dots = el("span", "theme-grip__dots");
+  dots.setAttribute("aria-hidden", "true");
+  for (let i = 0; i < 6; i++) dots.appendChild(el("span", "theme-grip__dot"));
+  handle.appendChild(dots);
+  handle.appendChild(el("span", "theme-grip__label", text));
 
   handle.addEventListener("keydown", e => {
     if (!e.ctrlKey) return;
@@ -1227,27 +1243,23 @@ function renderPreview() {
       left: g.slicerColumnLeft, top: g.slicerColumnTop,
       width: t.slicerColumnWidth, height: g.slicerColumnHeight
     }, px);
-    column.appendChild(tag(
-      `Sloupec slicerů · ${t.slicerColumnWidth} px (${t.minSlicerColumnWidth}–${t.maxSlicerColumnWidth})`,
-      // A tall narrow column has no room for a one-line tag, so this one wraps.
-      "theme-tag--wrap"
-    ));
     stackCells(column, Math.max(2, Math.floor(g.slicerColumnHeight / (t.slicerHeight + t.gapSmall))),
       t.gapSmall * scale, "column");
     column.appendChild(dragHandle("slicerColumnWidth", "x", 1, scale));
-    column.appendChild(grip("slicers", slicersSectionId(t)));
+    // A tall narrow column has no room for a one-line chip, so this one wraps.
+    column.appendChild(grip("slicers", slicersSectionId(t),
+      `Sloupec slicerů · ${t.slicerColumnWidth} px (${t.minSlicerColumnWidth}–${t.maxSlicerColumnWidth})`,
+      "theme-tag--wrap"));
     stage.appendChild(column);
   } else {
     const stripe = region("slicer", "theme-region theme-region--slicer", {
       left: t.margin, top: g.slicersTop, width: usableWidth(t), height: t.slicerHeight
     }, px);
-    stripe.appendChild(tag(
-      `Slicery · ${t.defaultSlicersPerRow}× ${cellWidth(usableWidth(t), t.defaultSlicersPerRow, t.gapSmall)} px` +
-      ` · min ${t.minSlicerWidth} px · výška ${t.slicerHeight} px`
-    ));
     stackCells(stripe, t.defaultSlicersPerRow, t.gapSmall * scale, "row");
     stripe.appendChild(dragHandle("slicerHeight", "y", 1, scale));
-    stripe.appendChild(grip("slicers", slicersSectionId(t)));
+    stripe.appendChild(grip("slicers", slicersSectionId(t),
+      `Slicery · ${t.defaultSlicersPerRow}× ${cellWidth(usableWidth(t), t.defaultSlicersPerRow, t.gapSmall)} px` +
+      ` · min ${t.minSlicerWidth} px · výška ${t.slicerHeight} px`));
     stage.appendChild(stripe);
   }
 
@@ -1267,12 +1279,10 @@ function renderPreview() {
       left: g.contentLeft, top: headerKpi.top, width: g.contentWidth, height: headerKpi.height
     }, px);
     kpi.dataset.sectionId = headerKpi.id;
-    kpi.appendChild(tag(
-      `KPI · ${t.defaultKpisPerRow}× ${cellWidth(g.contentWidth, t.defaultKpisPerRow, t.gapSmall)} px · výška ${t.kpiMinHeight} px`
-    ));
     stackCells(kpi, t.defaultKpisPerRow, t.gapSmall * scale, "row");
     kpi.appendChild(dragHandle("kpiMinHeight", "y", 1, scale));
-    kpi.appendChild(grip("kpi", headerKpi.id));
+    kpi.appendChild(grip("kpi", headerKpi.id,
+      `KPI · ${t.defaultKpisPerRow}× ${cellWidth(g.contentWidth, t.defaultKpisPerRow, t.gapSmall)} px · výška ${t.kpiMinHeight} px`));
     stage.appendChild(kpi);
   }
 
@@ -1301,11 +1311,9 @@ function renderPreview() {
       left: g.contentLeft, top: entry.top, width: g.contentWidth, height: entry.height
     }, px);
     band.dataset.sectionId = entry.id;
-    band.appendChild(tag(
-      `Pás KPI · ${entry.defaultCount}× ${cellWidth(g.contentWidth, entry.defaultCount, t.gapSmall)} px · pod ${rowLabel}. řadou`
-    ));
     stackCells(band, entry.defaultCount, t.gapSmall * scale, "row");
-    band.appendChild(grip("kpi", entry.id));
+    band.appendChild(grip("kpi", entry.id,
+      `Pás KPI · ${entry.defaultCount}× ${cellWidth(g.contentWidth, entry.defaultCount, t.gapSmall)} px · pod ${rowLabel}. řadou`));
     stage.appendChild(band);
   });
 
