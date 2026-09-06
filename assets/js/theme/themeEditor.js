@@ -775,9 +775,237 @@ function grip(sectionType, sectionId) {
 // The pointer drag itself — implemented separately below; kept as its own
 // function so grip() (and its keyboard path) don't need to know anything
 // about it beyond "call this on pointerdown".
+// Every place the dragged section could land, computed ONCE at pointerdown
+// and then frozen for the rest of the gesture — pointermove only has to
+// pick the nearest one and move a ghost, never touch `draft` or re-render.
+//
+//   "boundary"  — every gap in the *rendered* stack (above the first
+//                 entry, between each pair, below the last). Always valid
+//                 to try; whether it actually changes anything is decided
+//                 once, up front, and cached as `invalid`.
+//   "split"     — a chart-row boundary strictly *inside* a charts group.
+//                 Dropping there splits that theme section into two,
+//                 sandwiching the dragged section between the row it
+//                 claims and the rows that are left.
+//   "gutter"    — the two vertical strips beside the usable area, offered
+//                 only while dragging the slicers section; they turn it
+//                 into the vertical column instead of reordering it.
+function buildDropSlots(theme, g, rawIndex, sections, draggedType, draggedRaw) {
+  const slots = [];
+  const originalSignature = sectionsSignature(sections);
+  const originalOrientation = theme.defaultSlicerOrientation;
+  const originalSide = theme.slicerSide;
+
+  const boundaryY = k => {
+    if (g.sections.length === 0) return theme.margin;
+    if (k === 0) return g.sections[0].top;
+    if (k === g.sections.length) return g.sections[g.sections.length - 1].bottom;
+    return (g.sections[k - 1].bottom + g.sections[k].top) / 2;
+  };
+
+  for (let k = 0; k <= g.sections.length; k++) {
+    const beforeRaw = k < rawIndex.length ? rawIndex[k] : sections.length;
+    const nextSections = moveSectionToRawIndex(sections, draggedRaw, beforeRaw);
+    const changesOrder = sectionsSignature(nextSections) !== originalSignature;
+    // A slicer dragged out of its vertical column and dropped on an
+    // ordinary stack slot always flips it back to horizontal, even when
+    // that slot happens to leave the array order unchanged.
+    const flipsOrientation = draggedType === "slicers" && originalOrientation !== "horizontal";
+    slots.push({
+      kind: "boundary",
+      y: boundaryY(k),
+      invalid: !changesOrder && !flipsOrientation,
+      apply: () => ({
+        sections: nextSections,
+        ...(draggedType === "slicers" ? { defaultSlicerOrientation: "horizontal" } : {})
+      })
+    });
+  }
+
+  g.sections.forEach((entry, gi) => {
+    if (entry.type !== "charts") return;
+    const { startRow, count } = entry.group;
+    const groupRaw = rawIndex[gi];
+    for (let r = 1; r < count; r++) {
+      const y = (g.rowTops[startRow + r - 1] + g.rowHeights[startRow + r - 1] + g.rowTops[startRow + r]) / 2;
+      slots.push({
+        kind: "split",
+        y,
+        invalid: false,
+        apply: () => {
+          const orig = sections[groupRaw];
+          const secondRows = orig.rows === null ? null : orig.rows - r;
+          const first = { ...orig, rows: r };
+          // A placeholder id — normalizeTheme()'s dedup pass renames it if
+          // it collides with anything, so there is nothing to get right
+          // here beyond "not the same id as `first`".
+          const second = { ...orig, rows: secondRows, id: `${orig.id}-split` };
+          const list = sections.slice();
+          const [dragged] = list.splice(draggedRaw, 1);
+          const insertAt = groupRaw > draggedRaw ? groupRaw - 1 : groupRaw;
+          list.splice(insertAt, 1, first, dragged, second);
+          return {
+            sections: list,
+            ...(draggedType === "slicers" ? { defaultSlicerOrientation: "horizontal" } : {})
+          };
+        }
+      });
+    }
+  });
+
+  if (draggedType === "slicers") {
+    const zones = [
+      { side: "left", x0: 0, x1: theme.margin + theme.slicerColumnWidth },
+      { side: "right", x0: theme.canvasWidth - theme.margin - theme.slicerColumnWidth, x1: theme.canvasWidth }
+    ];
+    zones.forEach(zone => {
+      slots.push({
+        kind: "gutter",
+        side: zone.side,
+        x0: zone.x0,
+        x1: zone.x1,
+        y: theme.canvasHeight / 2,
+        invalid: originalOrientation === "vertical" && originalSide === zone.side,
+        // The slicers section itself never moves in the array — dragging
+        // it back out of the column is what stays lossless.
+        apply: () => ({ sections, defaultSlicerOrientation: "vertical", slicerSide: zone.side })
+      });
+    });
+  }
+
+  return slots;
+}
+
+// Nearest slot by |cursorY - slot.y|, except a gutter always wins on pure
+// x-containment while dragging the slicers section — the point of a gutter
+// is to be droppable without having to line the cursor up with any
+// particular row.
+function pickSlot(slots, cursorX, cursorY, draggedType) {
+  if (draggedType === "slicers") {
+    const gutter = slots.find(s => s.kind === "gutter" && cursorX >= s.x0 && cursorX <= s.x1);
+    if (gutter) return gutter;
+  }
+  let best = null;
+  let bestDist = Infinity;
+  slots.forEach(s => {
+    if (s.kind === "gutter") return;
+    const d = Math.abs(cursorY - s.y);
+    if (d < bestDist) { bestDist = d; best = s; }
+  });
+  return best;
+}
+
 function startSectionDrag(event, sectionType, sectionId) {
+  if (event.button !== undefined && event.button !== 0) return;
   event.preventDefault();
   event.stopPropagation();
+  try { event.target.setPointerCapture(event.pointerId); } catch { /* not every target supports it */ }
+
+  const stage = root.querySelector("#theme-preview");
+  const stageRect = stage.getBoundingClientRect();
+  const scale = Number(stage.style.getPropertyValue("--preview-scale")) || 1;
+
+  const theme = draft;
+  const g = previewLayout();
+  const sections = draft.sections;
+  const rawIndex = mapPlacedToRaw(sections, g.sections);
+  const draggedGi = g.sections.findIndex(s => s.type === sectionType && s.id === sectionId);
+  if (draggedGi === -1) return;
+  const draggedRaw = rawIndex[draggedGi];
+
+  const slots = buildDropSlots(theme, g, rawIndex, sections, sectionType, draggedRaw);
+
+  const regionEl = event.currentTarget.closest("[data-region]");
+  const regionRect = regionEl.getBoundingClientRect();
+  const offsetX = regionRect.left - event.clientX;
+  const offsetY = regionRect.top - event.clientY;
+
+  const ghost = el("div", "theme-ghost");
+  ghost.style.width = `${regionRect.width}px`;
+  ghost.style.height = `${regionRect.height}px`;
+  ghost.style.left = `${regionRect.left - stageRect.left}px`;
+  ghost.style.top = `${regionRect.top - stageRect.top}px`;
+  stage.appendChild(ghost);
+
+  const line = el("div", "theme-insertion-line theme-insertion-line--h");
+  line.hidden = true;
+  stage.appendChild(line);
+
+  document.body.classList.add("theme-editor-reordering");
+
+  let chosenSlot = null;
+
+  const showLine = slot => {
+    if (!slot || slot.invalid) { line.hidden = true; return; }
+    line.hidden = false;
+    if (slot.kind === "gutter") {
+      line.className = "theme-insertion-line theme-insertion-line--v";
+      const x = slot.side === "right"
+        ? theme.canvasWidth - theme.margin - theme.slicerColumnWidth
+        : theme.margin + theme.slicerColumnWidth;
+      line.style.left = `${x * scale}px`;
+      line.style.top = "0px";
+      line.style.height = `${theme.canvasHeight * scale}px`;
+    } else {
+      line.className = "theme-insertion-line theme-insertion-line--h";
+      line.style.top = `${slot.y * scale}px`;
+      line.style.left = "0px";
+      line.style.width = `${theme.canvasWidth * scale}px`;
+    }
+  };
+
+  const move = e => {
+    ghost.style.left = `${e.clientX + offsetX - stageRect.left}px`;
+    ghost.style.top = `${e.clientY + offsetY - stageRect.top}px`;
+
+    const cursorThemeX = (e.clientX - stageRect.left) / scale;
+    const cursorThemeY = (e.clientY - stageRect.top) / scale;
+    chosenSlot = pickSlot(slots, cursorThemeX, cursorThemeY, sectionType);
+    showLine(chosenSlot);
+  };
+
+  const cleanup = () => {
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", drop);
+    window.removeEventListener("pointercancel", cancel);
+    window.removeEventListener("keydown", onKeydown, true);
+    document.body.classList.remove("theme-editor-reordering");
+    ghost.remove();
+    line.remove();
+  };
+
+  const drop = () => {
+    cleanup();
+    if (!chosenSlot || chosenSlot.invalid) return;   // no-op: nothing to mutate
+    const patch = chosenSlot.apply();
+    draft = normalizeTheme({ ...draft, ...patch });
+    // The preview's own orientation toggle is deliberately independent of
+    // the theme's default (it's how you preview a horizontal theme's
+    // vertical shape without committing to it) — but a drag that changes
+    // the default orientation is the user setting it, same as the toggle
+    // in the controls pane, so the preview should follow it here too.
+    if (patch.defaultSlicerOrientation) preview.orientation = patch.defaultSlicerOrientation;
+    render();
+  };
+
+  const cancel = () => cleanup();   // aborts with zero mutation
+
+  // Capture phase, and stopped from propagating further: the dialog itself
+  // has its own document-level Escape handler that closes the whole editor
+  // (bubble phase, so it would otherwise run *first*, since document sits
+  // between the event's target and window) — a drag's Escape must abort
+  // the drag, not the dialog underneath it.
+  const onKeydown = e => {
+    if (e.key !== "Escape") return;
+    e.preventDefault();
+    e.stopPropagation();
+    cancel();
+  };
+
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", drop);
+  window.addEventListener("pointercancel", cancel);
+  window.addEventListener("keydown", onKeydown, true);
 }
 
 function renderPreview() {
