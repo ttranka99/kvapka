@@ -36,6 +36,8 @@ import {
   importThemes,
   downloadJson
 } from "./themeStore.js";
+import { walkSections } from "../layout/sectionWalker.js";
+import { computeChartGroups } from "../layout/chartGroups.js";
 
 // --- Dialog state ------------------------------------------------------
 
@@ -601,59 +603,53 @@ function renderControls() {
   root.querySelector("#theme-preview-rows").value = String(preview.chartRows);
 }
 
-// Mirrors computeVerticalLayout for a *sample* page: the theme's default
-// number of slicers and KPIs, and however many chart rows the user is
-// previewing. Kept separate from the real solver on purpose — this one shows
-// the rules themselves (whole stripes, minimums, the reserved band), and it
-// must render for a theme that no page is using yet.
-function previewGeometry() {
+// Feeds sectionWalker.js — the same placement code the real canvas solver
+// uses — a *sample* page: the theme's default number of slicers and KPIs,
+// and however many chart rows the user is previewing. This used to be a
+// hand-rolled reimplementation of the solver's band maths; now it's the
+// solver itself, so the preview can never disagree with the canvas about
+// where a boundary falls.
+function previewLayout() {
   const t = draft;
   const vertical = preview.orientation === "vertical";
-  const band2 = band2Info(t);
-  const bandOn = band2.enabled;
+  const chartRowCount = preview.chartRows;
 
-  const titleY = t.margin;
-  const slicersTop = titleY + t.titleHeight + (vertical ? t.gapKpiToCharts : t.gapSmall);
+  // Every `kpi` section gets at least one sample card, even at
+  // defaultCount 0 (the header band's own default) — the preview exists to
+  // show the band the rules *would* produce, not to vanish because no page
+  // has put anything in it yet.
+  const kpiCardsBySectionId = new Map();
+  t.sections.filter(s => s.type === "kpi").forEach(s => {
+    const count = Math.max(1, s.defaultCount);
+    kpiCardsBySectionId.set(s.id, Array.from({ length: count }, () => ({ height: null })));
+  });
 
-  const contentLeft = vertical ? t.margin + t.slicerColumnWidth + t.gapKpiToCharts : t.margin;
-  const contentWidth = t.canvasWidth - t.margin - contentLeft;
+  const chartsSections = t.sections.filter(s => s.type === "charts");
+  const chartGroups = computeChartGroups(chartsSections, chartRowCount);
 
-  const contentTop = vertical
-    ? titleY + t.titleHeight + t.gapKpiToCharts
-    : slicersTop + t.slicerHeight + t.gapSmall;
+  const g = walkSections(t, {
+    slicerCount: t.defaultSlicersPerRow,
+    slicersPerRow: t.defaultSlicersPerRow,
+    kpisPerRow: t.defaultKpisPerRow,
+    kpiCardsBySectionId,
+    chartRowCount,
+    chartGroups,
+    orientation: vertical ? "vertical" : "horizontal",
+    slicerSide: t.slicerSide,
+    columnWidth: t.slicerColumnWidth,
+    // A flat split across the rows' shared budget — the preview's rows are
+    // sample cells, not real charts with their own locked heights, so there
+    // is nothing for a real solver like computeChartRowHeights to weigh.
+    rowHeightSolver: ({ chartsHeight, chartRowGapCount }) => {
+      const rowHeight = chartRowCount > 0
+        ? (chartsHeight - chartRowGapCount * t.gapSmall) / chartRowCount
+        : 0;
+      return new Array(chartRowCount).fill(rowHeight);
+    }
+  });
 
-  const kpiTop = contentTop;
-  const chartsTop = kpiTop + t.kpiMinHeight + (vertical ? t.gapSmall : t.gapKpiToCharts);
-  const chartsBottom = t.canvasHeight - t.margin;
-
-  const rowCount = preview.chartRows;
-  const afterRow = Math.min(band2.afterRow, rowCount - 1);
-
-  // Same rule as computeVerticalLayout: between two rows the band replaces
-  // the small gap already at that boundary, so only the difference is taken
-  // out of the rows' height budget.
-  const bandReserved = !bandOn
-    ? 0
-    : afterRow < rowCount - 1
-      ? t.kpiMinHeight + 2 * t.gapKpiToCharts - t.gapSmall
-      : t.kpiMinHeight + t.gapKpiToCharts;
-
-  const chartsHeight = chartsBottom - chartsTop - bandReserved;
-  const rowHeight = (chartsHeight - (rowCount - 1) * t.gapSmall) / rowCount;
-
-  const bandTop = bandOn
-    ? chartsTop + (afterRow + 1) * rowHeight + afterRow * t.gapSmall + t.gapKpiToCharts
-    : null;
-
-  return {
-    vertical, titleY, slicersTop, contentLeft, contentWidth,
-    kpiTop, chartsTop, chartsBottom, chartsHeight,
-    rowCount, rowHeight, afterRow, bandTop, bandReserved,
-    bandDefaultCount: band2.defaultCount,
-    slicerColumnTop: slicersTop,
-    slicerColumnHeight: chartsBottom - slicersTop,
-    tooSmall: rowHeight < t.hardMinChartHeight
-  };
+  const tooSmall = g.rowHeights.some(h => h < t.hardMinChartHeight);
+  return { ...g, vertical, rowCount: chartRowCount, tooSmall };
 }
 
 function renderPreview() {
@@ -670,7 +666,7 @@ function renderPreview() {
   stage.style.height = `${t.canvasHeight * scale}px`;
   stage.style.setProperty("--preview-scale", String(scale));
 
-  const g = previewGeometry();
+  const g = previewLayout();
   const px = v => `${v * scale}px`;
 
   // The usable-area outline — context only, no region of its own: it marks
@@ -710,7 +706,7 @@ function renderPreview() {
 
   // Header
   const title = region("title", "theme-region theme-region--title", {
-    left: t.margin, top: g.titleY, width: usableWidth(t), height: t.titleHeight
+    left: t.margin, top: g.TITLE_Y, width: usableWidth(t), height: t.titleHeight
   }, px);
   title.appendChild(tag(`Hlavička · ${t.titleHeight} px`));
   title.appendChild(dragHandle("titleHeight", "y", 1, scale));
@@ -719,7 +715,7 @@ function renderPreview() {
   // Slicers — a whole stripe, not one card.
   if (g.vertical) {
     const column = region("slicer-column", "theme-region theme-region--slicer", {
-      left: t.margin, top: g.slicerColumnTop,
+      left: g.slicerColumnLeft, top: g.slicerColumnTop,
       width: t.slicerColumnWidth, height: g.slicerColumnHeight
     }, px);
     column.appendChild(tag(
@@ -744,27 +740,38 @@ function renderPreview() {
     stage.appendChild(stripe);
   }
 
-  // KPI band under the header
-  const kpi = region("kpi", "theme-region theme-region--kpi", {
-    left: g.contentLeft, top: g.kpiTop, width: g.contentWidth, height: t.kpiMinHeight
-  }, px);
-  kpi.appendChild(tag(
-    `KPI · ${t.defaultKpisPerRow}× ${cellWidth(g.contentWidth, t.defaultKpisPerRow, t.gapSmall)} px · výška ${t.kpiMinHeight} px`
-  ));
-  stackCells(kpi, t.defaultKpisPerRow, t.gapSmall * scale, "row");
-  kpi.appendChild(dragHandle("kpiMinHeight", "y", 1, scale));
-  stage.appendChild(kpi);
+  // KPI bands — the walker's `placed` list gives every kpi section actually
+  // showing (thanks to previewLayout()'s at-least-one-sample-card seeding,
+  // that's every kpi section the theme defines) its real top/height, so
+  // there is nothing left to recompute here. The header band is the first
+  // of them; the classic "second" band, if the theme has one, is the second.
+  const kpiEntries = g.sections.filter(s => s.type === "kpi");
+  const headerKpi = kpiEntries[0] || null;
+  const band2Kpi = kpiEntries[1] || null;
 
-  // Chart rows, with the middle band carved out between two of them
+  if (headerKpi) {
+    const kpi = region("kpi", "theme-region theme-region--kpi", {
+      left: g.contentLeft, top: headerKpi.top, width: g.contentWidth, height: headerKpi.height
+    }, px);
+    kpi.appendChild(tag(
+      `KPI · ${t.defaultKpisPerRow}× ${cellWidth(g.contentWidth, t.defaultKpisPerRow, t.gapSmall)} px · výška ${t.kpiMinHeight} px`
+    ));
+    stackCells(kpi, t.defaultKpisPerRow, t.gapSmall * scale, "row");
+    kpi.appendChild(dragHandle("kpiMinHeight", "y", 1, scale));
+    stage.appendChild(kpi);
+  }
+
+  // Chart rows — g.rowTops/g.rowHeights already account for a middle band
+  // carving space out between two of them, exactly as the real canvas does.
   for (let i = 0; i < g.rowCount; i++) {
-    const offset = g.bandTop !== null && i > g.afterRow ? g.bandReserved : 0;
-    const top = g.chartsTop + i * (g.rowHeight + t.gapSmall) + offset;
+    const top = g.rowTops[i];
+    const height = g.rowHeights[i];
     const row = region("charts", "theme-region theme-region--chart", {
-      left: g.contentLeft, top, width: g.contentWidth, height: g.rowHeight
+      left: g.contentLeft, top, width: g.contentWidth, height
     }, px);
     if (i === 0) {
       row.appendChild(tag(
-        `Grafy · řada ${Math.round(g.rowHeight)} px (min ${t.minChartRowHeight}) · min šířka ${t.minChartWidth} px`
+        `Grafy · řada ${Math.round(height)} px (min ${t.minChartRowHeight}) · min šířka ${t.minChartWidth} px`
       ));
     }
     if (g.tooSmall) row.classList.add("is-too-small");
@@ -772,14 +779,15 @@ function renderPreview() {
     stage.appendChild(row);
   }
 
-  if (g.bandTop !== null) {
+  if (band2Kpi) {
+    const afterRow = band2Info(t).afterRow;
     const band = region("kpi-band2", "theme-region theme-region--kpi theme-region--band2", {
-      left: g.contentLeft, top: g.bandTop, width: g.contentWidth, height: t.kpiMinHeight
+      left: g.contentLeft, top: band2Kpi.top, width: g.contentWidth, height: band2Kpi.height
     }, px);
     band.appendChild(tag(
-      `Druhý pás KPI · ${g.bandDefaultCount}× ${cellWidth(g.contentWidth, g.bandDefaultCount, t.gapSmall)} px · pod ${g.afterRow + 1}. řadou`
+      `Druhý pás KPI · ${band2Kpi.defaultCount}× ${cellWidth(g.contentWidth, band2Kpi.defaultCount, t.gapSmall)} px · pod ${afterRow + 1}. řadou`
     ));
-    stackCells(band, g.bandDefaultCount, t.gapSmall * scale, "row");
+    stackCells(band, band2Kpi.defaultCount, t.gapSmall * scale, "row");
     stage.appendChild(band);
   }
 
@@ -888,14 +896,14 @@ function dragHandle(fieldKey, axis, sign, scale, side) {
 
 function renderReadout() {
   const t = draft;
-  const g = previewGeometry();
+  const g = previewLayout();
   const readout = root.querySelector(".theme-stage__readout");
   readout.innerHTML = "";
 
   const stats = [
     ["Plátno", `${t.canvasWidth} × ${t.canvasHeight}`],
     ["Použitelná plocha", `${usableWidth(t)} × ${usableHeight(t)}`],
-    ["Výška řady grafů", `${Math.max(0, Math.round(g.rowHeight))} px`],
+    ["Výška řady grafů", `${Math.max(0, Math.round(g.rowHeights[0] ?? 0))} px`],
     ["Šířka obsahu", `${g.contentWidth} px`],
     ["Krok mřížky", `${t.step} px`]
   ];

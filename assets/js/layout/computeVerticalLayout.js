@@ -1,334 +1,41 @@
 import * as state from "../state/state.js";
 import { computeChartGroups } from "./chartGroups.js";
 import { computeChartRowHeights } from "./computeChartRowHeights.js";
+import { walkSections, contentBoxFor as contentBoxForTheme } from "./sectionWalker.js";
 
-// The KPI/chart content box left by a vertical slicer column of the given
-// width, on the given side. Pure — reads no state past `columnWidth`/`side`
-// themselves — so both computeVerticalLayout() (for the live column width)
-// and slicerColumnResizeEvents.js (for a width not yet committed, mid-drag)
-// can share one formula instead of two that could drift apart.
+// Thin wrapper kept at its old signature — slicerColumnResizeEvents.js calls
+// this with a width not yet committed, mid-drag, so it needs the box for a
+// hypothetical column width without touching state.SLICER_COLUMN_WIDTH.
 export function contentBoxFor(columnWidth, side) {
-  const right = side === "right";
-  const contentLeft = right ? state.MARGIN : state.MARGIN + columnWidth + state.GAP_KPI_TO_CHARTS;
-  const contentWidth = state.CANVAS_WIDTH - state.MARGIN - contentLeft
-    - (right ? columnWidth + state.GAP_KPI_TO_CHARTS : 0);
-  return { contentLeft, contentWidth };
+  return contentBoxForTheme(state.activeTheme, columnWidth, side);
 }
 
-// The gap immediately above stack index `i` (i >= 1) of an *effective*
-// stack — one that's already dropped every section occupying no space, so
-// "does a charts section sit above this boundary" and "is this boundary
-// directly before a charts section" both read straight off it.
-//
-//   1. any charts section strictly above the boundary -> the wide block gap
-//      (once charts have started, everything below reads as one region);
-//   2. a vertical slicer column only widens the very first boundary (title
-//      to content) to the block gap — everything else inside that one
-//      visual block stays tight;
-//   3. otherwise: tight, unless the section starting here IS a charts group
-//      (the KPI-to-charts gap the horizontal layout has always used).
-//
-// An explicit gapBefore ("small"/"block") on the section overrides all of
-// this outright.
-function boundaryGap(stack, i, vertical) {
-  const entry = stack[i];
-  if (entry.gapBefore === "small") return state.GAP_SMALL;
-  if (entry.gapBefore === "block") return state.GAP_KPI_TO_CHARTS;
-
-  const chartsAbove = stack.slice(0, i).some(s => s.type === "charts");
-  if (chartsAbove) return state.GAP_KPI_TO_CHARTS;
-  if (vertical) return i === 1 ? state.GAP_KPI_TO_CHARTS : state.GAP_SMALL;
-  return entry.type === "charts" ? state.GAP_KPI_TO_CHARTS : state.GAP_SMALL;
-}
-
-// A KPI band's height: normally split across two rows capped at
-// MAX_KPIS/SECOND_ROW_MAX_ITEMS (the header band always has), or kept to a
-// single row when the section says otherwise (the classic "second" band,
-// which exists purely to interrupt the chart area and so never grows a
-// second row of its own).
-function measureKpiHeight(cards, allowSecondRow) {
-  if (cards.length === 0) return 0;
-  if (!allowSecondRow) {
-    return Math.max(...cards.map(k => k.height ?? state.KPI_MIN_HEIGHT));
-  }
-  const row1 = cards.slice(0, state.MAX_KPIS);
-  const row2 = cards.length > state.MAX_KPIS
-    ? cards.slice(state.MAX_KPIS, state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS)
-    : [];
-  const row1Height = row1.length ? Math.max(...row1.map(k => k.height ?? state.KPI_MIN_HEIGHT)) : 0;
-  const row2Height = row2.length ? Math.max(...row2.map(k => k.height ?? state.KPI_MIN_HEIGHT)) : 0;
-  return row1Height + (row2Height > 0 ? state.GAP_SMALL + row2Height : 0);
-}
-
-// Walks a slice of `sections`, dropping the ones that occupy no space and
-// attaching each survivor's measured height (or, for a charts section, the
-// row group it claimed). `kpiInfoBySectionId` and `chartGroupBySectionId`
-// are computed once up front in computeVerticalLayout() and passed in so
-// every ordinal/row assignment stays consistent between the two slices
-// (title/slicers/kpi-1, and the chart region) this function is called on.
-function buildEffectiveStack(sectionsSlice, ctx) {
-  const { vertical, slicers, hasRow2, kpiInfoBySectionId, chartGroupBySectionId } = ctx;
-  const out = [];
-  sectionsSlice.forEach(s => {
-    if (s.type === "title") {
-      out.push({ ...s, height: state.TITLE_HEIGHT });
-      return;
-    }
-    if (s.type === "slicers") {
-      if (vertical || slicers.length === 0) return;
-      const height = hasRow2 ? state.SLICER_HEIGHT * 2 + state.GAP_SMALL : state.SLICER_HEIGHT;
-      out.push({ ...s, height });
-      return;
-    }
-    if (s.type === "kpi") {
-      const info = kpiInfoBySectionId.get(s.id);
-      const cards = info ? info.cards : [];
-      if (cards.length === 0) return;
-      out.push({ ...s, height: measureKpiHeight(cards, s.allowSecondRow), cards });
-      return;
-    }
-    if (s.type === "charts") {
-      const group = chartGroupBySectionId.get(s.id);
-      if (!group || group.count === 0) return;
-      out.push({ ...s, group });
-    }
-  });
-  return out;
-}
-
-// Places an already-built effective stack starting at `startY`, applying
-// boundaryGap() between consecutive entries. Charts entries are expanded
-// into their rows (using the already-solved `rowHeights`) and write into
-// `rowTops`; every other entry just occupies its measured height.
-function placeStack(effectiveStack, startY, vertical, rowHeights, rowTops) {
-  let y = startY;
-  const placed = [];
-  effectiveStack.forEach((entry, i) => {
-    if (i > 0) y += boundaryGap(effectiveStack, i, vertical);
-    const top = y;
-    let height;
-    if (entry.type === "charts") {
-      const { startRow, count } = entry.group;
-      let rowY = top;
-      for (let r = 0; r < count; r++) {
-        const rowIndex = startRow + r;
-        rowTops[rowIndex] = rowY;
-        rowY += rowHeights[rowIndex] + (r < count - 1 ? state.GAP_SMALL : 0);
-      }
-      height = rowY - top;
-    } else {
-      height = entry.height;
-    }
-    y = top + height;
-    placed.push({ ...entry, top, bottom: y, height });
-  });
-  return { placed, endY: y };
-}
-
+// Feeds sectionWalker.js the live state and keeps emitting exactly the
+// fields it emitted before the walk was extracted — every solver and
+// renderer downstream reads this shape as-is.
 export function computeVerticalLayout() {
   const slicers = state.getSlicers();
   const chartRows = state.getChartRows();
-
   const vertical = state.isVerticalSlicers();
   const sections = state.activeTheme.sections;
 
-  // TITLE
-  const TITLE_Y = state.MARGIN;
-
-  // SLICERS
-  //
-  // Horizontal: a full-width band under the title that pushes the KPI/chart
-  // content down. Vertical: a fixed-width column down the left side that
-  // takes width from that content instead, and consumes no vertical band at
-  // all — so every band below is computed exactly as it would be with no
-  // slicers present. These stay their own small formula rather than being
-  // read off the walk below: the column sits *beside* the stack, never
-  // inside it.
-  const slicersTop = vertical
-    // 30px (20px on HD) below the title, per the vertical spec — not the
-    // tighter GAP_SMALL the horizontal band sits at.
-    ? TITLE_Y + state.TITLE_HEIGHT + state.GAP_KPI_TO_CHARTS
-    : TITLE_Y + state.TITLE_HEIGHT + state.GAP_SMALL;
-
-  const hasRow2 = !vertical && slicers.length > state.MAX_SLICERS;
-
-  const slicersBottom = vertical || slicers.length === 0
-    ? slicersTop
-    : hasRow2
-      ? slicersTop + state.SLICER_HEIGHT * 2 + state.GAP_SMALL
-      : slicersTop + state.SLICER_HEIGHT;
-
-  // The slicer column reserves width only while slicers actually exist —
-  // otherwise an empty page would permanently lose ~320px of canvas to a
-  // column with nothing in it.
-  const hasColumn = vertical && slicers.length > 0;
-  const slicerColumnTop = slicersTop;
-  const slicerColumnBottom = state.CANVAS_HEIGHT - state.MARGIN;
-  const slicerColumnHeight = slicerColumnBottom - slicerColumnTop;
-
-  // The box the KPIs and charts lay out inside. In horizontal mode this is
-  // just the full usable width at the standard margin; in vertical mode it
-  // sits beside the slicer column, on whichever side that column isn't.
-  // Every KPI/chart solver reads these two instead of state.MARGIN /
-  // state.USABLE_WIDTH so neither mode (nor either side) needs a special
-  // case of its own.
-  const { contentLeft, contentWidth } = hasColumn
-    ? contentBoxFor(state.SLICER_COLUMN_WIDTH, state.SLICER_SIDE)
-    : { contentLeft: state.MARGIN, contentWidth: state.CANVAS_WIDTH - 2 * state.MARGIN };
-
-  // Where the column itself starts, independent of whether it's showing —
-  // read by the renderer and the column resize handle so neither has to
-  // re-derive "left or right" from SLICER_SIDE on their own.
-  const slicerColumnLeft = state.SLICER_SIDE === "right"
-    ? state.CANVAS_WIDTH - state.MARGIN - state.SLICER_COLUMN_WIDTH
-    : state.MARGIN;
-
-  // --- shared bookkeeping ---------------------------------------------
-  //
-  // Every `kpi` section's cards live in state.kpiBands, keyed by the
-  // section's own id — however many bands a theme defines, each is read the
-  // same way. Computed once, up front, so both the prefix (title/slicers/
-  // header KPI) and interior (chart region) walks below agree on it
-  // regardless of which slice of `sections` they each see.
-  const kpiInfoBySectionId = new Map();
-  {
-    let ord = 0;
-    sections.forEach(s => {
-      if (s.type !== "kpi") return;
-      kpiInfoBySectionId.set(s.id, { cards: state.getKpiBand(s.id), ordinal: ord });
-      ord++;
-    });
-  }
+  const kpiCardsBySectionId = new Map(
+    sections.filter(s => s.type === "kpi").map(s => [s.id, state.getKpiBand(s.id)])
+  );
 
   const chartsSections = sections.filter(s => s.type === "charts");
   const chartGroups = computeChartGroups(chartsSections, chartRows.length);
-  const chartGroupBySectionId = new Map(chartGroups.map(g => [g.sectionId, g]));
 
-  const ctx = { vertical, slicers, hasRow2, kpiInfoBySectionId, chartGroupBySectionId };
-
-  // The stack splits cleanly in two at the first charts section (there's
-  // always at least one — normalizeSections() guarantees it): everything
-  // above it is the title/slicers/header-KPI prefix, unaffected by anything
-  // that happens inside the chart region; everything from it on is the
-  // region itself, which the row solver and any KPI bands interrupting it
-  // (the "second" band) share.
-  const firstChartsIndex = sections.findIndex(s => s.type === "charts");
-  const prefixSections = sections.slice(0, firstChartsIndex);
-  const interiorSections = sections.slice(firstChartsIndex);
-
-  const prefixEffective = buildEffectiveStack(prefixSections, ctx);
-  const { placed: placedPrefix, endY: prefixEnd } = placeStack(
-    prefixEffective, state.MARGIN, vertical, [], []
-  );
-
-  // kpiTop/kpiBottom describe the header KPI band's nominal position and
-  // are kept as their own formula rather than read off
-  // `sectionById["kpi-1"]`: the legacy contract gives them a value even
-  // when the header band's cards are empty and the section was dropped from
-  // the prefix entirely (nothing renders there, but downstream code still
-  // reads kpiTop as "where the header band would start"). When the section
-  // *is* active the two agree by construction — both apply the same
-  // boundary-gap rule to the same position.
-  const contentTop = vertical
-    ? TITLE_Y + state.TITLE_HEIGHT + state.GAP_KPI_TO_CHARTS
-    : slicers.length === 0
-      ? TITLE_Y + state.TITLE_HEIGHT + state.GAP_SMALL
-      : slicersBottom + state.GAP_SMALL;
-  const kpiTop = contentTop;
-  const firstKpiSection = sections.find(s => s.type === "kpi");
-  const kpis = firstKpiSection ? state.getKpiBand(firstKpiSection.id) : [];
-  const kpiRow1 = kpis.slice(0, state.MAX_KPIS);
-  const kpiRow2 = kpis.length > state.MAX_KPIS
-    ? kpis.slice(state.MAX_KPIS, state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS)
-    : [];
-  const row1Height = kpiRow1.length
-    ? Math.max(...kpiRow1.map(k => k.height ?? state.KPI_MIN_HEIGHT))
-    : 0;
-  const row2Height = kpiRow2.length
-    ? Math.max(...kpiRow2.map(k => k.height ?? state.KPI_MIN_HEIGHT))
-    : 0;
-  const kpiTotalHeight = row1Height + (row2Height > 0 ? state.GAP_SMALL + row2Height : 0);
-  const kpiBottom = kpis.length > 0 ? kpiTop + kpiTotalHeight : kpiTop;
-
-  // The boundary between the prefix and the chart region uses the same
-  // gap rule as any other, evaluated as though the first charts section
-  // (present or not — it may yet claim zero rows) sat right after the
-  // prefix. This is what keeps chartsTop meaningful even when nothing
-  // actually renders there (chartRows.length === 0): exactly the position
-  // a chart row would start at, matching the legacy formula, which never
-  // depended on the row count either.
-  const firstInteriorSection = interiorSections[0];
-  const gapToInterior = boundaryGap(
-    [...prefixEffective, { ...firstInteriorSection, type: "charts" }],
-    prefixEffective.length,
-    vertical
-  );
-  const chartsTop = prefixEnd + gapToInterior;
-  const chartsBottom = state.CANVAS_HEIGHT - state.MARGIN;
-
-  const interiorEffective = buildEffectiveStack(interiorSections, ctx);
-
-  let interiorFixed = 0;
-  let interiorGaps = 0;
-  let activeChartGroupCount = 0;
-  interiorEffective.forEach((entry, i) => {
-    if (i > 0) interiorGaps += boundaryGap(interiorEffective, i, vertical);
-    if (entry.type === "charts") activeChartGroupCount++;
-    else interiorFixed += entry.height;
-  });
-
-  // The rows' shared budget: everything left in the chart region once its
-  // own fixed content (any KPI sections actually present in the walk — a
-  // second, third, ... band interrupting the charts is an ordinary stack
-  // entry here, exactly like the header band above) and the gaps around it
-  // are taken out. chartRowGapCount only counts the gaps *within* a chart
-  // group — the gaps between groups are already in interiorGaps above —
-  // which is exactly why computeChartRowHeights needs it instead of
-  // assuming every row is n-1 gaps apart.
-  const chartsHeightBudget = chartsBottom - chartsTop - interiorFixed - interiorGaps;
-  const chartRowGapCount = chartRows.length - activeChartGroupCount;
-
-  const rowHeights = computeChartRowHeights({
-    chartsHeight: chartsHeightBudget,
-    chartRowGapCount
-  });
-
-  const rowTops = new Array(chartRows.length).fill(0);
-  const { placed: placedInterior } = placeStack(
-    interiorEffective, chartsTop, vertical, rowHeights, rowTops
-  );
-
-  const placed = placedPrefix.concat(placedInterior);
-  const sectionById = Object.fromEntries(placed.filter(s => s.id).map(s => [s.id, s]));
-
-  const chartsHeight = chartsBottom - chartsTop - interiorFixed - interiorGaps;
-
-  return {
-    TITLE_Y,
-    slicersTop,
-    slicersBottom,
-    slicerColumnTop,
-    slicerColumnBottom,
-    slicerColumnHeight,
-    slicerColumnWidth: state.SLICER_COLUMN_WIDTH,
-    slicerColumnLeft,
-    slicerSide: state.SLICER_SIDE,
-    hasColumn,
-    contentLeft,
-    contentWidth,
-    kpiTop,
-    kpiBottom,
-    chartsTop,
-    chartsBottom,
-    chartsHeight,
-    hasRow2,
-
-    // New in the section-walk rewrite.
-    sections: placed,
-    sectionById,
-    rowTops,
-    rowHeights,
+  return walkSections(state.activeTheme, {
+    slicerCount: slicers.length,
+    slicersPerRow: state.MAX_SLICERS,
+    kpisPerRow: state.MAX_KPIS,
+    kpiCardsBySectionId,
+    chartRowCount: chartRows.length,
     chartGroups,
-    chartRowGapCount
-  };
+    orientation: vertical ? "vertical" : "horizontal",
+    slicerSide: state.SLICER_SIDE,
+    columnWidth: state.SLICER_COLUMN_WIDTH,
+    rowHeightSolver: v => computeChartRowHeights(v)
+  });
 }
