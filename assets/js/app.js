@@ -78,7 +78,12 @@ function syncTemplateControls() {
 
 function syncOrientationControls() {
   orientationButtons.forEach(button => {
-    button.classList.toggle("active", button.dataset.orientation === state.slicerOrientation);
+    // "Nahoře" carries no data-side and so matches regardless of it; "Vlevo"
+    // and "Vpravo" both claim data-orientation="vertical", so telling them
+    // apart needs the side too.
+    const matchesOrientation = button.dataset.orientation === state.slicerOrientation;
+    const matchesSide = !button.dataset.side || button.dataset.side === state.SLICER_SIDE;
+    button.classList.toggle("active", matchesOrientation && matchesSide);
   });
 
   // The vertical column is always a single column, so a per-row limit has
@@ -119,12 +124,18 @@ function syncRowLimitControls() {
 function initOrientationControls() {
   orientationButtons.forEach(button => {
     button.addEventListener("click", () => {
-      if (button.dataset.orientation === state.slicerOrientation) return;
+      const orientation = button.dataset.orientation;
+      // Setting a side implies vertical, but "Nahoře" carries no side of its
+      // own — leave whatever side is already set untouched for it, since it
+      // only matters again once the user goes back to a vertical column.
+      const side = button.dataset.side || state.SLICER_SIDE;
+      if (orientation === state.slicerOrientation && side === state.SLICER_SIDE) return;
 
-      state.setSlicerOrientation(button.dataset.orientation);
-      // Switching orientation changes both the width available to the KPIs
-      // and charts and the height available to the slicers, so — as with a
-      // template switch — every locked size could now be invalid.
+      state.setSlicerOrientation(orientation);
+      state.setSlicerSide(side);
+      // Switching orientation or side changes both the width available to
+      // the KPIs and charts and the height available to the slicers, so —
+      // as with a template switch — every locked size could now be invalid.
       state.resetSizingLocks();
       state.setWarnings([]);
       setSelected(null);

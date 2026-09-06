@@ -301,19 +301,25 @@ function buildOrientationControl() {
   row.appendChild(el("span", "theme-field__label", "Výchozí umístění slicerů"));
 
   const group = el("div", "theme-toggle");
-  [["horizontal", "Nahoře"], ["vertical", "Vlevo"]].forEach(([value, text]) => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "theme-toggle__option";
-    b.dataset.orientation = value;
-    b.textContent = text;
-    b.addEventListener("click", () => {
-      draft.defaultSlicerOrientation = value;
-      preview.orientation = value;
-      render();
+  // "Vlevo" and "Vpravo" both set orientation to vertical — only their side
+  // differs — so a side is carried alongside the orientation rather than a
+  // second control of its own; setting one always implies the other.
+  [["horizontal", null, "Nahoře"], ["vertical", "left", "Vlevo"], ["vertical", "right", "Vpravo"]]
+    .forEach(([orientation, side, text]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "theme-toggle__option";
+      b.dataset.orientation = orientation;
+      if (side) b.dataset.side = side;
+      b.textContent = text;
+      b.addEventListener("click", () => {
+        draft.defaultSlicerOrientation = orientation;
+        draft.slicerSide = side || draft.slicerSide;
+        preview.orientation = orientation;
+        render();
+      });
+      group.appendChild(b);
     });
-    group.appendChild(b);
-  });
 
   row.appendChild(group);
   return row;
@@ -576,7 +582,9 @@ function renderControls() {
   });
 
   root.querySelectorAll("[data-orientation]").forEach(b => {
-    b.classList.toggle("is-active", b.dataset.orientation === draft.defaultSlicerOrientation);
+    const matchesOrientation = b.dataset.orientation === draft.defaultSlicerOrientation;
+    const matchesSide = !b.dataset.side || b.dataset.side === draft.slicerSide;
+    b.classList.toggle("is-active", matchesOrientation && matchesSide);
   });
   root.querySelectorAll("[data-preview-orientation]").forEach(b => {
     b.classList.toggle("is-active", b.dataset.previewOrientation === preview.orientation);

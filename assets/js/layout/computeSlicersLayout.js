@@ -149,7 +149,7 @@ function computeSlicerColumn(v) {
         const item = {
             type: "slicer",
             globalIndex: i + 1,
-            x: state.MARGIN,
+            x: v.slicerColumnLeft,
             y,
             width: v.slicerColumnWidth,
             height: heights[i],

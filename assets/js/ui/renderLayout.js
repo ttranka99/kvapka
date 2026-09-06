@@ -717,9 +717,11 @@ export function renderLayout() {
       const firstRect = firstEl.getBoundingClientRect();
       const lastRect = lastEl.getBoundingClientRect();
 
+      const handleX = state.SLICER_SIDE === "right" ? firstRect.left : firstRect.right;
+
       const columnHandle = document.createElement("div");
       columnHandle.className = "chart-resize-handle";
-      columnHandle.style.left = (firstRect.right - canvasRect.left) + "px";
+      columnHandle.style.left = (handleX - canvasRect.left) + "px";
       columnHandle.style.top = (firstRect.top - canvasRect.top) + "px";
       columnHandle.style.height = (lastRect.bottom - firstRect.top) + "px";
 

@@ -63,6 +63,11 @@ export let MAX_SLICERS = activeTheme.defaultSlicersPerRow;
 export let MAX_KPIS = activeTheme.defaultKpisPerRow;
 
 export let slicerOrientation = activeTheme.defaultSlicerOrientation;
+// Which side of the canvas the vertical slicer column stands on. Meaningless
+// while slicers are horizontal, but kept as its own binding (not derived
+// from the theme at read time) for the same reason slicerOrientation is: a
+// page can carry it across a theme switch via options.keepOrientation.
+export let SLICER_SIDE = activeTheme.slicerSide;
 
 export let slicers = [];
 // KPI cards, keyed by the id of the `kpi` section (in theme.sections) they
@@ -93,6 +98,10 @@ export function setSlicerOrientation(v) {
 }
 
 export function isVerticalSlicers() { return slicerOrientation === "vertical"; }
+
+export function setSlicerSide(v) {
+  SLICER_SIDE = v === "right" ? "right" : "left";
+}
 
 export function setSlicerColumnWidth(v) {
   SLICER_COLUMN_WIDTH = Math.min(
@@ -169,6 +178,7 @@ export function applyTheme(theme, options = {}) {
 
   if (!options.keepOrientation) {
     setSlicerOrientation(t.defaultSlicerOrientation);
+    setSlicerSide(t.slicerSide);
   }
 
   kpiBands = reconcileKpiBands(oldSections, t.sections, oldKpiBands, options.keepEmptyBands);

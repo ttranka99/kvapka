@@ -31,15 +31,17 @@ export function captureSnapshot() {
     maxKpis: state.MAX_KPIS,
     slicerOrientation: state.slicerOrientation,
     slicerColumnWidth: state.SLICER_COLUMN_WIDTH,
+    slicerSide: state.SLICER_SIDE,
   };
 }
 
 export function loadSnapshot(snap) {
-  // applyTheme resets the column width, the per-row limits and the slicer
-  // orientation to the theme's defaults, so the page's own values have to be
-  // restored after it, not before.
+  // applyTheme resets the column width, the per-row limits, the slicer side
+  // and the slicer orientation to the theme's defaults, so the page's own
+  // values have to be restored after it, not before.
   state.applyTheme(snap.theme ?? getTheme(snap.activeTemplate) ?? normalizeTheme({}));
   state.setSlicerOrientation(snap.slicerOrientation);
+  state.setSlicerSide(snap.slicerSide ?? "left");
   state.setSlicerColumnWidth(snap.slicerColumnWidth);
   state.setMaxSlicers(snap.maxSlicers);
   state.setMaxKpis(snap.maxKpis);

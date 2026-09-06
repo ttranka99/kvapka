@@ -1,5 +1,5 @@
 import * as state from "../state/state.js";
-import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
+import { computeVerticalLayout, contentBoxFor } from "../layout/computeVerticalLayout.js";
 import { snapToStep } from "../layout/sizeStep.js";
 import { addWarning } from "../ui/warnings.js";
 import { refreshSelectedSlicerAfterEdit } from "./slicerEvents.js";
@@ -62,13 +62,6 @@ function contentFits(contentWidth) {
   return true;
 }
 
-// The content box that `columnWidth` would leave — same formula as
-// computeVerticalLayout, evaluated for a width not yet committed to state.
-function contentWidthFor(columnWidth) {
-  const contentLeft = state.MARGIN + columnWidth + state.GAP_KPI_TO_CHARTS;
-  return state.CANVAS_WIDTH - state.MARGIN - contentLeft;
-}
-
 function finishResize() {
   if (!activeResize) return;
 
@@ -94,7 +87,12 @@ function finishResize() {
 function handlePointerMove(event) {
   if (!activeResize) return;
 
-  const delta = Math.round((event.clientX - activeResize.startX) / state.EFFECTIVE_SCALE);
+  // The handle sits on the column's outer edge — its rightmost edge on the
+  // left, its leftmost on the right — so a rightward drag grows the column
+  // on the left but shrinks it on the right. Flipping the delta's sign here
+  // is the only side-awareness this function needs.
+  const dir = state.SLICER_SIDE === "right" ? -1 : 1;
+  const delta = dir * Math.round((event.clientX - activeResize.startX) / state.EFFECTIVE_SCALE);
   let width = snapToStep(activeResize.startWidth + delta);
   width = Math.min(
     state.MAX_SLICER_COLUMN_WIDTH,
@@ -105,7 +103,7 @@ function handlePointerMove(event) {
 
   // Shrinking always frees space, so only growth can be refused. Flag it so
   // a single warning is raised when the drag ends rather than one per tick.
-  if (width > state.SLICER_COLUMN_WIDTH && !contentFits(contentWidthFor(width))) {
+  if (width > state.SLICER_COLUMN_WIDTH && !contentFits(contentBoxFor(width, state.SLICER_SIDE).contentWidth)) {
     activeResize.blocked = true;
     return;
   }

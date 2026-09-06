@@ -2,6 +2,19 @@ import * as state from "../state/state.js";
 import { computeChartGroups } from "./chartGroups.js";
 import { computeChartRowHeights } from "./computeChartRowHeights.js";
 
+// The KPI/chart content box left by a vertical slicer column of the given
+// width, on the given side. Pure — reads no state past `columnWidth`/`side`
+// themselves — so both computeVerticalLayout() (for the live column width)
+// and slicerColumnResizeEvents.js (for a width not yet committed, mid-drag)
+// can share one formula instead of two that could drift apart.
+export function contentBoxFor(columnWidth, side) {
+  const right = side === "right";
+  const contentLeft = right ? state.MARGIN : state.MARGIN + columnWidth + state.GAP_KPI_TO_CHARTS;
+  const contentWidth = state.CANVAS_WIDTH - state.MARGIN - contentLeft
+    - (right ? columnWidth + state.GAP_KPI_TO_CHARTS : 0);
+  return { contentLeft, contentWidth };
+}
+
 // The gap immediately above stack index `i` (i >= 1) of an *effective*
 // stack — one that's already dropped every section occupying no space, so
 // "does a charts section sit above this boundary" and "is this boundary
@@ -155,13 +168,20 @@ export function computeVerticalLayout() {
 
   // The box the KPIs and charts lay out inside. In horizontal mode this is
   // just the full usable width at the standard margin; in vertical mode it
-  // starts to the right of the slicer column. Every KPI/chart solver reads
-  // these two instead of state.MARGIN / state.USABLE_WIDTH so neither mode
-  // needs a special case of its own.
-  const contentLeft = hasColumn
-    ? state.MARGIN + state.SLICER_COLUMN_WIDTH + state.GAP_KPI_TO_CHARTS
+  // sits beside the slicer column, on whichever side that column isn't.
+  // Every KPI/chart solver reads these two instead of state.MARGIN /
+  // state.USABLE_WIDTH so neither mode (nor either side) needs a special
+  // case of its own.
+  const { contentLeft, contentWidth } = hasColumn
+    ? contentBoxFor(state.SLICER_COLUMN_WIDTH, state.SLICER_SIDE)
+    : { contentLeft: state.MARGIN, contentWidth: state.CANVAS_WIDTH - 2 * state.MARGIN };
+
+  // Where the column itself starts, independent of whether it's showing —
+  // read by the renderer and the column resize handle so neither has to
+  // re-derive "left or right" from SLICER_SIDE on their own.
+  const slicerColumnLeft = state.SLICER_SIDE === "right"
+    ? state.CANVAS_WIDTH - state.MARGIN - state.SLICER_COLUMN_WIDTH
     : state.MARGIN;
-  const contentWidth = state.CANVAS_WIDTH - state.MARGIN - contentLeft;
 
   // --- shared bookkeeping ---------------------------------------------
   //
@@ -291,6 +311,8 @@ export function computeVerticalLayout() {
     slicerColumnBottom,
     slicerColumnHeight,
     slicerColumnWidth: state.SLICER_COLUMN_WIDTH,
+    slicerColumnLeft,
+    slicerSide: state.SLICER_SIDE,
     hasColumn,
     contentLeft,
     contentWidth,
