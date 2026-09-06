@@ -638,8 +638,8 @@ function renderControls() {
 // hand-rolled reimplementation of the solver's band maths; now it's the
 // solver itself, so the preview can never disagree with the canvas about
 // where a boundary falls.
-function previewLayout() {
-  const t = draft;
+function previewLayout(themeOverride) {
+  const t = themeOverride || draft;
   const vertical = preview.orientation === "vertical";
   const chartRowCount = preview.chartRows;
 
@@ -925,6 +925,39 @@ function pickSlot(slots, cursorX, cursorY, draggedType, horizontalDominant) {
   return best;
 }
 
+// Writes a projected walkSections() result onto the region nodes already on
+// screen — no innerHTML rebuild, so the CSS transition on .theme-region's
+// top/height is what actually animates the other bands sliding into place.
+// `excludeNode` is the dragged region itself: it tracks the pointer via its
+// own transform (see startSectionDrag) rather than being repositioned here,
+// or the two would fight over where it is.
+function applyProjectedLayout(stage, g, scale, excludeNode) {
+  const px = v => `${v * scale}px`;
+
+  g.sections.filter(s => s.type === "kpi").forEach(entry => {
+    const node = stage.querySelector(`.theme-region--kpi[data-section-id="${entry.id}"]`);
+    if (!node || node === excludeNode) return;
+    node.style.top = px(entry.top);
+    node.style.height = px(entry.height);
+  });
+
+  const slicerNode = stage.querySelector('[data-region="slicer"]');
+  if (slicerNode && slicerNode !== excludeNode) {
+    const slicerEntry = g.sections.find(s => s.type === "slicers");
+    if (slicerEntry) {
+      slicerNode.style.top = px(slicerEntry.top);
+      slicerNode.style.height = px(slicerEntry.height);
+    }
+  }
+
+  const chartNodes = [...stage.querySelectorAll('[data-region="charts"]')];
+  chartNodes.forEach((node, i) => {
+    if (node === excludeNode || g.rowTops[i] === undefined) return;
+    node.style.top = px(g.rowTops[i]);
+    node.style.height = px(g.rowHeights[i]);
+  });
+}
+
 function startSectionDrag(event, sectionType, sectionId) {
   if (event.button !== undefined && event.button !== 0) return;
   event.preventDefault();
@@ -951,70 +984,114 @@ function startSectionDrag(event, sectionType, sectionId) {
 
   const regionEl = event.currentTarget.closest("[data-region]");
   const regionRect = regionEl.getBoundingClientRect();
-  const offsetX = regionRect.left - event.clientX;
-  const offsetY = regionRect.top - event.clientY;
-
-  const ghost = el("div", "theme-ghost");
-  ghost.style.width = `${regionRect.width}px`;
-  ghost.style.height = `${regionRect.height}px`;
-  ghost.style.left = `${regionRect.left - stageRect.left}px`;
-  ghost.style.top = `${regionRect.top - stageRect.top}px`;
-  stage.appendChild(ghost);
-
-  const line = el("div", "theme-insertion-line theme-insertion-line--h");
-  line.hidden = true;
-  stage.appendChild(line);
-
-  document.body.classList.add("theme-editor-reordering");
-
-  let chosenSlot = null;
-
-  const showLine = slot => {
-    if (!slot || slot.invalid) { line.hidden = true; return; }
-    line.hidden = false;
-    if (slot.kind === "gutter") {
-      line.className = "theme-insertion-line theme-insertion-line--v";
-      const x = slot.side === "right"
-        ? theme.canvasWidth - theme.margin - theme.slicerColumnWidth
-        : theme.margin + theme.slicerColumnWidth;
-      line.style.left = `${x * scale}px`;
-      line.style.top = "0px";
-      line.style.height = `${theme.canvasHeight * scale}px`;
-    } else {
-      line.className = "theme-insertion-line theme-insertion-line--h";
-      line.style.top = `${slot.y * scale}px`;
-      line.style.left = "0px";
-      line.style.width = `${theme.canvasWidth * scale}px`;
-    }
-  };
-
   const startClientX = event.clientX;
   const startClientY = event.clientY;
 
-  const move = e => {
-    ghost.style.left = `${e.clientX + offsetX - stageRect.left}px`;
-    ghost.style.top = `${e.clientY + offsetY - stageRect.top}px`;
+  // Live displacement is only meaningful within the horizontal stack —
+  // a docked (vertical) column has no stack of siblings to shift, and
+  // switching orientation mid-drag would mean rebuilding region nodes of a
+  // different kind entirely (a column vs a stripe), not just moving them.
+  // That drag still lifts and follows the cursor; it just previews as a
+  // gutter dock or a plain (unanimated) reorder rather than a live shuffle.
+  const liveProjectionEnabled = !g.vertical;
+
+  const line = el("div", "theme-insertion-line theme-insertion-line--v");
+  line.hidden = true;
+  stage.appendChild(line);
+
+  regionEl.classList.add("theme-region--dragging");
+  document.body.classList.add("theme-editor-reordering");
+
+  let chosenSlot = null;
+  let projectedSlot = null;   // the slot the live layout currently reflects
+  let rafId = null;
+  let latestEvent = null;
+
+  const showGutterLine = slot => {
+    if (!slot || slot.invalid || slot.kind !== "gutter") { line.hidden = true; return; }
+    line.hidden = false;
+    const x = slot.side === "right"
+      ? theme.canvasWidth - theme.margin - theme.slicerColumnWidth
+      : theme.margin + theme.slicerColumnWidth;
+    line.style.left = `${x * scale}px`;
+    line.style.top = "0px";
+    line.style.height = `${theme.canvasHeight * scale}px`;
+  };
+
+  // Applies (or clears) the live-shuffled layout for `slot`, skipping the
+  // work entirely when the nearest slot hasn't changed since the last
+  // frame — walkSections() is cheap, but there is no reason to re-run it
+  // and rewrite a dozen inline styles every frame the pointer sits still.
+  const applyProjectionFor = slot => {
+    if (slot === projectedSlot) return;
+    projectedSlot = slot;
+
+    if (!liveProjectionEnabled) return;
+
+    if (!slot || slot.invalid || slot.kind === "gutter") {
+      applyProjectedLayout(stage, g, scale, regionEl);   // back to the original layout
+      return;
+    }
+
+    const patch = slot.apply();
+    const projectedTheme = {
+      ...theme,
+      sections: patch.sections || theme.sections,
+      defaultSlicerOrientation: patch.defaultSlicerOrientation || theme.defaultSlicerOrientation,
+      slicerSide: patch.slicerSide || theme.slicerSide
+    };
+    applyProjectedLayout(stage, previewLayout(projectedTheme), scale, regionEl);
+  };
+
+  const processFrame = () => {
+    rafId = null;
+    if (!latestEvent) return;
+    const e = latestEvent;
+
+    const dx = e.clientX - startClientX;
+    const dy = e.clientY - startClientY;
+    // No transition on this — it has to track the pointer 1:1, every frame,
+    // or lifting the band stops feeling like holding it.
+    regionEl.style.transform = `translate(${dx}px, ${dy}px) scale(1.03)`;
 
     const cursorThemeX = (e.clientX - stageRect.left) / scale;
     const cursorThemeY = (e.clientY - stageRect.top) / scale;
-    const horizontalDominant = Math.abs(e.clientX - startClientX) > Math.abs(e.clientY - startClientY);
+    const horizontalDominant = Math.abs(dx) > Math.abs(dy);
     chosenSlot = pickSlot(slots, cursorThemeX, cursorThemeY, sectionType, horizontalDominant);
-    showLine(chosenSlot);
+
+    showGutterLine(chosenSlot);
+    applyProjectionFor(chosenSlot);
+  };
+
+  const move = e => {
+    latestEvent = e;
+    if (rafId === null) rafId = requestAnimationFrame(processFrame);
+  };
+
+  // Animates every displaced band (and the lifted original) back to where
+  // they started — used by both an aborted drag and, defensively, right
+  // before a successful one hands off to render()'s full rebuild.
+  const revertVisualState = () => {
+    applyProjectedLayout(stage, g, scale, regionEl);
+    regionEl.classList.remove("theme-region--dragging");
+    regionEl.classList.add("theme-region--returning");
+    regionEl.style.transform = "";
+    setTimeout(() => regionEl.classList.remove("theme-region--returning"), 220);
   };
 
   const cleanup = () => {
+    if (rafId !== null) cancelAnimationFrame(rafId);
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", drop);
     window.removeEventListener("pointercancel", cancel);
     window.removeEventListener("keydown", onKeydown, true);
     document.body.classList.remove("theme-editor-reordering");
-    ghost.remove();
     line.remove();
   };
 
   const drop = () => {
     cleanup();
-    if (!chosenSlot || chosenSlot.invalid) return;   // no-op: nothing to mutate
+    if (!chosenSlot || chosenSlot.invalid) { revertVisualState(); return; }   // no-op: nothing to mutate
     const patch = chosenSlot.apply();
     draft = normalizeTheme({ ...draft, ...patch });
     // The preview's own orientation toggle is deliberately independent of
@@ -1023,10 +1100,14 @@ function startSectionDrag(event, sectionType, sectionId) {
     // the default orientation is the user setting it, same as the toggle
     // in the controls pane, so the preview should follow it here too.
     if (patch.defaultSlicerOrientation) preview.orientation = patch.defaultSlicerOrientation;
+    // render() rebuilds every node fresh at its final position — nothing to
+    // transition *from* on a brand-new element — so the committed layout
+    // simply appears already equal to the last live-previewed frame, with
+    // no separate suppression needed.
     render();
   };
 
-  const cancel = () => cleanup();   // aborts with zero mutation
+  const cancel = () => { cleanup(); revertVisualState(); };   // aborts with zero mutation
 
   // Capture phase, and stopped from propagating further: the dialog itself
   // has its own document-level Escape handler that closes the whole editor
@@ -1155,6 +1236,7 @@ function renderPreview() {
     const kpi = region("kpi", "theme-region theme-region--kpi", {
       left: g.contentLeft, top: headerKpi.top, width: g.contentWidth, height: headerKpi.height
     }, px);
+    kpi.dataset.sectionId = headerKpi.id;
     kpi.appendChild(tag(
       `KPI · ${t.defaultKpisPerRow}× ${cellWidth(g.contentWidth, t.defaultKpisPerRow, t.gapSmall)} px · výška ${t.kpiMinHeight} px`
     ));
@@ -1188,6 +1270,7 @@ function renderPreview() {
     const band = region("kpi-band2", "theme-region theme-region--kpi theme-region--band2", {
       left: g.contentLeft, top: entry.top, width: g.contentWidth, height: entry.height
     }, px);
+    band.dataset.sectionId = entry.id;
     band.appendChild(tag(
       `Pás KPI · ${entry.defaultCount}× ${cellWidth(g.contentWidth, entry.defaultCount, t.gapSmall)} px · pod ${rowLabel}. řadou`
     ));

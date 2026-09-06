@@ -594,7 +594,35 @@ body.theme-editor-reordering .theme-handle {
 .theme-region {
   position: absolute;
   border-radius: 2px;
-  transition: box-shadow 0.15s ease-out;
+  /* top/height are what a reorder drag animates — the other bands glide to
+     their projected position live, instead of teleporting on drop. */
+  transition: box-shadow 0.15s ease-out, top 0.18s ease-out, height 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-region { transition: box-shadow 0.15s ease-out; }
+}
+
+/* The band under the pointer during a reorder drag: lifted above every
+   other region, tracking the cursor via `transform` written every frame in
+   startSectionDrag() — never through this class, and never animated, or it
+   would lag a frame behind the pointer instead of feeling held. */
+.theme-region--dragging {
+  z-index: 30;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  cursor: grabbing;
+  transition: none;
+}
+
+/* Applied only once a drag has ended (dropped on an invalid slot, or
+   aborted) — the one moment the lifted band's `transform` itself should
+   animate, back to translate(0,0), instead of tracking the pointer. */
+.theme-region--returning {
+  transition: box-shadow 0.15s ease-out, top 0.18s ease-out, height 0.18s ease-out, transform 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-region--returning { transition: box-shadow 0.15s ease-out; }
 }
 
 .theme-region.is-linked {
@@ -848,31 +876,17 @@ body.theme-editor-reordering .theme-handle {
   background: var(--text-muted);
 }
 
-/* The floating copy of a region that follows the pointer during a reorder
-   drag, and the line marking where it would land. Both are display only —
-   render() is not called again until the drop. */
-.theme-ghost {
-  position: absolute;
-  z-index: 20;
-  pointer-events: none;
-  opacity: 0.75;
-  border: 2px solid var(--color-primary);
-  border-radius: 2px;
-  background: rgba(214, 0, 50, 0.08);
-}
-
+/* The gutter marker — the only slot kind left that still needs a line: once
+   the dragged band is genuinely lifted and the other bands genuinely
+   displace live (see .theme-region--dragging above and
+   applyProjectedLayout() in themeEditor.js), a line marking a reorder slot
+   would just be redundant clutter. Docking has no displacement of its own
+   to preview, so it keeps this. */
 .theme-insertion-line {
   position: absolute;
   z-index: 21;
   pointer-events: none;
   background: var(--color-primary);
-}
-
-.theme-insertion-line--h {
-  height: 3px;
-  left: 0;
-  right: 0;
-  border-radius: 2px;
 }
 
 .theme-insertion-line--v {
