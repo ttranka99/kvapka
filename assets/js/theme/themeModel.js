@@ -96,9 +96,9 @@ export const GROUPS = [
 
 export const FIELD_BY_KEY = Object.fromEntries(FIELDS.map(f => [f.key, f]));
 
-// The generalised title/slicer/KPI/charts stack: an ordered list of bands a
-// later stage will let the user reorder and repeat (charts sections may
-// occur more than once — that's how "a KPI band between two chart rows" is
+// The generalised title/slicer/KPI/charts stack: the ordered list of bands
+// the editor lets the user reorder and repeat (charts sections may occur
+// more than once — that's how "a KPI band between two chart rows" is
 // expressed). A function, not a shared array literal, so every theme that
 // falls back to this default gets its own objects instead of aliasing
 // BASE's.
@@ -144,8 +144,7 @@ const BASE = {
   defaultKpisPerRow: 6,
   defaultSlicerOrientation: "horizontal",
   // Which side of the canvas the slicer column stands on when slicers are
-  // vertical. Horizontal slicer bands ignore this; it only matters once a
-  // later stage lets the column move.
+  // vertical. Horizontal slicer bands ignore it entirely.
   slicerSide: "left",
   step: 5,
   sections: DEFAULT_SECTIONS()
@@ -394,11 +393,17 @@ export function validateTheme(theme) {
   }
 
   // Vertical budget: header + slicer band + KPI band(s) + one chart row.
+  // A vertical theme's slicers stand in a side column that occupies no
+  // vertical band at all (sectionWalker.js drops it from the stack), so
+  // charging it height here would invent a squeeze that cannot happen.
   const kpiSections = theme.sections.filter(s => s.type === "kpi");
   const bandCount = kpiSections.length || 1;
+  const slicerBand = theme.defaultSlicerOrientation === "vertical"
+    ? 0
+    : theme.slicerHeight + theme.gapSmall;
   const need =
     theme.titleHeight + theme.gapSmall +
-    theme.slicerHeight + theme.gapSmall +
+    slicerBand +
     bandCount * (theme.kpiMinHeight + theme.gapKpiToCharts) +
     theme.minChartRowHeight;
   if (need > uh) {
