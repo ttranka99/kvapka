@@ -57,13 +57,30 @@ function syncWarning(condition, msg, type) {
   // entry is currently in.
 }
 
+const lockedWidthSum = row =>
+  row.filter(k => k.locked).reduce((sum, k) => sum + (k.width ?? 0), 0);
+
+// Locked cards keep the width they were given; everything else splits what
+// is left, left to right (there is no symmetry left to preserve once one
+// card is pinned). `remaining` is a parameter rather than derived here
+// because the two callers disagree about a negative one — see each of them.
+function widthsWithLocked(row, remaining) {
+  const unlockedCount = row.filter(k => !k.locked).length;
+  if (unlockedCount === 0) return row.map(k => k.width);
+
+  const shares = distributeInSteps(Math.max(0, remaining), unlockedCount, false);
+  let next = 0;
+  return row.map(k => (k.locked ? k.width : shares[next++]));
+}
+
 // The width rule for a single row of KPI cards, shared by every band's first
 // row (and, for a band that never grows a second row, its only row). Three
 // cases, in the order they're tested:
 //   0) three or fewer, none locked → a fixed 250px card each, so a sparse row
 //      reads as a few cards rather than three enormous slabs;
-//   1) any card locked → the locked widths are honoured and the rest split
-//      what's left, left to right (there's no symmetry left to preserve);
+//   1) any card locked → widthsWithLocked(), with a negative remainder fatal:
+//      a first row that cannot honour its locked widths renders nothing and
+//      says so, rather than showing a squeezed lie;
 //   2) otherwise → an even, symmetric split of the usable width.
 function kpiRowWidths(row, availableWidth) {
   const n = row.length;
@@ -76,22 +93,9 @@ function kpiRowWidths(row, availableWidth) {
   }
 
   if (anyLocked) {
-    const lockedSum = row
-      .filter(k => k.locked)
-      .reduce((sum, k) => sum + (k.width ?? 0), 0);
-
-    const remaining = usable - lockedSum;
+    const remaining = usable - lockedWidthSum(row);
     if (remaining < 0) return { widths: [], manualSumExceeded: true };
-
-    const unlockedCount = row.filter(k => !k.locked).length;
-    if (unlockedCount === 0) return { widths: row.map(k => k.width), manualSumExceeded: false };
-
-    const shares = distributeInSteps(remaining, unlockedCount, false);
-    let next = 0;
-    return {
-      widths: row.map(k => (k.locked ? k.width : shares[next++])),
-      manualSumExceeded: false
-    };
+    return { widths: widthsWithLocked(row, remaining), manualSumExceeded: false };
   }
 
   return { widths: distributeInSteps(usable, n), manualSumExceeded: false };
@@ -157,73 +161,38 @@ function computeTwoRowLayout(v, bandId, top, cards) {
     const anyLocked2 = row2.some(k => k.locked);
     const usable2 = v.contentWidth - totalGaps2;
 
-    // 1) If there are locked KPI → use original logic
+    // Any card locked → the shared rule, except that a locked sum too wide to
+    // fit is flagged and clamped rather than fatal: the second row still
+    // renders (squeezed) so the user can see which cards to shrink, where a
+    // first row in the same state renders nothing at all.
     if (anyLocked2) {
-      const lockedSum2 = row2
-        .filter(k => k.locked)
-        .reduce((sum, k) => sum + (k.width ?? 0), 0);
-
-      let remaining2 = usable2 - lockedSum2;
-
-      if (remaining2 < 0) {
-        row2ManualWidthSumExceeded = true;
-        remaining2 = 0;
-      }
-
-      const unlocked2 = row2.filter(k => !k.locked);
-      const u2 = unlocked2.length;
-
-      if (u2 === 0) {
-        widths2 = row2.map(k => k.width);
-      } else {
-        const shares = distributeInSteps(remaining2, u2, false);
-        let next = 0;
-        widths2 = row2.map(k => (k.locked ? k.width : shares[next++]));
-      }
+      const remaining2 = usable2 - lockedWidthSum(row2);
+      row2ManualWidthSumExceeded = remaining2 < 0;
+      widths2 = widthsWithLocked(row2, remaining2);
     }
 
-    // 2) No locked KPI → symmetric logic for 4/6 KPI + special handling for 1–3 KPI
+    // Nothing locked. Four or more cards split the row evenly, exactly as
+    // row 1 does. One to three instead take their width from row 1's first
+    // card, so a short second row reads as a continuation of the row above
+    // rather than as a few cards stretched across the whole canvas.
+    else if (n2 >= 4) {
+      widths2 = distributeInSteps(usable2, n2);
+    }
+
     else {
-      const halfUsable = usable2 / 2;
+      const baseWidth = widths1[0];
+      const gapsWidth = (n2 - 1) * state.GAP_SMALL;
+      // Every card but the last at row 1's width.
+      const firstPartWidth = baseWidth * (n2 - 1) + gapsWidth;
+      // Only a hand-set width on row 1's first card can make that base wide
+      // enough to matter; a computed one already fits by construction.
+      const isCustomWidth = !!row1[0].locked || !!row1[0].width;
 
-      // --- A) If there are 4 or 6 KPI → use the same symmetric logic as row1 ---
-      if (n2 >= 4) {
-        widths2 = distributeInSteps(usable2, n2);
-      }
-      // --- B) If there are 1–3 KPI → follow the width of the first KPI in row1; if custom width and sum of first KPIs exceeds half, stretch only the last one ---
-      else {
-        widths2 = [];
-
-        const baseWidth = widths1[0]; // width of the first KPI in the first row
-        const isCustomWidth = !!row1[0].locked || !!row1[0].width;
-
-        // 1 KPI in second row → always same width as first KPI in row1
-        if (n2 === 1) {
-          widths2 = [baseWidth];
-        }
-
-        // 2–3 KPI in second row
-        else {
-          const gapsWidth = (n2 - 1) * state.GAP_SMALL;
-          const firstPartWidth = baseWidth * (n2 - 1) + gapsWidth; // sum of KPI 7+8 (+ gap) at n2=3
-
-          // If no custom width OR sum of first KPIs does NOT exceed half → all KPIs same width
-          if (!isCustomWidth || firstPartWidth <= halfUsable) {
-            widths2 = Array(n2).fill(baseWidth);
-          } else {
-            // Custom width AND sum of first KPIs exceeds half → stretch ONLY the last KPI
-            const lastWidth = Math.max(usable2 - firstPartWidth, 0);
-
-            // First (n2 - 1) KPIs keep baseWidth
-            for (let i = 0; i < n2 - 1; i++) {
-              widths2.push(baseWidth);
-            }
-            // Last KPI fills the remaining usable width
-            widths2.push(lastWidth);
-          }
-        }
-      }
-
+      widths2 = (n2 > 1 && isCustomWidth && firstPartWidth > usable2 / 2)
+        // Too wide to repeat all the way across: keep the base for every card
+        // but the last, and let that one take whatever is left.
+        ? [...Array(n2 - 1).fill(baseWidth), Math.max(usable2 - firstPartWidth, 0)]
+        : Array(n2).fill(baseWidth);
     }
   }
 
@@ -353,13 +322,14 @@ function computeSingleRowLayout(v, bandId, top, cards) {
  */
 export function computeKpiLayoutForBand(v, bandId) {
   const cards = state.getKpiBand(bandId);
+  // A section with zero cards is dropped from the walk entirely (nothing
+  // renders there), so it has no placed box. That is the only way `section`
+  // comes back undefined — the walk places every `kpi` section that has
+  // cards — and both layouts below return [] on an empty band before ever
+  // reading `top`, so the fallback here is never observed.
   const section = v.sectionById[bandId];
   const allowSecondRow = section ? section.allowSecondRow === true : false;
-  // A section with zero cards was dropped from the walk entirely (nothing
-  // renders there), so it has no placed `top` — but every code path below
-  // returns [] before ever reading `top` in that case, so the exact
-  // fallback value here is never observed.
-  const top = section ? section.top : v.kpiTop;
+  const top = section ? section.top : 0;
 
   return allowSecondRow
     ? computeTwoRowLayout(v, bandId, top, cards)
