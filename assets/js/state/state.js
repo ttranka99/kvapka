@@ -66,7 +66,7 @@ export let slicerOrientation = activeTheme.defaultSlicerOrientation;
 // Which side of the canvas the vertical slicer column stands on. Meaningless
 // while slicers are horizontal, but kept as its own binding (not derived
 // from the theme at read time) for the same reason slicerOrientation is: a
-// page can carry it across a theme switch via options.keepOrientation.
+// page can hold a side of its own, restored after applyTheme() by tabs.js.
 export let SLICER_SIDE = activeTheme.slicerSide;
 
 export let slicers = [];
@@ -129,11 +129,14 @@ export function setMaxKpis(v) {
  * place those bindings are assigned wholesale, so "what does this theme
  * actually change?" has exactly one answer to read.
  *
- * Per-row limits and the slicer orientation are reset to the theme's own
- * defaults, matching how a template switch always did — a limit of 7 carried
- * onto a theme that caps rows at 5 would be silently out of range.
+ * Per-row limits, the slicer orientation and the slicer side are always
+ * reset to the theme's own defaults, matching how a template switch always
+ * did — a limit of 7 carried onto a theme that caps rows at 5 would be
+ * silently out of range. A caller that needs a page's own values back (the
+ * tab restore in tabs.js) re-applies them afterwards rather than asking this
+ * to skip the reset.
  */
-export function applyTheme(theme, options = {}) {
+export function applyTheme(theme) {
   const t = normalizeTheme(theme);
   const oldSections = activeTheme.sections;
   const oldKpiBands = kpiBands;
@@ -168,20 +171,13 @@ export function applyTheme(theme, options = {}) {
 
   setStep(t.step);
 
-  if (!options.keepRowLimits) {
-    MAX_SLICERS = clampComponentsPerRow(t.defaultSlicersPerRow);
-    MAX_KPIS = clampComponentsPerRow(t.defaultKpisPerRow);
-  } else {
-    MAX_SLICERS = clampComponentsPerRow(MAX_SLICERS);
-    MAX_KPIS = clampComponentsPerRow(MAX_KPIS);
-  }
+  MAX_SLICERS = clampComponentsPerRow(t.defaultSlicersPerRow);
+  MAX_KPIS = clampComponentsPerRow(t.defaultKpisPerRow);
 
-  if (!options.keepOrientation) {
-    setSlicerOrientation(t.defaultSlicerOrientation);
-    setSlicerSide(t.slicerSide);
-  }
+  setSlicerOrientation(t.defaultSlicerOrientation);
+  setSlicerSide(t.slicerSide);
 
-  kpiBands = reconcileKpiBands(oldSections, t.sections, oldKpiBands, options.keepEmptyBands);
+  kpiBands = reconcileKpiBands(oldSections, t.sections, oldKpiBands);
 
   return activeTheme;
 }
@@ -208,7 +204,7 @@ export function applyTheme(theme, options = {}) {
  * section list) rather than vanishing, and only get dropped — with a
  * warning — if the new theme has no KPI section left at all.
  */
-function reconcileKpiBands(oldSections, newSections, oldBands, keepEmptyBands) {
+function reconcileKpiBands(oldSections, newSections, oldBands) {
   const oldKpiSections = oldSections.filter(s => s.type === "kpi");
   const newKpiSections = newSections.filter(s => s.type === "kpi");
 
@@ -237,7 +233,7 @@ function reconcileKpiBands(oldSections, newSections, oldBands, keepEmptyBands) {
   // 3. seed.
   newKpiSections.forEach(s => {
     if (next[s.id] !== undefined) return;
-    next[s.id] = s.defaultCount > 0 && !keepEmptyBands
+    next[s.id] = s.defaultCount > 0
       ? Array.from({ length: s.defaultCount }, () => ({ height: null, locked: false }))
       : [];
   });
