@@ -71,11 +71,17 @@ export function handleRemoveKpi(index, bandId) {
 }
 
 // Select KPI
+//
+// `item.band` is the section's ordinal in the theme's band list, so the label
+// names which band a card belongs to. It stops saying "prostřední pás" for
+// everything past the header: a theme can define any number of bands now, and
+// only the second of three is in the middle of anything.
 export function handleSelectKpi(item, domId, opts = {}) {
+  const band = item.band ?? 0;
   setSelected({
     kind: "kpi",
-    band: item.band ?? 0,
-    labelType: item.band === 0 ? "KPI" : "KPI (prostřední pás)",
+    band,
+    labelType: band === 0 ? "KPI" : `KPI (pás ${band + 1})`,
     labelIndex: item.index + 1,
     x: item.x,
     y: item.y,
