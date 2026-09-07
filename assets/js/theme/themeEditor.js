@@ -48,11 +48,14 @@ let editingExistingId = null; // non-null when editing a saved custom theme
 let onApply = null;           // callback handed in by the opener
 let preview = {
   orientation: "horizontal",
-  chartRows: 2,
-  chartCols: 2
+  chartRows: 2
 };
 let highlightedRegion = null;
-let dragSession = null;       // non-null only for the duration of a pointer reorder drag
+
+// How many cells a preview chart row is drawn as. Fixed: the preview shows
+// the shape a theme's rules produce, and nothing in a theme governs how many
+// charts end up in a row (that follows from minChartWidth at layout time).
+const PREVIEW_CHART_COLS = 2;
 
 const el = (tag, className, text) => {
   const node = document.createElement(tag);
@@ -157,7 +160,7 @@ function buildDialog() {
     new ResizeObserver(() => {
       if (overlay.hidden || queued) return;
       queued = true;
-      requestAnimationFrame(() => { queued = false; renderPreview(); });
+      requestAnimationFrame(() => { queued = false; renderPreview(previewLayout()); });
     }).observe(frame);
   }
 
@@ -333,23 +336,35 @@ function buildOrientationControl() {
   return row;
 }
 
-// The nearest `charts` section before `section` in array order — used only
-// to read the row number a KPI band's label displays ("pod 2. řadou"); the
-// walker (sectionWalker.js) is what actually places the band, this is just
-// static bookkeeping over draft.sections.
-function precedingChartsFor(theme, section) {
-  const idx = theme.sections.indexOf(section);
-  for (let i = idx - 1; i >= 0; i--) {
-    if (theme.sections[i].type === "charts") return theme.sections[i];
-  }
-  return null;
+// A band row's heading — the first `kpi` section is the header band; every
+// other one names the chart row it follows.
+function bandTitle(section, index, g) {
+  return index === 0
+    ? "Pás KPI (hlavička)"
+    : `Pás KPI ${index + 1} · pod ${afterRowLabel(draft, section, g && g.chartGroups)}. řadou`;
 }
 
 // The 1-based chart row a KPI band visually follows, for its preview label.
-function afterRowLabel(theme, section) {
-  const preceding = precedingChartsFor(theme, section);
-  const rows = preceding ? (preceding.rows ?? 1) : 1;
-  return Math.max(0, rows - 1) + 1;
+//
+// Every `charts` section above the band contributes its rows, not just the
+// nearest one — with two bands the lower one sits under the *sum*, and
+// labelling it by its immediate neighbour alone called row 3 "row 1".
+// `chartGroups` (from computeChartGroups, via previewLayout) is what says how
+// many rows each section actually got, including the open-ended one; without
+// it a fixed `rows` is the best available answer and a null counts as one.
+function afterRowLabel(theme, section, chartGroups) {
+  const countFor = s => {
+    const group = chartGroups && chartGroups.find(g => g.sectionId === s.id);
+    return group ? group.count : (s.rows ?? 1);
+  };
+
+  const idx = theme.sections.indexOf(section);
+  const rows = theme.sections
+    .slice(0, idx < 0 ? 0 : idx)
+    .filter(s => s.type === "charts")
+    .reduce((sum, s) => sum + countFor(s), 0);
+
+  return Math.max(1, rows);
 }
 
 // Appends a new KPI band at the end of the stack, with a fresh open-ended
@@ -385,23 +400,73 @@ const GAP_BEFORE_LABELS = { auto: "Auto", small: "Malá", block: "Velká" };
 // in place; removing a row leaves its cards to state.applyTheme's own
 // reconciliation (reconcileKpiBands in state.js), which rehomes them to
 // the nearest surviving band rather than dropping them.
-function renderKpiBandsList() {
+// Replaces one section in the draft with a patched copy of itself. All four
+// band-row controls edit exactly one field this way, so they share it rather
+// than each spelling out the same map-over-sections.
+//
+// Addressed by id, never by object identity: normalizeTheme() returns fresh
+// section objects every time, while a band row (and the listener closing over
+// it) outlives any number of renders — see renderKpiBandsList. Matching on
+// identity meant every edit after the first silently patched nothing.
+function updateSection(sectionId, patch) {
+  draft = normalizeTheme({
+    ...draft,
+    sections: draft.sections.map(s => (s.id === sectionId ? { ...s, ...patch } : s))
+  });
+  render();
+}
+
+function removeSection(sectionId) {
+  draft = normalizeTheme({ ...draft, sections: draft.sections.filter(s => s.id !== sectionId) });
+  render();
+}
+
+function renderKpiBandsList(g) {
   const list = root.querySelector("#theme-kpi-bands-list");
   if (!list) return;
+
+  const sections = draft.sections.filter(s => s.type === "kpi");
+
+  // Rebuilding these rows unconditionally would destroy whichever control the
+  // user is typing in — render() runs on every keystroke, so "12" could never
+  // be entered into a count field. Only rebuild when the *set* of bands has
+  // actually changed; otherwise refresh the values in place, skipping the
+  // focused control, exactly as renderControls() does for the FIELDS inputs.
+  const rendered = [...list.querySelectorAll(".theme-kpi-band")];
+  const sameBands = rendered.length === sections.length
+    && rendered.every((row, i) => row.dataset.kpiBandId === sections[i].id);
+
+  if (sameBands) {
+    rendered.forEach((row, i) => {
+      const section = sections[i];
+      const count = row.querySelector(".theme-kpi-band__count");
+      const secondRow = row.querySelector(".theme-check");
+      const gapSelect = row.querySelector(".theme-kpi-band__gap");
+      if (document.activeElement !== count) count.value = String(section.defaultCount);
+      if (document.activeElement !== secondRow) secondRow.checked = section.allowSecondRow;
+      if (document.activeElement !== gapSelect) gapSelect.value = section.gapBefore;
+      row.querySelector(".theme-kpi-band__title").textContent = bandTitle(section, i, g);
+    });
+    return;
+  }
+
   list.innerHTML = "";
 
-  draft.sections.filter(s => s.type === "kpi").forEach((section, i) => {
+  sections.forEach((section, i) => {
+    // The row outlives the `section` object it was built from, so every
+    // listener below closes over this id rather than that object.
+    const bandId = section.id;
     const row = el("div", "theme-kpi-band");
-    row.dataset.kpiBandId = section.id;
+    row.dataset.kpiBandId = bandId;
     row.dataset.region = "kpi-band2";
 
-    row.appendChild(el("span", "theme-kpi-band__title",
-      i === 0 ? "Pás KPI (hlavička)" : `Pás KPI ${i + 1} · pod ${afterRowLabel(draft, section)}. řadou`));
+    row.appendChild(el("span", "theme-kpi-band__title", bandTitle(section, i, g)));
 
     const countField = el("label", "theme-kpi-band__field");
     countField.appendChild(el("span", null, "Počet KPI"));
     const count = document.createElement("input");
     count.type = "number";
+    count.className = "theme-kpi-band__count";
     count.min = "0";
     count.max = "12";
     count.step = "1";
@@ -409,11 +474,7 @@ function renderKpiBandsList() {
     count.addEventListener("input", () => {
       const v = Number(count.value);
       if (!Number.isFinite(v)) return;
-      draft = normalizeTheme({
-        ...draft,
-        sections: draft.sections.map(s => s === section ? { ...s, defaultCount: Math.max(0, Math.round(v)) } : s)
-      });
-      render();
+      updateSection(bandId, { defaultCount: Math.max(0, Math.round(v)) });
     });
     countField.appendChild(count);
     row.appendChild(countField);
@@ -424,11 +485,7 @@ function renderKpiBandsList() {
     secondRow.className = "theme-check";
     secondRow.checked = section.allowSecondRow;
     secondRow.addEventListener("change", () => {
-      draft = normalizeTheme({
-        ...draft,
-        sections: draft.sections.map(s => s === section ? { ...s, allowSecondRow: secondRow.checked } : s)
-      });
-      render();
+      updateSection(bandId, { allowSecondRow: secondRow.checked });
     });
     secondRowField.appendChild(secondRow);
     secondRowField.appendChild(el("span", null, "2. řádek"));
@@ -451,11 +508,7 @@ function renderKpiBandsList() {
       gapSelect.appendChild(opt);
     });
     gapSelect.addEventListener("change", () => {
-      draft = normalizeTheme({
-        ...draft,
-        sections: draft.sections.map(s => s === section ? { ...s, gapBefore: gapSelect.value } : s)
-      });
-      render();
+      updateSection(bandId, { gapBefore: gapSelect.value });
     });
     gapField.appendChild(gapSelect);
     row.appendChild(gapField);
@@ -465,10 +518,7 @@ function renderKpiBandsList() {
     removeBtn.className = "icon-btn theme-kpi-band__remove";
     removeBtn.title = "Odstranit tento pás KPI";
     removeBtn.textContent = "×";
-    removeBtn.addEventListener("click", () => {
-      draft = normalizeTheme({ ...draft, sections: draft.sections.filter(s => s !== section) });
-      render();
-    });
+    removeBtn.addEventListener("click", () => removeSection(bandId));
     row.appendChild(removeBtn);
 
     row.addEventListener("mouseenter", () => setHighlight("kpi-band2"));
@@ -580,10 +630,14 @@ function applyHighlight() {
 
 function render() {
   draft = resolveDependencies(draft);
+  // One walk per render, shared by everything below: the controls, the
+  // preview and the readout all describe the same layout, and running the
+  // solver once per consumer was the most expensive thing a render did.
+  const g = previewLayout();
   renderMeta();
-  renderControls();
-  renderPreview();
-  renderReadout();
+  renderControls(g);
+  renderPreview(g);
+  renderReadout(g);
   applyHighlight();
 }
 
@@ -606,7 +660,7 @@ function plural(n, one, few, many) {
   return many;
 }
 
-function renderControls() {
+function renderControls(g) {
   FIELDS.forEach(field => {
     const row = root.querySelector(`.theme-field[data-field="${field.key}"]`);
     if (!row) return;
@@ -627,9 +681,12 @@ function renderControls() {
     b.classList.toggle("is-active", b.dataset.previewOrientation === preview.orientation);
   });
 
-  renderKpiBandsList();
+  renderKpiBandsList(g);
 
-  root.querySelector("#theme-preview-rows").value = String(preview.chartRows);
+  // Same rule as the FIELDS inputs above: never rewrite a field the user is
+  // currently typing into.
+  const rows = root.querySelector("#theme-preview-rows");
+  if (document.activeElement !== rows) rows.value = String(preview.chartRows);
 }
 
 // Feeds sectionWalker.js — the same placement code the real canvas solver
@@ -678,7 +735,9 @@ function previewLayout(themeOverride) {
   });
 
   const tooSmall = g.rowHeights.some(h => h < t.hardMinChartHeight);
-  return { ...g, vertical, rowCount: chartRowCount, tooSmall };
+  // chartGroups rides along because the band labels need to know how many
+  // rows each charts section actually got, including the open-ended one.
+  return { ...g, vertical, rowCount: chartRowCount, tooSmall, chartGroups };
 }
 
 // --- Section reordering ---------------------------------------------------
@@ -689,9 +748,8 @@ function previewLayout(themeOverride) {
 // stack (what the user actually sees and grabs) back to an index in the
 // *raw* sections array (which may hold sections the current sample content
 // dropped — an empty KPI band, say), and moveSectionToRawIndex() performs
-// the splice. Only "kpi" and "slicers" sections are grabbable — "title" and
+// the splice. Only "kpi" and "slicers" sections get a grip() — "title" and
 // "charts" are the substrate everything else is placed against.
-const MOVABLE_SECTION_TYPES = ["kpi", "slicers"];
 
 // There is always exactly one `slicers` section (normalizeSections()
 // guarantees it) — this just finds its id, since every id is the theme
@@ -1115,8 +1173,8 @@ function startSectionDrag(event, sectionType, sectionId) {
   };
 
   // Animates every displaced band (and the lifted original) back to where
-  // they started — used by both an aborted drag and, defensively, right
-  // before a successful one hands off to render()'s full rebuild.
+  // they started. Only an aborted drag needs this — a successful drop hands
+  // off to render(), which rebuilds every node fresh at its final position.
   const revertVisualState = () => {
     applyProjectedLayout(stage, g, scale, regionEl);
     regionEl.classList.remove("theme-region--dragging");
@@ -1173,7 +1231,7 @@ function startSectionDrag(event, sectionType, sectionId) {
   window.addEventListener("keydown", onKeydown, true);
 }
 
-function renderPreview() {
+function renderPreview(g) {
   // Exposed for the test harness: a reorder drag must call render() exactly
   // once (on a successful drop), never on every pointermove.
   window.__themeRenderPreviewCalls = (window.__themeRenderPreviewCalls || 0) + 1;
@@ -1191,7 +1249,6 @@ function renderPreview() {
   stage.style.height = `${t.canvasHeight * scale}px`;
   stage.style.setProperty("--preview-scale", String(scale));
 
-  const g = previewLayout();
   const px = v => `${v * scale}px`;
 
   // The usable-area outline — context only, no region of its own: it marks
@@ -1300,13 +1357,13 @@ function renderPreview() {
       ));
     }
     if (g.tooSmall) row.classList.add("is-too-small");
-    stackCells(row, preview.chartCols, t.gapSmall * scale, "row");
+    stackCells(row, PREVIEW_CHART_COLS, t.gapSmall * scale, "row");
     stage.appendChild(row);
   }
 
   extraKpis.forEach(entry => {
     const section = t.sections.find(s => s.type === "kpi" && s.id === entry.id);
-    const rowLabel = afterRowLabel(t, section);
+    const rowLabel = afterRowLabel(t, section, g.chartGroups);
     const band = region("kpi-band2", "theme-region theme-region--kpi theme-region--band2", {
       left: g.contentLeft, top: entry.top, width: g.contentWidth, height: entry.height
     }, px);
@@ -1324,22 +1381,36 @@ function renderPreview() {
   // gap and the KPIs from the charts by the block gap, while vertically the
   // content block hangs off the title by the block gap and the charts follow
   // the KPIs at the small one.
-  const smallGapTop = g.vertical ? g.chartsTop - t.gapSmall : g.slicersTop - t.gapSmall;
-  const blockGapTop = g.vertical ? g.kpiTop - t.gapKpiToCharts : g.chartsTop - t.gapKpiToCharts;
+  //
+  // Which boundary carries which gap is not fixed — it follows the band
+  // order and any per-band `gapBefore` override — so each strip is drawn at
+  // a boundary the walk genuinely applied that value to (every placed box
+  // records the gap it got as `gapAbove`), rather than at the position the
+  // default title -> slicers -> kpi -> charts order would put it. A theme in
+  // which nothing uses a value simply gets no ruler for it, which beats a
+  // strip lying across a band it has nothing to do with. Each strip spans
+  // the band below it, so it is always as wide as the thing it separates.
+  const takenBoundaries = new Set();
+  [
+    ["gap-small", "gapSmall", t.gapSmall],
+    ["gap-block", "gapKpiToCharts", t.gapKpiToCharts]
+  ].forEach(([regionName, fieldKey, value]) => {
+    if (value <= 0) return;
+    // Two gaps can be set to the same number; giving each its own boundary
+    // keeps the second strip from stacking invisibly on the first.
+    const i = g.sections.findIndex((s, k) => s.gapAbove === value && !takenBoundaries.has(k));
+    if (i === -1) return;
+    takenBoundaries.add(i);
 
-  stage.appendChild(gapRuler("gap-small", "gapSmall", t.gapSmall, {
-    left: g.vertical ? g.contentLeft : t.margin,
-    top: smallGapTop,
-    width: g.vertical ? g.contentWidth : usableWidth(t),
-    height: t.gapSmall
-  }, px, scale));
-
-  stage.appendChild(gapRuler("gap-block", "gapKpiToCharts", t.gapKpiToCharts, {
-    left: g.vertical ? t.margin : g.contentLeft,
-    top: blockGapTop,
-    width: g.vertical ? usableWidth(t) : g.contentWidth,
-    height: t.gapKpiToCharts
-  }, px, scale));
+    const entry = g.sections[i];
+    const spansUsable = entry.type === "title" || entry.type === "slicers";
+    stage.appendChild(gapRuler(regionName, fieldKey, value, {
+      left: spansUsable ? t.margin : g.contentLeft,
+      top: entry.top - value,
+      width: spansUsable ? usableWidth(t) : g.contentWidth,
+      height: value
+    }, px, scale));
+  });
 }
 
 function cellWidth(total, count, gap) {
@@ -1390,6 +1461,7 @@ function dragHandle(fieldKey, axis, sign, scale, side) {
   handle.title = `Táhnutím upravíte: ${field.label}`;
 
   handle.addEventListener("pointerdown", event => {
+    if (event.button !== undefined && event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
 
@@ -1397,13 +1469,28 @@ function dragHandle(fieldKey, axis, sign, scale, side) {
     const startValue = draft[fieldKey];
     setHighlight(field.region);
 
-    const move = e => {
-      const now = axis === "x" ? e.clientX : e.clientY;
+    // A render() tears down every control and rebuilds the whole preview, so
+    // one per pointer event is far more than the screen can show. Coalesce
+    // to one per frame, the same way the reorder drag does.
+    let rafId = null;
+    let latest = null;
+
+    const processFrame = () => {
+      rafId = null;
+      const now = axis === "x" ? latest.clientX : latest.clientY;
       const delta = ((now - start) / scale) * sign;
       setFieldValue(field, startValue + delta);
       render();
     };
+
+    const move = e => {
+      latest = e;
+      if (rafId === null) rafId = requestAnimationFrame(processFrame);
+    };
     const up = () => {
+      // Land on the last position the pointer reached, not on the frame
+      // that happened to render before the release.
+      if (rafId !== null) { cancelAnimationFrame(rafId); processFrame(); }
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
@@ -1420,9 +1507,8 @@ function dragHandle(fieldKey, axis, sign, scale, side) {
   return handle;
 }
 
-function renderReadout() {
+function renderReadout(g) {
   const t = draft;
-  const g = previewLayout();
   const readout = root.querySelector(".theme-stage__readout");
   readout.innerHTML = "";
 

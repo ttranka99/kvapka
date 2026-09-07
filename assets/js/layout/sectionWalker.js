@@ -67,12 +67,12 @@ function measureKpiHeight(theme, kpisPerRow, cards, allowSecondRow) {
 
 // Walks a slice of `sections`, dropping the ones that occupy no space and
 // attaching each survivor's measured height (or, for a charts section, the
-// row group it claimed). `kpiInfoBySectionId` and `chartGroupBySectionId`
-// are computed once up front in walkSections() and passed in so every
-// ordinal/row assignment stays consistent between the two slices (title/
-// slicers/kpi-1, and the chart region) this function is called on.
+// row group it claimed). `chartGroupBySectionId` is built once up front in
+// walkSections() and passed in so every row assignment stays consistent
+// between the two slices (title/slicers/kpi-1, and the chart region) this
+// function is called on.
 function buildEffectiveStack(theme, sectionsSlice, ctx) {
-  const { vertical, slicerCount, hasRow2, kpisPerRow, kpiInfoBySectionId, chartGroupBySectionId } = ctx;
+  const { vertical, slicerCount, hasRow2, kpisPerRow, kpiCardsBySectionId, chartGroupBySectionId } = ctx;
   const out = [];
   sectionsSlice.forEach(s => {
     if (s.type === "title") {
@@ -86,8 +86,7 @@ function buildEffectiveStack(theme, sectionsSlice, ctx) {
       return;
     }
     if (s.type === "kpi") {
-      const info = kpiInfoBySectionId.get(s.id);
-      const cards = info ? info.cards : [];
+      const cards = kpiCardsBySectionId.get(s.id) || [];
       if (cards.length === 0) return;
       out.push({ ...s, height: measureKpiHeight(theme, kpisPerRow, cards, s.allowSecondRow), cards });
       return;
@@ -105,11 +104,19 @@ function buildEffectiveStack(theme, sectionsSlice, ctx) {
 // boundaryGap() between consecutive entries. Charts entries are expanded
 // into their rows (using the already-solved `rowHeights`) and write into
 // `rowTops`; every other entry just occupies its measured height.
-function placeStack(theme, effectiveStack, startY, vertical, rowHeights, rowTops) {
+//
+// Each placed box carries the gap that was actually applied above it as
+// `gapAbove`, so a consumer wanting to point at a real boundary (the theme
+// editor's gap rulers) reads it rather than re-deriving it from an assumed
+// band order. `startGap` is the gap above the stack's *first* entry, which
+// the caller already accounted for in `startY` and so is recorded but not
+// added again; null when there is nothing above it.
+function placeStack(theme, effectiveStack, startY, vertical, rowHeights, rowTops, startGap = null) {
   let y = startY;
   const placed = [];
   effectiveStack.forEach((entry, i) => {
-    if (i > 0) y += boundaryGap(theme, effectiveStack, i, vertical);
+    const gapAbove = i > 0 ? boundaryGap(theme, effectiveStack, i, vertical) : startGap;
+    if (i > 0) y += gapAbove;
     const top = y;
     let height;
     if (entry.type === "charts") {
@@ -125,7 +132,7 @@ function placeStack(theme, effectiveStack, startY, vertical, rowHeights, rowTops
       height = entry.height;
     }
     y = top + height;
-    placed.push({ ...entry, top, bottom: y, height });
+    placed.push({ ...entry, top, bottom: y, height, gapAbove });
   });
   return { placed, endY: y };
 }
@@ -144,6 +151,10 @@ function placeStack(theme, effectiveStack, startY, vertical, rowHeights, rowTops
  * @param {Map<string, Array>} content.kpiCardsBySectionId - a `kpi`
  *   section's id -> its cards (each needing at most a `.height`).
  * @param {number} content.chartRowCount - how many chart rows exist.
+ * @param {Array<{sectionId:string, startRow:number, count:number}>} content.chartGroups -
+ *   computeChartGroups(chartsSections, chartRowCount). Required: the caller
+ *   already has to compute it to know how chartRowCount splits, so it is
+ *   passed in fully formed rather than recomputed here.
  * @param {"horizontal"|"vertical"} content.orientation
  * @param {"left"|"right"} content.slicerSide
  * @param {number} content.columnWidth - the vertical slicer column's width.
@@ -179,10 +190,9 @@ export function walkSections(theme, content) {
   // used as-is for the vertical column (which never appears in the stack
   // walk below, so there is nothing else to read) and as the fallback for
   // the horizontal band when it has nothing to show. Once the band DOES
-  // render, the walk below places it whatever order the theme actually
-  // has, and the returned slicersTop/slicersBottom read that placement
-  // instead — see resolvedSlicersTop/resolvedSlicersBottom near the end of
-  // this function.
+  // render, the walk below places it in whatever order the theme actually
+  // has, and the returned slicersTop reads that placement instead — see
+  // placedSlicers near the end of this function.
   const slicersTop = vertical
     // 30px (20px on HD) below the title, per the vertical spec — not the
     // tighter gapSmall the horizontal band sits at.
@@ -191,19 +201,12 @@ export function walkSections(theme, content) {
 
   const hasRow2 = !vertical && slicerCount > slicersPerRow;
 
-  const slicersBottom = vertical || slicerCount === 0
-    ? slicersTop
-    : hasRow2
-      ? slicersTop + theme.slicerHeight * 2 + theme.gapSmall
-      : slicersTop + theme.slicerHeight;
-
   // The slicer column reserves width only while slicers actually exist —
   // otherwise an empty page would permanently lose ~320px of canvas to a
   // column with nothing in it.
   const hasColumn = vertical && slicerCount > 0;
   const slicerColumnTop = slicersTop;
-  const slicerColumnBottom = theme.canvasHeight - theme.margin;
-  const slicerColumnHeight = slicerColumnBottom - slicerColumnTop;
+  const slicerColumnHeight = theme.canvasHeight - theme.margin - slicerColumnTop;
 
   // The box the KPIs and charts lay out inside. In horizontal mode this is
   // just the full usable width at the standard margin; in vertical mode it
@@ -220,25 +223,14 @@ export function walkSections(theme, content) {
     : theme.margin;
 
   // --- shared bookkeeping ---------------------------------------------
-  const kpiInfoBySectionId = new Map();
-  {
-    let ord = 0;
-    sections.forEach(s => {
-      if (s.type !== "kpi") return;
-      kpiInfoBySectionId.set(s.id, { cards: kpiCardsBySectionId.get(s.id) || [], ordinal: ord });
-      ord++;
-    });
-  }
-
-  const chartsSections = sections.filter(s => s.type === "charts");
+  //
   // computeChartGroups is intentionally not imported here — the caller
   // (computeVerticalLayout / the preview) already needs to compute it to
   // know chartRowCount's split, so it's passed in fully formed rather than
   // recomputed.
-  const chartGroups = content.chartGroups;
-  const chartGroupBySectionId = new Map(chartGroups.map(g => [g.sectionId, g]));
+  const chartGroupBySectionId = new Map(content.chartGroups.map(g => [g.sectionId, g]));
 
-  const ctx = { vertical, slicerCount, hasRow2, kpisPerRow, kpiInfoBySectionId, chartGroupBySectionId };
+  const ctx = { vertical, slicerCount, hasRow2, kpisPerRow, kpiCardsBySectionId, chartGroupBySectionId };
 
   // The stack splits cleanly in two at the first charts section (there's
   // always at least one — normalizeSections() guarantees it): everything
@@ -254,38 +246,6 @@ export function walkSections(theme, content) {
   const { placed: placedPrefix, endY: prefixEnd } = placeStack(
     theme, prefixEffective, theme.margin, vertical, [], []
   );
-
-  // kpiTop/kpiBottom (this formula) describe the header KPI band's *nominal*
-  // position, assuming the theme's original title -> slicers -> kpi order —
-  // the fallback for when the header band's cards are empty and the section
-  // was dropped from the walk entirely (nothing renders there, but the
-  // legacy contract still gives kpiTop a value; downstream code — see
-  // computeKpiLayoutForBand() — only ever reads it in that exact case). When
-  // the header band IS active, the returned kpiTop/kpiBottom instead read
-  // its real placed box (resolvedKpiTop/resolvedKpiBottom near the end of
-  // this function), which reflects wherever the theme's sections actually
-  // put it — this formula's "assume nothing was reordered" is only ever
-  // correct for the default order.
-  const contentTop = vertical
-    ? TITLE_Y + theme.titleHeight + theme.gapKpiToCharts
-    : slicerCount === 0
-      ? TITLE_Y + theme.titleHeight + theme.gapSmall
-      : slicersBottom + theme.gapSmall;
-  const kpiTop = contentTop;
-  const firstKpiSection = sections.find(s => s.type === "kpi");
-  const kpis = firstKpiSection ? (kpiCardsBySectionId.get(firstKpiSection.id) || []) : [];
-  const kpiRow1 = kpis.slice(0, kpisPerRow);
-  const kpiRow2 = kpis.length > kpisPerRow
-    ? kpis.slice(kpisPerRow, kpisPerRow + theme.secondRowMaxItems)
-    : [];
-  const row1Height = kpiRow1.length
-    ? Math.max(...kpiRow1.map(k => k.height ?? theme.kpiMinHeight))
-    : 0;
-  const row2Height = kpiRow2.length
-    ? Math.max(...kpiRow2.map(k => k.height ?? theme.kpiMinHeight))
-    : 0;
-  const kpiTotalHeight = row1Height + (row2Height > 0 ? theme.gapSmall + row2Height : 0);
-  const kpiBottom = kpis.length > 0 ? kpiTop + kpiTotalHeight : kpiTop;
 
   // The boundary between the prefix and the chart region uses the same
   // gap rule as any other, evaluated as though the first charts section
@@ -333,61 +293,43 @@ export function walkSections(theme, content) {
 
   const rowTops = new Array(chartRowCount).fill(0);
   const { placed: placedInterior } = placeStack(
-    theme, interiorEffective, chartsTop, vertical, rowHeights, rowTops
+    theme, interiorEffective, chartsTop, vertical, rowHeights, rowTops, gapToInterior
   );
 
   const placed = placedPrefix.concat(placedInterior);
   const sectionById = Object.fromEntries(placed.filter(s => s.id).map(s => [s.id, s]));
 
-  const chartsHeight = chartsBottom - chartsTop - interiorFixed - interiorGaps;
-
-  // slicersTop/slicersBottom/kpiTop/kpiBottom above are *nominal* — the
-  // position those bands would sit at in the theme's original title ->
-  // slicers -> kpi -> charts order. Once the user can drag a band
-  // somewhere else, that formula and "where the walk actually placed it"
-  // can disagree, and every consumer that matters (computeSlicersLayout,
-  // computeKpiLayoutForBand) reads the field named here — so this is the
-  // one place that has to reconcile the two, rather than leaving it to
-  // whoever calls walkSections() next to remember. A horizontal slicers
-  // section always has a home in `sectionById` once it has slicers to
-  // show; when it's the vertical column instead, it has no placed box at
-  // all (buildEffectiveStack() drops it from the stack on purpose — the
-  // column sits *beside* the stack, not in it), so the nominal value
-  // (itself the column's own top) is exactly what's still wanted there.
+  // `slicersTop` above is *nominal* — the position the band would sit at in
+  // the theme's original title -> slicers -> kpi -> charts order. Now that a
+  // band can be dragged elsewhere, that formula and "where the walk actually
+  // placed it" can disagree, and computeSlicersLayout reads the field named
+  // here — so this is the one place that reconciles the two, rather than
+  // leaving it to whoever calls walkSections() next to remember. A
+  // horizontal slicers section always has a home in `sectionById` once it
+  // has slicers to show; when it's the vertical column instead, it has no
+  // placed box at all (buildEffectiveStack() drops it from the stack on
+  // purpose — the column sits *beside* the stack, not in it), so the nominal
+  // value (itself the column's own top) is exactly what is still wanted.
   const slicersSectionDef = sections.find(s => s.type === "slicers");
   const placedSlicers = !vertical && slicersSectionDef ? sectionById[slicersSectionDef.id] : undefined;
-  const resolvedSlicersTop = placedSlicers ? placedSlicers.top : slicersTop;
-  const resolvedSlicersBottom = placedSlicers ? placedSlicers.bottom : slicersBottom;
-
-  const placedHeaderKpi = firstKpiSection ? sectionById[firstKpiSection.id] : undefined;
-  const resolvedKpiTop = placedHeaderKpi ? placedHeaderKpi.top : kpiTop;
-  const resolvedKpiBottom = placedHeaderKpi ? placedHeaderKpi.bottom : kpiBottom;
 
   return {
     TITLE_Y,
-    slicersTop: resolvedSlicersTop,
-    slicersBottom: resolvedSlicersBottom,
+    slicersTop: placedSlicers ? placedSlicers.top : slicersTop,
     slicerColumnTop,
-    slicerColumnBottom,
     slicerColumnHeight,
     slicerColumnWidth: columnWidth,
     slicerColumnLeft,
-    slicerSide,
     hasColumn,
     contentLeft,
     contentWidth,
-    kpiTop: resolvedKpiTop,
-    kpiBottom: resolvedKpiBottom,
     chartsTop,
-    chartsBottom,
-    chartsHeight,
-    hasRow2,
+    chartsHeight: chartsHeightBudget,
 
     sections: placed,
     sectionById,
     rowTops,
     rowHeights,
-    chartGroups,
     chartRowGapCount
   };
 }
