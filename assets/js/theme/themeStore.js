@@ -11,7 +11,14 @@
 // edited file, a theme saved by an older build, or a corrupted entry can
 // never reach the layout solvers in a shape they do not expect.
 
-import { normalizeTheme, cloneTheme, BUILTIN_THEMES, getBuiltinTheme, THEME_SCHEMA } from "./themeModel.js";
+import {
+  normalizeTheme,
+  cloneTheme,
+  BUILTIN_THEMES,
+  getBuiltinTheme,
+  THEME_SCHEMA,
+  PLACEMENTS
+} from "./themeModel.js";
 
 const STORAGE_KEY = "kb-layout-themes-v1";
 const DEFAULT_KEY = "kb-layout-default-theme-v1";
@@ -58,6 +65,24 @@ function persist() {
 /** Built-ins first, then custom themes in the order they were saved. */
 export function getAllThemes() {
   return [...BUILTIN_THEMES.map(cloneTheme), ...customThemes().map(cloneTheme)];
+}
+
+/** Every layout of one placement — what the sidebar's chip list shows, since
+ *  the placement switch above it decides which shape is on screen. */
+export function themesForPlacement(placement) {
+  return getAllThemes().filter(t => t.placement === placement);
+}
+
+/**
+ * The placements at least one layout exists for, in PLACEMENTS order. The
+ * sidebar disables the rest: with no family link between a horizontal layout
+ * and its vertical counterpart, "switch to vertical" can only mean "show me
+ * the vertical layouts", and offering that when none exist would be a dead
+ * control. Nothing is ever created implicitly to fill the gap.
+ */
+export function availablePlacements() {
+  const present = new Set(getAllThemes().map(t => t.placement));
+  return PLACEMENTS.filter(p => present.has(p));
 }
 
 export function getTheme(id) {

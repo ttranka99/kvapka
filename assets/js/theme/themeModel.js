@@ -2,9 +2,19 @@
 //
 // A *theme* is the complete set of layout constants the solvers used to read
 // as hardcoded module-level values (margins, gaps, the title band height, the
-// slicer/KPI minimums, the per-row caps, the 5px grid step) plus the two
-// structural switches that used to be implicit: whether slicers stand in a
-// left column, and whether a second KPI band exists inside the chart area.
+// slicer/KPI minimums, the per-row caps, the 5px grid step) plus the band
+// stack (`sections`) and the one structural decision that defines the layout's
+// shape: its `placement`.
+//
+// A theme is ONE layout, in ONE placement. It used to be both at once — a
+// single object carrying `defaultSlicerOrientation` as a mere starting
+// position, which the sidebar could flip at any time, reusing every one of
+// the theme's numbers for a shape they were never authored for. Horizontal
+// and vertical are different layouts with different budgets (a slicer band
+// costs height, a slicer column costs width), so they are now different
+// themes: "FULL HD" horizontal and "FULL HD" vertical are two records the
+// user edits separately. The sidebar still compacts them behind one switch,
+// but that switch now *chooses a layout* rather than bending one.
 //
 // Themes are plain JSON — that's what makes them exportable to a file, kept
 // in localStorage, and pasted between machines without a build step. The
@@ -12,7 +22,28 @@
 // applies it, the editor renders its controls from it, and validation clamps
 // against it. Adding a tunable means adding one entry here, nothing else.
 
-export const THEME_SCHEMA = "kb-layout-theme@2";
+export const THEME_SCHEMA = "kb-layout-theme@3";
+
+// The three shapes a layout can have, in the order the UI offers them. A
+// vertical column's side is part of the layout's identity, not a toggle on
+// top of it — "slicers left" and "slicers right" hand the content box to
+// opposite sides of the canvas, which is a different layout, not a mirrored
+// view of one.
+export const PLACEMENTS = ["horizontal", "vertical-left", "vertical-right"];
+
+const PLACEMENT_LABELS = {
+  "horizontal": "Nahoře",
+  "vertical-left": "Vlevo",
+  "vertical-right": "Vpravo"
+};
+
+export const isVerticalPlacement = p => p === "vertical-left" || p === "vertical-right";
+
+/** The side a vertical column stands on. Horizontal layouts have no column;
+ *  they answer "left" so callers never have to special-case a null. */
+export const sideOfPlacement = p => (p === "vertical-right" ? "right" : "left");
+
+export const placementLabel = p => PLACEMENT_LABELS[p] || PLACEMENT_LABELS.horizontal;
 
 // Every editable numeric constant, in the order the editor shows it.
 //   key    — property name on the theme object
@@ -21,6 +52,17 @@ export const THEME_SCHEMA = "kb-layout-theme@2";
 //   min/max/step — the input's own bounds
 //   region — the preview region this control highlights, so hovering either
 //            side of the editor lights up the other
+//   scope  — the placement this field governs, when it governs only one.
+//            Omitted means both. A field out of scope is hidden by the editor
+//            (a control with no visible effect is worse than no control) but
+//            still normalized and still stored, so a round trip through the
+//            editor never destroys the other placement's values.
+//   verticalLabel / verticalHint / verticalRegion — for a field that survives
+//            into a vertical layout but means something different there. A
+//            single label that tries to describe both at once ends up
+//            describing neither, now that only one is ever on screen — and
+//            the region it highlights moves too, since the shape it governs
+//            is drawn as a different part of the preview.
 export const FIELDS = [
   // --- Plátno ---
   { key: "canvasWidth", group: "canvas", label: "Šířka plátna", unit: "px", min: 480, max: 7680, step: 10, region: "canvas" },
@@ -38,15 +80,29 @@ export const FIELDS = [
   { key: "titleHeight", group: "header", label: "Výška hlavičky", unit: "px", min: 0, max: 400, step: 1, region: "title" },
 
   // --- Slicery ---
+  //
+  // slicerHeight is the one field both placements keep, and it means a
+  // different thing in each: the band's fixed height in a row, the per-slicer
+  // floor the stack grows from in a column.
   { key: "slicerHeight", group: "slicers", label: "Výška sliceru", unit: "px", min: 20, max: 400, step: 1, region: "slicer",
-    hint: "V řádku pevná výška, ve sloupci minimální (a výchozí) výška." },
-  { key: "minSlicerWidth", group: "slicers", label: "Min. šířka sliceru", unit: "px", min: 20, max: 600, step: 5, region: "slicer" },
+    hint: "Pevná výška slicerů ve vodorovném pásu.",
+    verticalLabel: "Min. výška sliceru",
+    verticalHint: "Minimální (a výchozí) výška jednoho sliceru ve sloupci — od ní se odvíjí, kolik se jich do sloupce vejde.",
+    // The horizontal band is drawn as "slicer"; the column as "slicer-column".
+    // Same field, two different things on screen to point at.
+    verticalRegion: "slicer-column" },
+  { key: "minSlicerWidth", group: "slicers", label: "Min. šířka sliceru", unit: "px", min: 20, max: 600, step: 5, region: "slicer",
+    scope: "horizontal" },
   { key: "slicerColumnWidth", group: "slicers", label: "Šířka sloupce", unit: "px", min: 60, max: 900, step: 5, region: "slicer-column",
-    hint: "Výchozí šířka svislého sloupce slicerů vlevo." },
-  { key: "minSlicerColumnWidth", group: "slicers", label: "Min. šířka sloupce", unit: "px", min: 40, max: 900, step: 5, region: "slicer-column" },
-  { key: "maxSlicerColumnWidth", group: "slicers", label: "Max. šířka sloupce", unit: "px", min: 60, max: 1200, step: 5, region: "slicer-column" },
+    scope: "vertical",
+    hint: "Výchozí šířka svislého sloupce slicerů." },
+  { key: "minSlicerColumnWidth", group: "slicers", label: "Min. šířka sloupce", unit: "px", min: 40, max: 900, step: 5, region: "slicer-column",
+    scope: "vertical" },
+  { key: "maxSlicerColumnWidth", group: "slicers", label: "Max. šířka sloupce", unit: "px", min: 60, max: 1200, step: 5, region: "slicer-column",
+    scope: "vertical" },
   { key: "slicerFillThreshold", group: "slicers", label: "Práh dopnění sloupce", unit: "%", min: 0, max: 100, step: 5, region: "slicer-column",
     percent: true,
+    scope: "vertical",
     hint: "Jakmile slicery při minimální výšce zaplní alespoň tuto část sloupce, roztáhnou se přesně na jeho výšku." },
 
   // --- KPI ---
@@ -63,11 +119,20 @@ export const FIELDS = [
   // These bound slicers and KPI cards only. Charts have no per-row count
   // limit at all — how many fit in a row follows from minChartWidth — so the
   // labels name the two things they actually govern rather than "prvky".
-  { key: "minPerRow", group: "limits", label: "Min. slicerů / KPI na řádek", min: 1, max: 12, step: 1, region: null },
-  { key: "maxPerRow", group: "limits", label: "Max. slicerů / KPI na řádek", min: 1, max: 12, step: 1, region: null },
+  //
+  // In a vertical layout the slicers stand in a single column, so these bound
+  // KPI cards alone — hence the vertical wording, which drops the half of the
+  // label that no longer applies.
+  { key: "minPerRow", group: "limits", label: "Min. slicerů / KPI na řádek", min: 1, max: 12, step: 1, region: null,
+    verticalLabel: "Min. KPI na řádek" },
+  { key: "maxPerRow", group: "limits", label: "Max. slicerů / KPI na řádek", min: 1, max: 12, step: 1, region: null,
+    verticalLabel: "Max. KPI na řádek" },
   { key: "secondRowMaxItems", group: "limits", label: "Max. slicerů / KPI na 2. řádku", min: 0, max: 12, step: 1, region: null,
-    hint: "Kolik se jich vejde na druhý řádek, když je první plný. Součet s limitem na řádek je absolutní strop, 0 druhý řádek úplně vypne. Prostředního pásu KPI se to netýká — ten je vždy jednořádkový." },
+    hint: "Kolik se jich vejde na druhý řádek, když je první plný. Součet s limitem na řádek je absolutní strop, 0 druhý řádek úplně vypne. Prostředního pásu KPI se to netýká — ten je vždy jednořádkový.",
+    verticalLabel: "Max. KPI na 2. řádku",
+    verticalHint: "Kolik KPI se vejde na druhý řádek, když je první plný. Součet s limitem na řádek je absolutní strop, 0 druhý řádek úplně vypne. Prostředního pásu KPI se to netýká — ten je vždy jednořádkový." },
   { key: "defaultSlicersPerRow", group: "limits", label: "Výchozí slicery na řádek", min: 1, max: 12, step: 1, region: "slicer",
+    scope: "horizontal",
     hint: "Hodnota, na které stránka s touto šablonou začíná. V postranním panelu ji lze kdykoli změnit." },
   { key: "defaultKpisPerRow", group: "limits", label: "Výchozí KPI na řádek", min: 1, max: 12, step: 1, region: "kpi" },
 
@@ -88,13 +153,40 @@ export const GROUPS = [
     label: "Počty slicerů a KPI",
     // These two settings only ever fill a dropdown — they read like layout
     // constraints, so the group says outright what they do and what they
-    // deliberately leave alone.
-    note: "První dvě hodnoty určují rozsah, který nabídnou pole „Slicery na řádek“ a „KPI na řádek“ v postranním panelu. Počet grafů v řadě tím omezen není — ten vychází z minimální šířky grafu."
+    // deliberately leave alone. The vertical wording points at the one
+    // dropdown that still exists there: the sidebar collapses "Slicery na
+    // řádek" entirely for a column (see app.js), so naming it would send the
+    // user looking for a control that isn't on screen.
+    note: "První dvě hodnoty určují rozsah, který nabídnou pole „Slicery na řádek“ a „KPI na řádek“ v postranním panelu. Počet grafů v řadě tím omezen není — ten vychází z minimální šířky grafu.",
+    verticalNote: "První dvě hodnoty určují rozsah, který nabídne pole „KPI na řádek“ v postranním panelu. Slicery stojí ve sloupci, takže se jich netýkají. Počet grafů v řadě tím omezen není — ten vychází z minimální šířky grafu."
   },
   { id: "grid", label: "Mřížka" }
 ];
 
 export const FIELD_BY_KEY = Object.fromEntries(FIELDS.map(f => [f.key, f]));
+
+// --- Placement-aware presentation ---------------------------------------
+//
+// Three tiny resolvers so the editor never has to ask "is this vertical?"
+// itself. They exist here, next to the table they read, because the wording
+// and the scoping are properties of the field — the editor just renders
+// whatever they hand back.
+
+/** The fields a layout of this placement actually uses, in table order. */
+export const fieldsFor = placement =>
+  FIELDS.filter(f => !f.scope || (f.scope === "vertical") === isVerticalPlacement(placement));
+
+export const fieldLabel = (field, placement) =>
+  (isVerticalPlacement(placement) && field.verticalLabel) || field.label;
+
+export const fieldHint = (field, placement) =>
+  (isVerticalPlacement(placement) && field.verticalHint) || field.hint;
+
+export const fieldRegion = (field, placement) =>
+  (isVerticalPlacement(placement) && field.verticalRegion) || field.region;
+
+export const groupNote = (group, placement) =>
+  (isVerticalPlacement(placement) && group.verticalNote) || group.note;
 
 // The generalised title/slicer/KPI/charts stack: the ordered list of bands
 // the editor lets the user reorder and repeat (charts sections may occur
@@ -142,39 +234,86 @@ const BASE = {
   secondRowMaxItems: 7,
   defaultSlicersPerRow: 7,
   defaultKpisPerRow: 6,
-  defaultSlicerOrientation: "horizontal",
-  // Which side of the canvas the slicer column stands on when slicers are
-  // vertical. Horizontal slicer bands ignore it entirely.
-  slicerSide: "left",
+  // Which shape this layout is. Not a default and not a starting position —
+  // the layout's identity. Changing it makes a different layout, which is
+  // why the editor only lets it be chosen when a theme is created.
+  placement: "horizontal",
   step: 5,
   sections: DEFAULT_SECTIONS()
 };
 
+// Everything that makes HD an HD rather than a FULL HD — the canvas and the
+// proportions that follow from it. Shared by both of its placements, so the
+// pair still reads as one resolution.
+const HD_CANVAS = {
+  canvasWidth: 1280,
+  canvasHeight: 720,
+  margin: 20,
+  titleHeight: 40,
+  gapKpiToCharts: 20,
+  slicerHeight: 70,
+  slicerColumnWidth: 190,
+  minSlicerColumnWidth: 170,
+  maxSlicerColumnWidth: 400,
+  kpiMinHeight: 80,
+  minChartRowHeight: 100
+};
+
+// What changes when a resolution is authored vertically instead. Only
+// `slicerHeight`, because it is the one field that genuinely means something
+// different in a column: a band's fixed height becomes the floor a stacked
+// slicer may shrink to, and a shorter floor is what lets a full column hold a
+// useful number of them. The column widths each placement's theme carries are
+// already the right ones (they were always authored for the column — the
+// horizontal layouts simply never rendered them), so restating them here
+// would be two copies of one number waiting to drift apart.
+//
+// That these deltas are small is the point: the pair starts out alike and is
+// now *separately editable*, rather than one set of numbers stretched over
+// two shapes.
+const VERTICAL_FULL_HD = { slicerHeight: 70 };
+const VERTICAL_HD = { slicerHeight: 60 };
+
+// The four built-ins. The horizontal two keep the ids they have always had
+// (`FULL_HD`, `HD`), so a stored default-theme id and any page authored
+// before this change still resolve to exactly the layout they named. Each
+// pair shares a label — the placement switch is what tells them apart, and
+// the chip list only ever shows one placement at a time.
 export const BUILTIN_THEMES = [
-  { ...BASE, id: "FULL_HD", label: "FULL HD", builtin: true, derivedFrom: "FULL_HD" },
-  {
-    ...BASE,
-    id: "HD",
-    label: "HD",
-    builtin: true,
-    derivedFrom: "HD",
-    canvasWidth: 1280,
-    canvasHeight: 720,
-    margin: 20,
-    titleHeight: 40,
-    gapKpiToCharts: 20,
-    slicerHeight: 70,
-    slicerColumnWidth: 190,
-    minSlicerColumnWidth: 170,
-    maxSlicerColumnWidth: 400,
-    kpiMinHeight: 80,
-    minChartRowHeight: 100
-  }
+  { ...BASE, id: "FULL_HD", label: "FULL HD", builtin: true, derivedFrom: "FULL_HD", placement: "horizontal" },
+  { ...BASE, ...VERTICAL_FULL_HD, id: "FULL_HD_V", label: "FULL HD", builtin: true, derivedFrom: "FULL_HD_V", placement: "vertical-left" },
+  { ...BASE, ...HD_CANVAS, id: "HD", label: "HD", builtin: true, derivedFrom: "HD", placement: "horizontal" },
+  { ...BASE, ...HD_CANVAS, ...VERTICAL_HD, id: "HD_V", label: "HD", builtin: true, derivedFrom: "HD_V", placement: "vertical-left" }
 ];
 
 export function getBuiltinTheme(id) {
   return BUILTIN_THEMES.find(t => t.id === id) || null;
 }
+
+/**
+ * The built-in a theme's "N changes from …" readout compares against.
+ *
+ * Matching is by *orientation*, not by exact placement: a built-in of the
+ * other orientation would diff two different shapes and call every slicer
+ * field changed, but a vertical-left built-in is a perfectly good baseline
+ * for a vertical-right layout — the two differ by which side the column
+ * stands on, which is exactly the one difference worth reporting. That
+ * matters because no right-side built-in ships, so a right-side layout would
+ * otherwise fall all the way back to a horizontal one.
+ */
+export function baselineIdFor(placement, preferredId) {
+  const named = getBuiltinTheme(preferredId);
+  if (named && isVerticalPlacement(named.placement) === isVerticalPlacement(placement)) {
+    return named.id;
+  }
+  const match = BUILTIN_THEMES.find(
+    t => isVerticalPlacement(t.placement) === isVerticalPlacement(placement)
+  );
+  return (match || BUILTIN_THEMES[0]).id;
+}
+
+export const baselineFor = theme =>
+  getBuiltinTheme(baselineIdFor(theme.placement, theme.derivedFrom)) || BUILTIN_THEMES[0];
 
 function num(value, fallback) {
   const n = typeof value === "string" ? Number(value.replace(",", ".")) : Number(value);
@@ -313,7 +452,19 @@ export function normalizeTheme(raw) {
   out.id = String(src.id == null ? BASE.id : src.id).trim() || BASE.id;
   out.label = String(src.label == null ? out.id : src.label).trim().slice(0, 40) || out.id;
   out.builtin = src.builtin === true;
-  out.derivedFrom = getBuiltinTheme(src.derivedFrom) ? src.derivedFrom : BASE.derivedFrom;
+
+  // Placement, and with it the @2 -> @3 migration. This module has no
+  // versioned migration machinery and doesn't need any: normalizeTheme is
+  // what every stored, imported and hand-edited theme passes through, so an
+  // older shape is repaired here or nowhere. A @2 theme carried the pair
+  // `defaultSlicerOrientation` + `slicerSide`; both collapse into one token.
+  out.placement = PLACEMENTS.includes(src.placement)
+    ? src.placement
+    : src.defaultSlicerOrientation === "vertical"
+      ? (src.slicerSide === "right" ? "vertical-right" : "vertical-left")
+      : "horizontal";
+
+  out.derivedFrom = baselineIdFor(out.placement, src.derivedFrom);
 
   FIELDS.forEach(field => {
     let value = src[field.key];
@@ -324,9 +475,6 @@ export function normalizeTheme(raw) {
     const clamped = Math.min(hi, Math.max(lo, num(value, BASE[field.key])));
     out[field.key] = field.percent ? clamped : Math.round(clamped);
   });
-
-  out.defaultSlicerOrientation = src.defaultSlicerOrientation === "vertical" ? "vertical" : "horizontal";
-  out.slicerSide = src.slicerSide === "right" ? "right" : "left";
 
   // A theme that arrives with no sections of its own (never saved through
   // this schema at all) falls back to the default single-band shape, never
@@ -374,16 +522,20 @@ export function validateTheme(theme) {
   const issues = [];
   const uw = usableWidth(theme);
   const uh = usableHeight(theme);
+  const vertical = isVerticalPlacement(theme.placement);
 
   if (uw < 200) issues.push({ severity: "error", text: "Použitelná šířka je menší než 200 px — zmenšete okraj nebo zvětšete plátno." });
   if (uh < 200) issues.push({ severity: "error", text: "Použitelná výška je menší než 200 px — zmenšete okraj nebo zvětšete plátno." });
 
-  if (theme.minSlicerColumnWidth > uw - theme.minChartWidth - theme.gapKpiToCharts) {
+  // Both of the next two warn about a field the *other* placement doesn't
+  // show. Reporting them anyway would point the user at a control that isn't
+  // on screen, so each is asked only of the layout it applies to.
+  if (vertical && theme.minSlicerColumnWidth > uw - theme.minChartWidth - theme.gapKpiToCharts) {
     issues.push({ severity: "warning", text: "Sloupec slicerů zabere skoro celou šířku — pro graf vedle něj nezbude minimální šířka." });
   }
 
   const perRowMin = theme.maxPerRow * theme.minSlicerWidth + (theme.maxPerRow - 1) * theme.gapSmall;
-  if (perRowMin > uw) {
+  if (!vertical && perRowMin > uw) {
     issues.push({ severity: "warning", text: `Řádek ${theme.maxPerRow} slicerů potřebuje při minimální šířce ${perRowMin} px, k dispozici je ${uw} px.` });
   }
 
@@ -398,9 +550,7 @@ export function validateTheme(theme) {
   // charging it height here would invent a squeeze that cannot happen.
   const kpiSections = theme.sections.filter(s => s.type === "kpi");
   const bandCount = kpiSections.length || 1;
-  const slicerBand = theme.defaultSlicerOrientation === "vertical"
-    ? 0
-    : theme.slicerHeight + theme.gapSmall;
+  const slicerBand = vertical ? 0 : theme.slicerHeight + theme.gapSmall;
   const need =
     theme.titleHeight + theme.gapSmall +
     slicerBand +
@@ -426,9 +576,12 @@ export function cloneTheme(theme) {
 }
 
 // Which fields differ between two themes — used to tell the user how far a
-// custom theme has drifted from the preset it was derived from.
+// custom theme has drifted from the preset it was derived from. Only the
+// fields the placement actually uses count: a horizontal layout's column
+// widths are carried along untouched, and reporting them as "changes" would
+// inflate the count with values the editor never showed.
 export function diffFromTheme(theme, base) {
-  const keys = FIELDS.map(f => f.key).concat("defaultSlicerOrientation", "slicerSide");
+  const keys = fieldsFor(theme.placement).map(f => f.key).concat("placement");
   const changed = keys.filter(k => theme[k] !== base[k]);
 
   if (JSON.stringify(theme.sections) !== JSON.stringify(base.sections)) changed.push("sections");

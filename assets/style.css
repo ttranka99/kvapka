@@ -276,10 +276,18 @@ body {
   transition: background 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out;
 }
 
-.template-option:hover {
+.template-option:hover:not(:disabled) {
   background: var(--color-primary-light);
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+/* A slicer placement with no template of its own. Kept in place rather than
+   hidden, so the set of shapes a layout can have stays visible — the option
+   is simply not reachable until the user builds one. */
+.template-option:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .template-option:focus-visible {

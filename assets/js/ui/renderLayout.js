@@ -841,8 +841,13 @@ export function renderLayout() {
 
     const rowHandle = document.createElement("div");
     rowHandle.className = "row-resize-handle";
-    rowHandle.style.left = scale(state.MARGIN) + "px";
-    rowHandle.style.width = scale(state.USABLE_WIDTH) + "px";
+    // The content box, not the whole canvas: a chart row boundary is a
+    // boundary between charts, so in a vertical layout it must stop where the
+    // charts do rather than running through the slicer column beside them.
+    // Horizontally contentLeft/contentWidth are exactly MARGIN/USABLE_WIDTH,
+    // so this is the same handle it has always been.
+    rowHandle.style.left = scale(v.contentLeft) + "px";
+    rowHandle.style.width = scale(v.contentWidth) + "px";
     rowHandle.style.top = (midScreenY - canvasRect.top) + "px";
 
     attachRowResizeHandle(rowHandle, rowIndex, renderLayout);
@@ -853,7 +858,7 @@ export function renderLayout() {
     // while rendering it, above) would land almost exactly on top of this
     // row-add "+" — nudge this one aside so both stay independently
     // clickable instead of overlapping.
-    const rowCenterX = state.MARGIN + state.USABLE_WIDTH / 2;
+    const rowCenterX = v.contentLeft + v.contentWidth / 2;
     const hasCenteredStack = rowA.some(cell =>
       cell.subCharts && Math.abs((cell.x + cell.width / 2) - rowCenterX) * state.EFFECTIVE_SCALE < 32
     );
@@ -862,14 +867,14 @@ export function renderLayout() {
     appendEdgeAddControl({
       zone: null,
       btnPos: { x: btnX, y: midScreenY - canvasRect.top },
-      // Scoped to the whole row band above the boundary (full usable width),
-      // which is what distinguishes this preview from a stacked cell's
-      // bottom-edge "+" sharing the same boundary — that one's bar spans a
-      // single column, this one the entire row.
+      // Scoped to the whole row band above the boundary, which is what
+      // distinguishes this preview from a stacked cell's bottom-edge "+"
+      // sharing the same boundary — that one's bar spans a single column,
+      // this one the entire row.
       scope: {
-        left: scale(state.MARGIN),
+        left: scale(v.contentLeft),
         top: aRect.top - canvasRect.top,
-        width: scale(state.USABLE_WIDTH),
+        width: scale(v.contentWidth),
         height: aRect.height,
         edge: "bottom"
       },
@@ -889,12 +894,12 @@ export function renderLayout() {
       const rect = el.getBoundingClientRect();
       const top = rect.bottom - canvasRect.top;
       appendEdgeAddControl({
-        zone: { left: scale(state.MARGIN), top: top - 7, width: scale(state.USABLE_WIDTH), height: 14 },
-        btnPos: { x: scale(state.MARGIN + state.USABLE_WIDTH / 2), y: top },
+        zone: { left: scale(v.contentLeft), top: top - 7, width: scale(v.contentWidth), height: 14 },
+        btnPos: { x: scale(v.contentLeft + v.contentWidth / 2), y: top },
         scope: {
-          left: scale(state.MARGIN),
+          left: scale(v.contentLeft),
           top: rect.top - canvasRect.top,
-          width: scale(state.USABLE_WIDTH),
+          width: scale(v.contentWidth),
           height: rect.height,
           edge: "bottom"
         },

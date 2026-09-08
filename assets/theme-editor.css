@@ -243,6 +243,32 @@ body.theme-editor-reordering .theme-handle {
   color: var(--text-muted);
 }
 
+/* Where the slicers stand. Sits with the name, not with the slicer tunables,
+   because it identifies the template rather than adjusting it — and after the
+   first save it stops being a control at all and becomes a badge. */
+.theme-editor__placement {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.theme-editor__placement-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.theme-editor__placement-badge {
+  padding: 2px var(--space-2);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-subtle, var(--bg-surface));
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-control);
+  cursor: help;
+}
+
 .theme-editor__head-actions {
   display: flex;
   align-items: center;
@@ -630,6 +656,12 @@ body.theme-editor-reordering .theme-handle {
   z-index: 6;
 }
 
+/* The canvas outlines itself when its own width/height are being touched.
+   Same ring as a region, drawn outside the edge so it doesn't crop. */
+.theme-preview.is-linked {
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
 /* The usable-area outline sits behind everything: it is context, not a
    component. */
 .theme-region--usable {
@@ -902,25 +934,13 @@ body.theme-editor-reordering .theme-grip {
   margin-top: 2px;
 }
 
-/* The gutter marker — the only slot kind left that still needs a line: once
-   the dragged band is genuinely lifted and the other bands genuinely
-   displace live (see .theme-region--dragging above and
-   applyProjectedLayout() in themeEditor.js), a line marking a reorder slot
-   would just be redundant clutter. Docking has no displacement of its own
-   to preview, so it keeps this. */
-.theme-insertion-line {
-  position: absolute;
-  z-index: 21;
-  pointer-events: none;
-  background: var(--color-primary);
-}
-
-.theme-insertion-line--v {
-  width: 3px;
-  top: 0;
-  bottom: 0;
-  border-radius: 2px;
-}
+/* No insertion marker of any kind is drawn during a reorder. The dragged band
+   is genuinely lifted and the others genuinely displace live (see
+   .theme-region--dragging above and applyProjectedLayout() in
+   themeEditor.js), so a line marking the slot would be redundant clutter.
+   The one marker that survived that reasoning was the gutter dock's vertical
+   line, and gutter docking is gone: a drag can no longer change a template's
+   placement, only reorder its bands. */
 
 .theme-stage__readout {
   display: flex;

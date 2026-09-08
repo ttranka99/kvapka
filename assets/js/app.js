@@ -10,13 +10,18 @@ import { initTabsUI } from "./ui/tabs.js";
 import * as state from "./state/state.js";
 import { canAddSlicer, slicerLimitMessage } from "./events/slicerEvents.js";
 import { handleAppendKpi } from "./events/kpiEvents.js";
-import { initThemePicker, renderThemeSelector, syncRowLimitOptions, defaultThemeLabel } from "./ui/themePicker.js";
+import {
+  initThemePicker,
+  renderThemeSelector,
+  syncRowLimitOptions,
+  syncPlacementControls,
+  defaultThemeLabel
+} from "./ui/themePicker.js";
 
 const addKpiBtn = document.getElementById("add-kpi");
 const addKpiBandsContainer = document.getElementById("add-kpi-bands");
 const addSlicerBtn = document.getElementById("add-slicer");
 const addChartSplitBtn = document.getElementById("add-chart-split");
-const orientationButtons = document.querySelectorAll(".template-option[data-orientation]");
 const canvasSizeLabel = document.getElementById("canvas-size-label");
 const scopeNote = document.getElementById("theme-scope-note");
 const slicersPerRowSelect = document.getElementById("slicers-per-row");
@@ -76,19 +81,12 @@ function syncTemplateControls() {
     `Tato stránka: ${state.activeTheme.label} · nové stránky: ${defaultThemeLabel()}`;
 }
 
-function syncOrientationControls() {
-  orientationButtons.forEach(button => {
-    // "Nahoře" carries no data-side and so matches regardless of it; "Vlevo"
-    // and "Vpravo" both claim data-orientation="vertical", so telling them
-    // apart needs the side too.
-    const matchesOrientation = button.dataset.orientation === state.slicerOrientation;
-    const matchesSide = !button.dataset.side || button.dataset.side === state.SLICER_SIDE;
-    button.classList.toggle("active", matchesOrientation && matchesSide);
-  });
-
-  // The vertical column is always a single column, so a per-row limit has
-  // nothing to control there — the row animates away via .collapsible rather
-  // than popping out of the panel.
+// The placement switch itself lives in themePicker.js (it picks a layout, so
+// it belongs with the other layout controls). What stays here is the sidebar
+// row that has to follow the active layout's shape: the vertical column is
+// always a single column, so a per-row limit has nothing to control there —
+// the row animates away via .collapsible rather than popping out of the panel.
+function syncSlicerRowVisibility() {
   const vertical = state.isVerticalSlicers();
   slicersPerRowField.classList.toggle("expanded", !vertical);
   // A collapsed .collapsible is 0px tall but only overflow-hidden, so its
@@ -119,31 +117,6 @@ function syncKpiBandControls() {
 
 function syncRowLimitControls() {
   syncRowLimitOptions();
-}
-
-function initOrientationControls() {
-  orientationButtons.forEach(button => {
-    button.addEventListener("click", () => {
-      const orientation = button.dataset.orientation;
-      // Setting a side implies vertical, but "Nahoře" carries no side of its
-      // own — leave whatever side is already set untouched for it, since it
-      // only matters again once the user goes back to a vertical column.
-      const side = button.dataset.side || state.SLICER_SIDE;
-      if (orientation === state.slicerOrientation && side === state.SLICER_SIDE) return;
-
-      state.setSlicerOrientation(orientation);
-      state.setSlicerSide(side);
-      // Switching orientation or side changes both the width available to
-      // the KPIs and charts and the height available to the slicers, so —
-      // as with a template switch — every locked size could now be invalid.
-      state.resetSizingLocks();
-      state.setWarnings([]);
-      setSelected(null);
-      syncOrientationControls();
-      renderLayout();
-      renderWarnings();
-    });
-  });
 }
 
 function initRowLimitControls() {
@@ -179,7 +152,8 @@ function initRowLimitControls() {
 function refreshUIFromState() {
   setSelected(null);
   syncTemplateControls();
-  syncOrientationControls();
+  syncPlacementControls();
+  syncSlicerRowVisibility();
   syncKpiBandControls();
   syncRowLimitControls();
   renderLayout();
@@ -198,10 +172,9 @@ function start() {
   initTabs();
   initTabsUI({ refreshUI: refreshUIFromState });
   initThemePicker({ refreshUI: refreshUIFromState });
-  initOrientationControls();
   initRowLimitControls();
   syncTemplateControls();
-  syncOrientationControls();
+  syncSlicerRowVisibility();
   syncKpiBandControls();
   syncRowLimitControls();
   renderLayout();

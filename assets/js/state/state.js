@@ -13,7 +13,13 @@
 // change is therefore a `let` assigned by applyTheme() — including several
 // values that used to be `const` because nothing could vary them yet.
 
-import { normalizeTheme, cloneTheme, BUILTIN_THEMES } from "../theme/themeModel.js";
+import {
+  normalizeTheme,
+  cloneTheme,
+  BUILTIN_THEMES,
+  isVerticalPlacement,
+  sideOfPlacement
+} from "../theme/themeModel.js";
 import { getTheme } from "../theme/themeStore.js";
 import { setStep } from "../layout/sizeStep.js";
 import { addWarning } from "../ui/warnings.js";
@@ -62,12 +68,15 @@ export let SECOND_ROW_MAX_ITEMS = activeTheme.secondRowMaxItems;
 export let MAX_SLICERS = activeTheme.defaultSlicersPerRow;
 export let MAX_KPIS = activeTheme.defaultKpisPerRow;
 
-export let slicerOrientation = activeTheme.defaultSlicerOrientation;
-// Which side of the canvas the vertical slicer column stands on. Meaningless
-// while slicers are horizontal, but kept as its own binding (not derived
-// from the theme at read time) for the same reason slicerOrientation is: a
-// page can hold a side of its own, restored after applyTheme() by tabs.js.
-export let SLICER_SIDE = activeTheme.slicerSide;
+// Both are read-only projections of the active theme's `placement`, assigned
+// only by applyTheme(). They used to be independently mutable, with the
+// sidebar flipping orientation under a theme that had been authored for the
+// other shape. Orientation is now the layout's identity, so changing it means
+// choosing a different theme — there is deliberately no setter for either.
+// The bindings stay because every solver and renderer already reads them, and
+// reading them is still exactly right.
+export let slicerOrientation = isVerticalPlacement(activeTheme.placement) ? "vertical" : "horizontal";
+export let SLICER_SIDE = sideOfPlacement(activeTheme.placement);
 
 export let slicers = [];
 // KPI cards, keyed by the id of the `kpi` section (in theme.sections) they
@@ -93,15 +102,7 @@ export function setSelectedElement(v) { selectedElement = v; }
 export function setWarnings(v) { warnings = v; }
 export function setEffectiveScale(v) { EFFECTIVE_SCALE = v; }
 
-export function setSlicerOrientation(v) {
-  slicerOrientation = v === "vertical" ? "vertical" : "horizontal";
-}
-
 export function isVerticalSlicers() { return slicerOrientation === "vertical"; }
-
-export function setSlicerSide(v) {
-  SLICER_SIDE = v === "right" ? "right" : "left";
-}
 
 export function setSlicerColumnWidth(v) {
   SLICER_COLUMN_WIDTH = Math.min(
@@ -129,12 +130,14 @@ export function setMaxKpis(v) {
  * place those bindings are assigned wholesale, so "what does this theme
  * actually change?" has exactly one answer to read.
  *
- * Per-row limits, the slicer orientation and the slicer side are always
- * reset to the theme's own defaults, matching how a template switch always
- * did — a limit of 7 carried onto a theme that caps rows at 5 would be
- * silently out of range. A caller that needs a page's own values back (the
- * tab restore in tabs.js) re-applies them afterwards rather than asking this
- * to skip the reset.
+ * Per-row limits are always reset to the theme's own defaults, matching how a
+ * template switch always did — a limit of 7 carried onto a theme that caps
+ * rows at 5 would be silently out of range. A caller that needs a page's own
+ * values back (the tab restore in tabs.js) re-applies them afterwards rather
+ * than asking this to skip the reset.
+ *
+ * Orientation and side are not reset but *derived*: they are the theme's
+ * placement, and nothing else can set them.
  */
 export function applyTheme(theme) {
   const t = normalizeTheme(theme);
@@ -174,8 +177,8 @@ export function applyTheme(theme) {
   MAX_SLICERS = clampComponentsPerRow(t.defaultSlicersPerRow);
   MAX_KPIS = clampComponentsPerRow(t.defaultKpisPerRow);
 
-  setSlicerOrientation(t.defaultSlicerOrientation);
-  setSlicerSide(t.slicerSide);
+  slicerOrientation = isVerticalPlacement(t.placement) ? "vertical" : "horizontal";
+  SLICER_SIDE = sideOfPlacement(t.placement);
 
   kpiBands = reconcileKpiBands(oldSections, t.sections, oldKpiBands);
 

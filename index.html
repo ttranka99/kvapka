@@ -73,12 +73,18 @@
                     </div>
 
                     <div class="panel-field">
-                        <h3 class="field-label" id="label-slicer-orientation">Slicery</h3>
-                        <div class="template-selector" role="group" aria-labelledby="label-slicer-orientation">
-                            <button type="button" class="template-option active" data-orientation="horizontal">Nahoře</button>
-                            <button type="button" class="template-option" data-orientation="vertical" data-side="left">Vlevo</button>
-                            <button type="button" class="template-option" data-orientation="vertical" data-side="right">Vpravo</button>
+                        <h3 class="field-label" id="label-slicer-placement">Slicery</h3>
+                        <!-- Each option is a whole layout, not a view of one:
+                             picking it switches to a template built for that
+                             shape (ui/themePicker.js). An option with no
+                             template of its own is disabled rather than
+                             conjuring one. -->
+                        <div class="template-selector" role="group" aria-labelledby="label-slicer-placement">
+                            <button type="button" class="template-option active" data-placement="horizontal">Nahoře</button>
+                            <button type="button" class="template-option" data-placement="vertical-left">Vlevo</button>
+                            <button type="button" class="template-option" data-placement="vertical-right">Vpravo</button>
                         </div>
+                        <p class="field-note" id="placement-note"></p>
                     </div>
 
                     <div class="panel-section panel-rows">

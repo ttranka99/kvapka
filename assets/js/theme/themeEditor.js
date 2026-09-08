@@ -13,7 +13,6 @@
 // object, and hovering either highlights the other.
 
 import {
-  FIELDS,
   GROUPS,
   FIELD_BY_KEY,
   normalizeTheme,
@@ -23,8 +22,16 @@ import {
   usableWidth,
   usableHeight,
   diffFromTheme,
-  getBuiltinTheme,
-  BUILTIN_THEMES
+  PLACEMENTS,
+  placementLabel,
+  isVerticalPlacement,
+  sideOfPlacement,
+  baselineFor,
+  fieldsFor,
+  fieldLabel,
+  fieldHint,
+  fieldRegion,
+  groupNote
 } from "./themeModel.js";
 import {
   getAllThemes,
@@ -46,8 +53,11 @@ let draft = null;             // the theme being edited
 let baseTheme = null;         // what it was derived from, for the diff readout
 let editingExistingId = null; // non-null when editing a saved custom theme
 let onApply = null;           // callback handed in by the opener
+// Preview-only knobs. Orientation is deliberately NOT one of them any more:
+// the preview shows the layout being edited, and a layout has exactly one
+// shape. A toggle here would put a picture of the other placement next to
+// controls that cannot affect it.
 let preview = {
-  orientation: "horizontal",
   chartRows: 2
 };
 let highlightedRegion = null;
@@ -83,7 +93,6 @@ export function openThemeEditor(options) {
   const fork = source.builtin || options.mode === "new";
 
   if (fork) {
-    baseTheme = cloneTheme(getBuiltinTheme(source.derivedFrom) || source);
     editingExistingId = null;
     draft = cloneTheme(source);
     draft.builtin = false;
@@ -91,13 +100,20 @@ export function openThemeEditor(options) {
     draft.label = `${source.label} – kopie`;
     draft.id = makeThemeId(draft.label);
   } else {
-    baseTheme = cloneTheme(getBuiltinTheme(source.derivedFrom) || BUILTIN_THEMES[0]);
     editingExistingId = source.id;
     draft = cloneTheme(source);
   }
 
-  preview.orientation = draft.defaultSlicerOrientation;
+  // Always a built-in of the draft's own placement — comparing a vertical
+  // layout against a horizontal preset would report every slicer field as a
+  // change the user never made.
+  baseTheme = cloneTheme(baselineFor(draft));
   onApply = options.onApply || null;
+
+  // Force both to rebuild for this draft: the dialog is reused across opens,
+  // so last session's field set and chooser/badge choice are still in it.
+  controlsPlacement = null;
+  placementIsEditable = null;
 
   if (!root) root = buildDialog();
   root.hidden = false;
@@ -185,6 +201,11 @@ function buildHead() {
   identity.appendChild(el("p", "theme-editor__meta"));
   head.appendChild(identity);
 
+  // Rebuilt by render(), since it switches between a chooser and a badge and
+  // its options track the draft — unlike the rest of the head, which is
+  // static once built.
+  head.appendChild(el("div", "theme-editor__placement-slot"));
+
   const actions = el("div", "theme-editor__head-actions");
 
   const file = document.createElement("input");
@@ -223,23 +244,33 @@ function button(label, variant, onClick, title) {
 function buildControlsPane() {
   const pane = el("aside", "theme-editor__controls");
 
+  // Only the fields this layout's shape actually uses. A control that governs
+  // the other placement would sit here doing nothing visible — worse than not
+  // being offered — and its preview region doesn't exist to highlight either.
+  // The values behind the hidden fields are still carried and still saved.
+  const visible = fieldsFor(draft.placement);
+
   GROUPS.forEach(group => {
+    const fields = visible.filter(f => f.group === group.id);
+    const extras = group.id === "kpis";
+
+    // A group whose fields are all out of scope contributes nothing but a
+    // heading. None empties today; the rule keeps that true as fields are
+    // added later.
+    if (!fields.length && !extras) return;
+
     const section = el("section", "theme-group");
     section.dataset.group = group.id;
 
     section.appendChild(el("h3", "theme-group__title", group.label));
-    if (group.note) section.appendChild(el("p", "theme-group__note", group.note));
+    const note = groupNote(group, draft.placement);
+    if (note) section.appendChild(el("p", "theme-group__note", note));
 
-    FIELDS.filter(f => f.group === group.id).forEach(field => {
-      section.appendChild(buildField(field));
-    });
+    fields.forEach(field => section.appendChild(buildField(field)));
 
-    // The structural switches ride along with the group they belong to,
-    // rather than living in a separate "advanced" pane the user has to go
-    // hunting for — orientation is a slicer decision, the middle band a KPI
-    // one.
-    if (group.id === "slicers") section.appendChild(buildOrientationControl());
-    if (group.id === "kpis") section.appendChild(buildKpiBandsControl());
+    // The KPI band list rides along with the group it belongs to, rather than
+    // living in a separate "advanced" pane the user has to go hunting for.
+    if (extras) section.appendChild(buildKpiBandsControl());
 
     pane.appendChild(section);
   });
@@ -257,11 +288,18 @@ function buildControlsPane() {
 function buildField(field) {
   const row = el("div", "theme-field");
   row.dataset.field = field.key;
-  if (field.region) row.dataset.region = field.region;
 
-  const label = el("label", "theme-field__label", field.label);
+  // A field that survives into both placements can still mean different
+  // things in each (slicerHeight is a band height in a row and a per-slicer
+  // floor in a column), so both the wording and the region it lights up come
+  // from the draft's placement.
+  const region = fieldRegion(field, draft.placement);
+  if (region) row.dataset.region = region;
+
+  const label = el("label", "theme-field__label", fieldLabel(field, draft.placement));
   label.htmlFor = `theme-input-${field.key}`;
-  if (field.hint) label.title = field.hint;
+  const hint = fieldHint(field, draft.placement);
+  if (hint) label.title = hint;
   row.appendChild(label);
 
   const controls = el("div", "theme-field__controls");
@@ -295,42 +333,56 @@ function buildField(field) {
   number.addEventListener("input", () => commit(number.value));
 
   row.appendChild(controls);
-  if (field.hint) row.appendChild(el("p", "theme-field__hint", field.hint));
+  if (hint) row.appendChild(el("p", "theme-field__hint", hint));
 
-  if (field.region) {
-    row.addEventListener("mouseenter", () => setHighlight(field.region));
+  if (region) {
+    row.addEventListener("mouseenter", () => setHighlight(region));
     row.addEventListener("mouseleave", () => setHighlight(null));
-    number.addEventListener("focus", () => setHighlight(field.region));
+    number.addEventListener("focus", () => setHighlight(region));
     number.addEventListener("blur", () => setHighlight(null));
   }
 
   return row;
 }
 
-function buildOrientationControl() {
-  const row = el("div", "theme-field theme-field--switch");
-  row.appendChild(el("span", "theme-field__label", "Výchozí umístění slicerů"));
+// Where the slicers stand — the one property that decides which *layout*
+// this is, rather than how it is tuned. It sits in the dialog head next to
+// the name for that reason: both identify the template, neither adjusts it.
+//
+// It is settable only while the layout is new. Flipping it on a saved layout
+// would silently turn one template into another — every page using it would
+// change shape — so an existing layout shows the placement as a badge and
+// offers no way to change it. Building the other orientation is a separate
+// act: start a new template and choose its placement here.
+function buildPlacementControl() {
+  const row = el("div", "theme-editor__placement");
+  row.appendChild(el("span", "theme-editor__placement-label", "Slicery"));
 
-  const group = el("div", "theme-toggle");
-  // "Vlevo" and "Vpravo" both set orientation to vertical — only their side
-  // differs — so a side is carried alongside the orientation rather than a
-  // second control of its own; setting one always implies the other.
-  [["horizontal", null, "Nahoře"], ["vertical", "left", "Vlevo"], ["vertical", "right", "Vpravo"]]
-    .forEach(([orientation, side, text]) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "theme-toggle__option";
-      b.dataset.orientation = orientation;
-      if (side) b.dataset.side = side;
-      b.textContent = text;
-      b.addEventListener("click", () => {
-        draft.defaultSlicerOrientation = orientation;
-        draft.slicerSide = side || draft.slicerSide;
-        preview.orientation = orientation;
-        render();
-      });
-      group.appendChild(b);
+  if (editingExistingId !== null) {
+    const badge = el("span", "theme-editor__placement-badge", placementLabel(draft.placement));
+    badge.title = "Umístění slicerů je součástí šablony a po uložení se už nemění. Jinou variantu vytvoříte jako novou šablonu.";
+    row.appendChild(badge);
+    return row;
+  }
+
+  const group = el("div", "theme-toggle theme-toggle--sm");
+  PLACEMENTS.forEach(placement => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "theme-toggle__option";
+    b.dataset.placement = placement;
+    b.textContent = placementLabel(placement);
+    b.addEventListener("click", () => {
+      if (draft.placement === placement) return;
+      // Straight through normalizeTheme so the baseline follows the new
+      // shape too — otherwise a layout flipped to vertical would keep
+      // diffing itself against a horizontal preset.
+      draft = normalizeTheme({ ...draft, placement });
+      baseTheme = cloneTheme(baselineFor(draft));
+      render();
     });
+    group.appendChild(b);
+  });
 
   row.appendChild(group);
   return row;
@@ -554,19 +606,6 @@ function buildStagePane() {
   const toolbar = el("div", "theme-stage__toolbar");
   toolbar.appendChild(el("span", "theme-stage__toolbar-label", "Náhled pravidel"));
 
-  const orientation = el("div", "theme-toggle theme-toggle--sm");
-  [["horizontal", "Slicery nahoře"], ["vertical", "Slicery vlevo"]].forEach(([value, text]) => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "theme-toggle__option";
-    b.dataset.previewOrientation = value;
-    b.textContent = text;
-    b.title = "Přepne jen náhled — výchozí umístění nastavíte v panelu vlevo.";
-    b.addEventListener("click", () => { preview.orientation = value; render(); });
-    orientation.appendChild(b);
-  });
-  toolbar.appendChild(orientation);
-
   const rows = el("label", "theme-stage__rows");
   rows.appendChild(el("span", null, "Ukázkové řady grafů"));
   const rowsInput = document.createElement("input");
@@ -587,6 +626,10 @@ function buildStagePane() {
   const frame = el("div", "theme-stage__frame");
   const canvas = el("div", "theme-preview");
   canvas.id = "theme-preview";
+  // The canvas fields (width/height) claim region "canvas", and the canvas
+  // *is* this node — nothing inside the preview stands for it. Without this
+  // they were the one pair of controls that highlighted nothing at all.
+  canvas.dataset.region = "canvas";
   frame.appendChild(canvas);
   stage.appendChild(frame);
 
@@ -628,8 +671,38 @@ function applyHighlight() {
 
 // --- Rendering ----------------------------------------------------------
 
+// The placement the controls pane was last built for, and whether the head
+// last showed a chooser or a badge. The dialog itself is built once and
+// reused across opens, so both have to be rebuilt when the answer changes —
+// unlike every other control, *which* controls exist now depends on the
+// draft.
+let controlsPlacement = null;
+let placementIsEditable = null;
+
+function syncControlsPane() {
+  if (controlsPlacement === draft.placement) return;
+  controlsPlacement = draft.placement;
+  const body = root.querySelector(".theme-editor__body");
+  body.replaceChild(buildControlsPane(), body.querySelector(".theme-editor__controls"));
+}
+
+// Rebuilt only when it switches between chooser and badge — never merely
+// because the placement changed, or clicking an option would tear out the
+// button that was clicked and drop focus with it. Which option reads as
+// active is handled by renderControls().
+function syncPlacementSlot() {
+  const editable = editingExistingId === null;
+  if (placementIsEditable === editable) return;
+  placementIsEditable = editable;
+  const slot = root.querySelector(".theme-editor__placement-slot");
+  slot.innerHTML = "";
+  slot.appendChild(buildPlacementControl());
+}
+
 function render() {
   draft = resolveDependencies(draft);
+  syncControlsPane();
+  syncPlacementSlot();
   // One walk per render, shared by everything below: the controls, the
   // preview and the readout all describe the same layout, and running the
   // solver once per consumer was the most expensive thing a render did.
@@ -661,7 +734,9 @@ function plural(n, one, few, many) {
 }
 
 function renderControls(g) {
-  FIELDS.forEach(field => {
+  // The same list buildControlsPane() rendered — asking for a field this
+  // placement doesn't show would only find nothing.
+  fieldsFor(draft.placement).forEach(field => {
     const row = root.querySelector(`.theme-field[data-field="${field.key}"]`);
     if (!row) return;
     const value = displayValue(field);
@@ -672,13 +747,8 @@ function renderControls(g) {
     if (document.activeElement !== number) number.value = String(value);
   });
 
-  root.querySelectorAll("[data-orientation]").forEach(b => {
-    const matchesOrientation = b.dataset.orientation === draft.defaultSlicerOrientation;
-    const matchesSide = !b.dataset.side || b.dataset.side === draft.slicerSide;
-    b.classList.toggle("is-active", matchesOrientation && matchesSide);
-  });
-  root.querySelectorAll("[data-preview-orientation]").forEach(b => {
-    b.classList.toggle("is-active", b.dataset.previewOrientation === preview.orientation);
+  root.querySelectorAll("[data-placement]").forEach(b => {
+    b.classList.toggle("is-active", b.dataset.placement === draft.placement);
   });
 
   renderKpiBandsList(g);
@@ -697,7 +767,9 @@ function renderControls(g) {
 // where a boundary falls.
 function previewLayout(themeOverride) {
   const t = themeOverride || draft;
-  const vertical = preview.orientation === "vertical";
+  // Straight from the theme: the preview shows the layout being edited, so
+  // there is nothing to choose here.
+  const vertical = isVerticalPlacement(t.placement);
   const chartRowCount = preview.chartRows;
 
   // Every `kpi` section gets at least one sample card, even at
@@ -721,7 +793,7 @@ function previewLayout(themeOverride) {
     chartRowCount,
     chartGroups,
     orientation: vertical ? "vertical" : "horizontal",
-    slicerSide: t.slicerSide,
+    slicerSide: sideOfPlacement(t.placement),
     columnWidth: t.slicerColumnWidth,
     // A flat split across the rows' shared budget — the preview's rows are
     // sample cells, not real charts with their own locked heights, so there
@@ -884,14 +956,16 @@ function grip(sectionType, sectionId, text, extra) {
 //                 Dropping there splits that theme section into two,
 //                 sandwiching the dragged section between the row it
 //                 claims and the rows that are left.
-//   "gutter"    — the two vertical strips beside the usable area, offered
-//                 only while dragging the slicers section; they turn it
-//                 into the vertical column instead of reordering it.
+//
+// There used to be a third kind, "gutter": two strips beside the usable area
+// that turned the slicers band into a vertical column when it was dropped
+// there. It is gone, because docking by drag changed the layout's *identity*
+// — a horizontal template silently became a vertical one, taking every page
+// using it along. Placement is now chosen once, when a template is created.
+// Reordering only ever reorders.
 function buildDropSlots(theme, g, rawIndex, sections, draggedType, draggedRaw) {
   const slots = [];
   const originalSignature = sectionsSignature(sections);
-  const originalOrientation = theme.defaultSlicerOrientation;
-  const originalSide = theme.slicerSide;
 
   const boundaryY = k => {
     if (g.sections.length === 0) return theme.margin;
@@ -904,18 +978,11 @@ function buildDropSlots(theme, g, rawIndex, sections, draggedType, draggedRaw) {
     const beforeRaw = k < rawIndex.length ? rawIndex[k] : sections.length;
     const nextSections = moveSectionToRawIndex(sections, draggedRaw, beforeRaw);
     const changesOrder = sectionsSignature(nextSections) !== originalSignature;
-    // A slicer dragged out of its vertical column and dropped on an
-    // ordinary stack slot always flips it back to horizontal, even when
-    // that slot happens to leave the array order unchanged.
-    const flipsOrientation = draggedType === "slicers" && originalOrientation !== "horizontal";
     slots.push({
       kind: "boundary",
       y: boundaryY(k),
-      invalid: !changesOrder && !flipsOrientation,
-      apply: () => ({
-        sections: nextSections,
-        ...(draggedType === "slicers" ? { defaultSlicerOrientation: "horizontal" } : {})
-      })
+      invalid: !changesOrder,
+      apply: () => ({ sections: nextSections })
     });
   }
 
@@ -941,58 +1008,22 @@ function buildDropSlots(theme, g, rawIndex, sections, draggedType, draggedRaw) {
           const [dragged] = list.splice(draggedRaw, 1);
           const insertAt = groupRaw > draggedRaw ? groupRaw - 1 : groupRaw;
           list.splice(insertAt, 1, first, dragged, second);
-          return {
-            sections: list,
-            ...(draggedType === "slicers" ? { defaultSlicerOrientation: "horizontal" } : {})
-          };
+          return { sections: list };
         }
       });
     }
   });
 
-  if (draggedType === "slicers") {
-    const zones = [
-      { side: "left", x0: 0, x1: theme.margin + theme.slicerColumnWidth },
-      { side: "right", x0: theme.canvasWidth - theme.margin - theme.slicerColumnWidth, x1: theme.canvasWidth }
-    ];
-    zones.forEach(zone => {
-      slots.push({
-        kind: "gutter",
-        side: zone.side,
-        x0: zone.x0,
-        x1: zone.x1,
-        y: theme.canvasHeight / 2,
-        invalid: originalOrientation === "vertical" && originalSide === zone.side,
-        // The slicers section itself never moves in the array — dragging
-        // it back out of the column is what stays lossless.
-        apply: () => ({ sections, defaultSlicerOrientation: "vertical", slicerSide: zone.side })
-      });
-    });
-  }
-
   return slots;
 }
 
-// Nearest slot by |cursorY - slot.y|, except a gutter always wins on pure
-// x-containment while dragging the slicers section — the point of a gutter
-// is to be droppable without having to line the cursor up with any
-// particular row.
-// `horizontalDominant` is |dx| > |dy| from the pointerdown origin — a
-// gutter only wins when the pointer is inside its x-range AND the drag has
-// actually moved sideways to get there. Without that second half, the
-// slicers grip (inset into the band's own top-left corner, which already
-// sits inside the left gutter's x-range before the drag starts) would
-// resolve every purely vertical drag to a gutter dock, making the band
-// impossible to reorder within the stack at all.
-function pickSlot(slots, cursorX, cursorY, draggedType, horizontalDominant) {
-  if (draggedType === "slicers" && horizontalDominant) {
-    const gutter = slots.find(s => s.kind === "gutter" && cursorX >= s.x0 && cursorX <= s.x1);
-    if (gutter) return gutter;
-  }
+// Nearest slot by |cursorY - slot.y|. Every slot is a boundary in the
+// vertical stack now that gutter docking is gone, so the cursor's x plays no
+// part in the choice.
+function pickSlot(slots, cursorY) {
   let best = null;
   let bestDist = Infinity;
   slots.forEach(s => {
-    if (s.kind === "gutter") return;
     const d = Math.abs(cursorY - s.y);
     if (d < bestDist) { bestDist = d; best = s; }
   });
@@ -1061,18 +1092,12 @@ function startSectionDrag(event, sectionType, sectionId) {
   const startClientX = event.clientX;
   const startClientY = event.clientY;
 
-  // Live displacement is only meaningful within the horizontal stack —
-  // a docked (vertical) column has no stack of siblings to shift, and
-  // switching orientation mid-drag would mean rebuilding region nodes of a
-  // different kind entirely (a column vs a stripe), not just moving them.
-  // That drag still lifts and follows the cursor; it just previews as a
-  // gutter dock or a plain (unanimated) reorder rather than a live shuffle.
-  const liveProjectionEnabled = !g.vertical;
-
-  const line = el("div", "theme-insertion-line theme-insertion-line--v");
-  line.hidden = true;
-  stage.appendChild(line);
-
+  // Live displacement used to be switched off in a vertical layout, because a
+  // drag could dock the band into a column mid-gesture and the projection
+  // would have had to rebuild region nodes of a different kind (a column vs a
+  // stripe) rather than just moving them. A drag can no longer change the
+  // placement at all, so every drag is now a plain reorder within one stack
+  // and the live shuffle is always safe to run.
   regionEl.classList.add("theme-region--dragging");
   document.body.classList.add("theme-editor-reordering");
 
@@ -1080,17 +1105,6 @@ function startSectionDrag(event, sectionType, sectionId) {
   let projectedSlot = null;   // the slot the live layout currently reflects
   let rafId = null;
   let latestEvent = null;
-
-  const showGutterLine = slot => {
-    if (!slot || slot.invalid || slot.kind !== "gutter") { line.hidden = true; return; }
-    line.hidden = false;
-    const x = slot.side === "right"
-      ? theme.canvasWidth - theme.margin - theme.slicerColumnWidth
-      : theme.margin + theme.slicerColumnWidth;
-    line.style.left = `${x * scale}px`;
-    line.style.top = "0px";
-    line.style.height = `${theme.canvasHeight * scale}px`;
-  };
 
   // Applies (or clears) the live-shuffled layout for `slot`, skipping the
   // work entirely when the nearest slot hasn't changed since the last
@@ -1100,20 +1114,13 @@ function startSectionDrag(event, sectionType, sectionId) {
     if (slot === projectedSlot) return;
     projectedSlot = slot;
 
-    if (!liveProjectionEnabled) return;
-
-    if (!slot || slot.invalid || slot.kind === "gutter") {
+    if (!slot || slot.invalid) {
       applyProjectedLayout(stage, g, scale, regionEl);   // back to the original layout
       return;
     }
 
     const patch = slot.apply();
-    const projectedTheme = {
-      ...theme,
-      sections: patch.sections || theme.sections,
-      defaultSlicerOrientation: patch.defaultSlicerOrientation || theme.defaultSlicerOrientation,
-      slicerSide: patch.slicerSide || theme.slicerSide
-    };
+    const projectedTheme = { ...theme, sections: patch.sections || theme.sections };
     applyProjectedLayout(stage, previewLayout(projectedTheme), scale, regionEl);
   };
 
@@ -1125,45 +1132,25 @@ function startSectionDrag(event, sectionType, sectionId) {
     const dx = e.clientX - startClientX;
     const dy = e.clientY - startClientY;
 
-    // The lifted band only moves along the axes that mean something for it.
-    // A KPI band already spans the whole content width, so sideways travel
-    // conveys nothing and just makes it look detached from the layout; it
-    // slides up and down the stack only. The slicer band keeps both axes,
-    // because moving sideways is exactly how you aim at a gutter.
-    const canDock = sectionType === "slicers";
-
     const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
+    // The lifted band slides up and down the stack only. Every band already
+    // spans the full content width, so sideways travel conveys nothing and
+    // just makes it look detached from the layout. (The slicer band used to
+    // keep its x axis, because moving sideways was how you aimed at a gutter
+    // dock — with that gone, there is nothing left to aim at.)
+    //
     // Vertically the whole band is kept on the canvas — off in the backdrop
     // it reads as a rendering glitch rather than as something being held.
     const liftY = clamp(dy, stageRect.top - regionRect.top, stageRect.bottom - regionRect.bottom);
 
-    // Horizontally the same rule would be useless: the slicer band already
-    // spans nearly the full canvas width, so keeping every pixel of it on
-    // canvas leaves about 14px of travel and the band stops dead while the
-    // pointer keeps going. Carrying it toward a gutter is the docking
-    // gesture, so it may travel until half of it has left the canvas —
-    // enough to feel carried, never so far it vanishes.
-    const half = regionRect.width / 2;
-    const liftX = canDock
-      ? clamp(dx,
-          stageRect.left - regionRect.left - half,
-          stageRect.right - regionRect.left - half)
-      : 0;
-
     // No transition on this — it has to track the pointer 1:1, every frame,
     // or lifting the band stops feeling like holding it.
-    regionEl.style.transform = `translate(${liftX}px, ${liftY}px) scale(1.03)`;
+    regionEl.style.transform = `translate(0px, ${liftY}px) scale(1.03)`;
 
-    const cursorThemeX = (e.clientX - stageRect.left) / scale;
     const cursorThemeY = (e.clientY - stageRect.top) / scale;
-    // Intent is read from the raw gesture, not the clamped lift: once the
-    // band is pinned at the canvas edge its own travel stops growing, but
-    // the user pushing further sideways still means "dock me".
-    const horizontalDominant = Math.abs(dx) > Math.abs(dy);
-    chosenSlot = pickSlot(slots, cursorThemeX, cursorThemeY, sectionType, horizontalDominant);
+    chosenSlot = pickSlot(slots, cursorThemeY);
 
-    showGutterLine(chosenSlot);
     applyProjectionFor(chosenSlot);
   };
 
@@ -1190,7 +1177,6 @@ function startSectionDrag(event, sectionType, sectionId) {
     window.removeEventListener("pointercancel", cancel);
     window.removeEventListener("keydown", onKeydown, true);
     document.body.classList.remove("theme-editor-reordering");
-    line.remove();
   };
 
   const drop = () => {
@@ -1198,12 +1184,6 @@ function startSectionDrag(event, sectionType, sectionId) {
     if (!chosenSlot || chosenSlot.invalid) { revertVisualState(); return; }   // no-op: nothing to mutate
     const patch = chosenSlot.apply();
     draft = normalizeTheme({ ...draft, ...patch });
-    // The preview's own orientation toggle is deliberately independent of
-    // the theme's default (it's how you preview a horizontal theme's
-    // vertical shape without committing to it) — but a drag that changes
-    // the default orientation is the user setting it, same as the toggle
-    // in the controls pane, so the preview should follow it here too.
-    if (patch.defaultSlicerOrientation) preview.orientation = patch.defaultSlicerOrientation;
     // render() rebuilds every node fresh at its final position — nothing to
     // transition *from* on a brand-new element — so the committed layout
     // simply appears already equal to the last live-previewed frame, with
@@ -1303,8 +1283,14 @@ function renderPreview(g) {
     stackCells(column, Math.max(2, Math.floor(g.slicerColumnHeight / (t.slicerHeight + t.gapSmall))),
       t.gapSmall * scale, "column");
     column.appendChild(dragHandle("slicerColumnWidth", "x", 1, scale));
+    // A plain chip, not a grip: the column stands outside the vertical stack
+    // (buildEffectiveStack drops it), so there is no slot for it to move to
+    // and reordering it in `sections` would change nothing on screen. It used
+    // to be draggable because dragging it out of the gutter turned the layout
+    // horizontal — which is precisely the identity change a template no
+    // longer permits.
     // A tall narrow column has no room for a one-line chip, so this one wraps.
-    column.appendChild(grip("slicers", slicersSectionId(t),
+    column.appendChild(tag(
       `Sloupec slicerů · ${t.slicerColumnWidth} px (${t.minSlicerColumnWidth}–${t.maxSlicerColumnWidth})`,
       "theme-tag--wrap"));
     stage.appendChild(column);
