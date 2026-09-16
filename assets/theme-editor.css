@@ -1,61 +1,50 @@
 /* ====================================================
    kvapka — theme picker (sidebar) + theme editor dialog
-   Shares every token with style.css.
+   Tokens come from style.css.
 ==================================================== */
 
 /* ----------------------------------------------------
-   THEME PICKER (sidebar)
-   A wrapping list of chips. Custom chips carry an edit
-   affordance; built-ins do not, because they are
-   read-only baselines the editor copies from.
+   THEME PICKER — pill chips; custom ones carry an edit
+   affordance, built-ins are read-only baselines.
 -----------------------------------------------------*/
 .theme-selector {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .theme-chip {
   display: inline-flex;
   align-items: stretch;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-medium);
-  background: var(--bg-surface);
   overflow: hidden;
-  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong), 0 1px 2px rgba(15, 30, 46, 0.04);
+  transition: background var(--fast) ease, box-shadow var(--fast) ease;
 }
 
 .theme-chip__label {
-  min-height: 32px;
-  padding: 0 var(--space-3);
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--fs-md);
-  font-weight: 500;
+  height: 32px;
+  padding: 0 14px;
+  color: var(--ink-2);
   white-space: nowrap;
 }
 
-.theme-chip__label:hover {
-  background: var(--accent-soft);
+.theme-chip:hover:not(.active) {
+  box-shadow: inset 0 0 0 1px var(--accent-ring);
+}
+
+.theme-chip:hover:not(.active) .theme-chip__label {
   color: var(--accent);
 }
 
-.theme-chip:has(.theme-chip__label:hover) {
-  border-color: var(--accent);
-}
-
 .theme-chip.active {
-  border-color: var(--accent);
-  background: var(--accent);
-  box-shadow: 0 1px 2px rgba(11, 95, 122, 0.25);
+  background: var(--ink);
+  box-shadow: 0 1px 2px rgba(15, 30, 46, 0.2), 0 6px 14px -6px rgba(15, 30, 46, 0.5);
 }
 
-.theme-chip.active .theme-chip__label,
-.theme-chip.active .theme-chip__label:hover {
-  background: var(--accent);
-  color: var(--text-white);
+.theme-chip.active .theme-chip__label {
+  color: #fff;
   font-weight: 600;
 }
 
@@ -64,12 +53,8 @@
   align-items: center;
   justify-content: center;
   width: 30px;
-  padding: 0;
-  border: 0;
-  border-left: 1px solid var(--border-light);
-  border-radius: 0;
-  background: transparent;
-  color: var(--text-muted);
+  padding-right: 4px;
+  color: var(--ink-3);
 }
 
 .theme-chip__edit svg {
@@ -78,28 +63,25 @@
 }
 
 .theme-chip__edit:hover {
-  background: var(--accent-soft);
   color: var(--accent);
 }
 
 .theme-chip.active .theme-chip__edit {
-  border-left-color: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .theme-chip.active .theme-chip__edit:hover {
-  background: var(--accent-hover);
-  color: var(--text-white);
+  color: #fff;
 }
 
 #new-theme {
-  margin-top: var(--space-2);
+  margin-top: 8px;
 }
 
-/* The middle KPI band is the same component as the header band, so it keeps
-   the KPI look and adds only a left rule marking it as the second band. */
+/* A middle KPI band is the same component as the header band, with a left
+   rule marking it as another band. */
 .canvas-element.kpi--band2 {
-  border-left: 3px solid var(--el-kpi-text);
+  box-shadow: inset 3px 0 0 var(--kpi), inset 0 0 0 1px rgba(91, 72, 201, 0.18);
 }
 
 /* ----------------------------------------------------
@@ -109,18 +91,13 @@ body.theme-editor-open {
   overflow: hidden;
 }
 
-body.theme-editor-dragging {
-  cursor: grabbing;
-  user-select: none;
-}
-
-/* While a section is being reordered, its resize edges must not be able to
-   hijack the gesture. */
+body.theme-editor-dragging,
 body.theme-editor-reordering {
   cursor: grabbing;
   user-select: none;
 }
 
+/* A resize edge must not hijack a reorder gesture. */
 body.theme-editor-reordering .theme-handle {
   pointer-events: none;
 }
@@ -132,7 +109,7 @@ body.theme-editor-reordering .theme-handle {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-6);
+  padding: 24px;
 }
 
 .theme-editor[hidden] {
@@ -142,12 +119,12 @@ body.theme-editor-reordering .theme-handle {
 .theme-editor__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(16, 35, 58, 0.5);
-  backdrop-filter: blur(3px);
-  animation: theme-backdrop-in var(--dur-slow) ease;
+  background: rgba(15, 30, 46, 0.45);
+  backdrop-filter: blur(6px);
+  animation: fade-in var(--slow) ease;
 }
 
-@keyframes theme-backdrop-in {
+@keyframes fade-in {
   from { opacity: 0; }
 }
 
@@ -157,25 +134,22 @@ body.theme-editor-reordering .theme-handle {
   flex-direction: column;
   width: min(1360px, 100%);
   height: min(900px, 100%);
-  background: var(--bg-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 24px 80px -20px rgba(16, 35, 58, 0.5), 0 0 0 1px rgba(16, 35, 58, 0.06);
   overflow: hidden;
-  animation: theme-editor-in var(--dur-slow) var(--ease-out);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6), 0 40px 100px -20px rgba(15, 30, 46, 0.6);
+  animation: dialog-in var(--slow) var(--ease-out);
 }
 
-@keyframes theme-editor-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.985); }
-  to { opacity: 1; transform: none; }
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
 }
 
 .theme-editor__head {
   display: flex;
   align-items: center;
-  gap: var(--space-5);
-  padding: var(--space-3) var(--space-5);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-light);
+  gap: 20px;
+  padding: 16px 24px;
 }
 
 .theme-editor__identity {
@@ -185,66 +159,64 @@ body.theme-editor-reordering .theme-handle {
 
 .theme-editor__name {
   width: 100%;
-  max-width: 440px;
-  padding: 4px var(--space-2);
-  margin-left: calc(var(--space-2) * -1);
-  font-family: inherit;
+  max-width: 460px;
+  padding: 4px 8px;
+  margin-left: -8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  font: inherit;
   font-size: var(--fs-xl);
   font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  color: var(--ink);
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+  transition: box-shadow var(--fast) ease, background var(--fast) ease;
 }
 
 .theme-editor__name:hover {
-  border-color: var(--border-light);
+  background: var(--surface-2);
 }
 
 .theme-editor__name:focus-visible {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-ring);
 }
 
 .theme-editor__meta {
-  margin: 2px 0 0;
+  margin-top: 2px;
   font-size: var(--fs-sm);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
-/* Where the slicers stand. Sits with the name because it identifies the
-   template rather than adjusting it — after the first save it becomes a
-   badge. */
+/* Where the slicers stand: identifies the template, so it sits with the
+   name. After the first save it becomes a badge. */
 .theme-editor__placement {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .theme-editor__placement-label {
   font-size: var(--fs-sm);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .theme-editor__placement-badge {
-  padding: 3px var(--space-2);
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
   font-size: var(--fs-sm);
   font-weight: 600;
-  color: var(--text-secondary);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
+  color: var(--ink-2);
+  background: var(--surface-2);
   cursor: help;
 }
 
 .theme-editor__head-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -256,12 +228,10 @@ body.theme-editor-reordering .theme-handle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
-  padding: 0 var(--space-3);
-  font-size: var(--fs-md);
-  font-weight: 500;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
   white-space: nowrap;
-  border-radius: var(--radius-control);
 }
 
 .theme-btn:active:not(:disabled) {
@@ -269,46 +239,39 @@ body.theme-editor-reordering .theme-handle {
 }
 
 .theme-btn--primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--text-white);
+  color: #fff;
   font-weight: 600;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, #1580a3, var(--accent));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 2px rgba(12, 107, 138, 0.3),
+    0 8px 20px -8px rgba(12, 107, 138, 0.6);
 }
 
 .theme-btn--primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  background: linear-gradient(180deg, #146f8f, var(--accent-hover));
 }
 
 .theme-btn--primary:disabled {
-  background: var(--border-medium);
-  border-color: var(--border-medium);
-  color: var(--text-white);
+  color: var(--ink-4);
+  background: var(--surface-2);
   box-shadow: none;
 }
 
 .theme-btn--ghost {
-  background: transparent;
-  border-color: var(--border-medium);
-  color: var(--text-secondary);
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
 }
 
 .theme-btn--ghost:hover {
-  background: var(--bg-secondary);
-  border-color: var(--border-medium);
-  color: var(--text-primary);
+  color: var(--ink);
+  background: var(--surface-2);
 }
 
 .theme-btn--danger {
-  background: transparent;
-  border-color: transparent;
-  color: var(--color-error);
+  color: var(--error);
 }
 
 .theme-btn--danger:hover {
-  background: var(--color-error-light);
-  border-color: transparent;
+  background: var(--error-bg);
 }
 
 .theme-btn--danger[hidden] {
@@ -327,154 +290,168 @@ body.theme-editor-reordering .theme-handle {
 -----------------------------------------------------*/
 .theme-editor__controls {
   overflow-y: auto;
-  padding: var(--space-4) var(--space-5) var(--space-8);
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border-light);
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-4) transparent;
+  padding: 8px 24px 32px;
 }
 
 .theme-group + .theme-group {
-  margin-top: var(--space-5);
-  padding-top: var(--space-5);
-  border-top: 1px solid var(--border-divider);
+  margin-top: 28px;
 }
 
 .theme-group__title {
-  margin: 0 0 var(--space-3);
+  margin: 0 0 8px;
   font-size: var(--fs-md);
   font-weight: 600;
-  color: var(--text-primary);
 }
 
-/* Explains a whole group where per-field hints would just repeat themselves. */
 .theme-group__note {
-  margin: calc(var(--space-2) * -1) 0 var(--space-3);
-  padding-left: var(--space-3);
-  border-left: 2px solid var(--accent-soft-2);
+  margin: 0 0 12px;
   font-size: var(--fs-xs);
-  line-height: 1.45;
-  color: var(--text-muted);
+  line-height: 1.5;
+  color: var(--ink-3);
 }
 
 .theme-field {
-  padding: var(--space-2) var(--space-2);
-  margin: 0 calc(var(--space-2) * -1);
-  border-radius: var(--radius-sm);
-  transition: background var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+  padding: 8px 10px;
+  margin: 0 -10px;
+  border-radius: var(--r-md);
+  transition: background var(--fast) ease;
 }
 
-.theme-field + .theme-field,
-.theme-field + .theme-kpi-bands {
-  margin-top: 2px;
-}
-
-/* The link between a control and the region it governs, lit from whichever
-   side the pointer is on. */
+/* A control lit from its region — or the region from its control. */
 .theme-field.is-linked {
   background: var(--accent-soft);
-  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .theme-field__label {
   display: block;
   font-size: var(--fs-sm);
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .theme-field__controls {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 10px;
   margin-top: 6px;
 }
 
 .theme-field__range {
   flex: 1;
   min-width: 0;
-  height: 18px;
+  height: 20px;
   margin: 0;
-  accent-color: var(--accent);
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.theme-field__range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(15, 30, 46, 0.1);
+}
+
+.theme-field__range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(15, 30, 46, 0.1);
+}
+
+.theme-field__range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--accent), 0 1px 3px rgba(15, 30, 46, 0.25);
+  transition: transform var(--fast) var(--ease-out);
+}
+
+.theme-field__range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--accent), 0 1px 3px rgba(15, 30, 46, 0.25);
+}
+
+.theme-field__range:hover::-webkit-slider-thumb,
+.theme-field__range:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+.theme-field__range:focus-visible {
+  outline: none;
 }
 
 .theme-field__number {
   width: 72px;
-  height: 30px;
+  height: 32px;
   flex-shrink: 0;
-  padding: 0 var(--space-2);
-  font-family: inherit;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  font: inherit;
   font-feature-settings: inherit;
-  font-size: var(--fs-md);
-  font-weight: 500;
-  color: var(--text-primary);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-sm);
-  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: box-shadow var(--fast) ease;
 }
 
-.theme-field__number:hover {
-  border-color: var(--accent);
-}
-
+.theme-field__number:hover,
 .theme-field__number:focus-visible {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-ring);
 }
 
 .theme-field__unit {
   width: 20px;
   flex-shrink: 0;
   font-size: var(--fs-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .theme-field__hint {
   margin: 6px 0 0;
   font-size: var(--fs-xs);
-  line-height: 1.45;
-  color: var(--text-muted);
-}
-
-.theme-field--switch {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  line-height: 1.5;
+  color: var(--ink-3);
 }
 
 .theme-toggle {
   display: inline-flex;
   gap: 2px;
   padding: 3px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+  border-radius: var(--r-pill);
+  background: rgba(15, 30, 46, 0.06);
 }
 
 .theme-toggle__option {
-  padding: 4px var(--space-3);
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
   font-size: var(--fs-sm);
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  color: var(--ink-2);
 }
 
 .theme-toggle__option:hover {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.6);
+  color: var(--ink);
 }
 
 .theme-toggle__option.is-active,
 .theme-toggle__option.is-active:hover {
-  background: var(--bg-surface);
-  border-color: var(--border-light);
-  color: var(--accent);
+  color: var(--ink);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(16, 35, 58, 0.08);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(15, 30, 46, 0.1), 0 2px 6px -2px rgba(15, 30, 46, 0.15);
 }
 
 .theme-check {
@@ -488,32 +465,29 @@ body.theme-editor-reordering .theme-handle {
 .theme-kpi-bands__list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 8px;
 }
 
 .theme-kpi-band {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2) var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-light);
-  border-left: 3px solid var(--el-kpi-line);
-  border-radius: var(--radius-sm);
-  background: var(--bg-inset);
-  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease;
+  gap: 8px 14px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  box-shadow: inset 3px 0 0 var(--kpi);
+  transition: background var(--fast) ease;
 }
 
 .theme-kpi-band.is-linked {
   background: var(--accent-soft);
-  border-left-color: var(--accent);
 }
 
 .theme-kpi-band__title {
   flex: 1 0 100%;
   font-size: var(--fs-sm);
   font-weight: 600;
-  color: var(--text-primary);
 }
 
 .theme-kpi-band__field {
@@ -521,80 +495,56 @@ body.theme-editor-reordering .theme-handle {
   align-items: center;
   gap: 6px;
   font-size: var(--fs-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
+}
+
+.theme-kpi-band__field input[type="number"],
+.theme-kpi-band__gap {
+  height: 26px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
 }
 
 .theme-kpi-band__field input[type="number"] {
   width: 48px;
-  height: 26px;
-  padding: 0 6px;
-  font-family: inherit;
-  font-feature-settings: inherit;
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  color: var(--text-primary);
-  border: 1px solid var(--border-medium);
-  border-radius: 4px;
-  background: var(--bg-surface);
-}
-
-.theme-kpi-band__gap {
-  height: 26px;
-  font-family: inherit;
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  padding: 0 4px;
-  color: var(--text-primary);
-  border: 1px solid var(--border-medium);
-  border-radius: 4px;
-  background: var(--bg-surface);
 }
 
 .theme-kpi-band__field input:focus-visible,
 .theme-kpi-band__gap:focus-visible {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-ring);
-}
-
-.theme-kpi-band__field--check {
-  gap: 6px;
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-ring);
 }
 
 .theme-kpi-band__remove {
   margin-left: auto;
   width: 22px;
   height: 22px;
-  padding: 0;
-  line-height: 1;
+  border-radius: 50%;
   font-size: 16px;
-  color: var(--text-muted);
-  background: transparent;
-  border: 0;
-  border-radius: 4px;
+  line-height: 1;
+  color: var(--ink-3);
 }
 
 .theme-kpi-band__remove:hover {
-  background: var(--color-error-light);
-  color: var(--color-error);
+  color: var(--error);
+  background: var(--error-bg);
 }
 
 #theme-kpi-band-add {
-  margin-top: var(--space-2);
   width: 100%;
-  border-style: dashed;
-}
-
-#theme-kpi-band-add:hover {
-  border-style: solid;
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
+  margin-top: 8px;
 }
 
 .theme-editor__reset {
   width: 100%;
-  margin-top: var(--space-6);
+  margin-top: 28px;
 }
 
 /* ----------------------------------------------------
@@ -605,205 +555,169 @@ body.theme-editor-reordering .theme-handle {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  padding: var(--space-4) var(--space-5) var(--space-4);
-  background: var(--bg-app);
+  padding: 8px 24px 20px;
 }
 
 .theme-stage__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: var(--space-3);
+  margin-bottom: 12px;
 }
 
 .theme-stage__toolbar-label {
   font-size: var(--fs-md);
   font-weight: 600;
-  color: var(--text-primary);
 }
 
 .theme-toggle--sm .theme-toggle__option {
-  padding: 3px var(--space-2);
+  height: 26px;
+  padding: 0 10px;
   font-size: var(--fs-xs);
 }
 
 .theme-stage__rows {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 8px;
   margin-left: auto;
   font-size: var(--fs-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .theme-stage__rows .theme-field__number {
   width: 56px;
 }
 
-/* The frame keeps a fixed 16px padding: renderPreview() subtracts exactly
-   32px from its clientWidth/Height when sizing the preview. */
+/* Fixed 16px padding: renderPreview() subtracts exactly 32px from this
+   frame's clientWidth/Height when sizing the preview. */
 .theme-stage__frame {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 0;
-  padding: var(--space-4);
-  background-color: var(--bg-app);
-  background-image: radial-gradient(circle, rgba(16, 35, 58, 0.11) 1px, transparent 1.2px);
-  background-size: 22px 22px;
-  background-position: 11px 11px;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+  padding: 16px;
+  border-radius: var(--r-lg);
+  background: #f2f5f8
+    radial-gradient(600px 360px at 10% 0%, rgba(70, 198, 232, 0.18), transparent 60%);
 }
 
 .theme-preview {
   position: relative;
-  background: var(--bg-surface);
-  box-shadow: var(--shadow-sheet), 0 0 0 1px var(--border-light);
-  transition: box-shadow var(--dur-fast) ease;
+  background: var(--surface);
+  box-shadow: var(--shadow-sheet), 0 0 0 1px var(--line);
+  transition: box-shadow var(--fast) ease;
 }
 
 .theme-region {
   position: absolute;
-  border-radius: 2px;
-  /* top/height are what a reorder drag animates — the other bands glide to
-     their projected position live, instead of teleporting on drop. */
-  transition: box-shadow var(--dur-fast) ease, top var(--dur-base) var(--ease-out), height var(--dur-base) var(--ease-out);
+  border-radius: 3px;
+  /* top/height animate during a reorder drag so the other bands glide. */
+  transition: box-shadow var(--fast) ease, top var(--base) var(--ease-out), height var(--base) var(--ease-out);
 }
 
-/* The band under the pointer during a reorder drag: lifted above every other
-   region, tracking the cursor via `transform` written every frame in
-   startSectionDrag() — never animated, or it would lag the pointer. */
+/* The lifted band tracks the cursor through an inline transform written
+   every frame — never animated, or it would lag the pointer. */
 .theme-region--dragging {
   z-index: 30;
-  box-shadow: 0 12px 32px -6px rgba(16, 35, 58, 0.4), 0 0 0 1px var(--accent);
+  box-shadow: 0 16px 40px -8px rgba(15, 30, 46, 0.45), 0 0 0 1.5px var(--accent);
   cursor: grabbing;
   transition: none;
 }
 
-/* Applied only once a drag has ended (dropped on an invalid slot, or
-   aborted) — the one moment the lifted band's `transform` should animate. */
+/* Only after a drop/abort may the lifted band's transform animate back. */
 .theme-region--returning {
-  transition: box-shadow var(--dur-fast) ease, top var(--dur-base) var(--ease-out), height var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+  transition: box-shadow var(--fast) ease, top var(--base) var(--ease-out), height var(--base) var(--ease-out), transform var(--base) var(--ease-out);
 }
 
 .theme-region.is-linked {
-  box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px var(--accent-ring);
   z-index: 6;
+  box-shadow: 0 0 0 2px var(--accent), 0 0 0 6px var(--accent-ring);
 }
 
-/* The canvas outlines itself when its own width/height are being touched. */
 .theme-preview.is-linked {
-  box-shadow: var(--shadow-sheet), 0 0 0 2px var(--accent), 0 0 0 5px var(--accent-ring);
+  box-shadow: var(--shadow-sheet), 0 0 0 2px var(--accent), 0 0 0 6px var(--accent-ring);
 }
 
-/* The usable-area outline sits behind everything: context, not a component. */
+/* The usable area is context, not a component: a faint outline behind all. */
 .theme-region--usable {
-  border: 1px dashed var(--border-medium);
-  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
   pointer-events: none;
 }
 
-/* The four bands of outer space, hatched so they read as the canvas's empty
-   frame — but real elements, so the margin can be dragged from any side. */
+/* The four margin bands: a soft neutral tint, real elements so any inner
+   edge can be dragged. */
 .theme-region--margin {
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(75, 91, 109, 0.09) 0 3px,
-    transparent 3px 7px
-  );
   border-radius: 0;
   z-index: 3;
+  background: rgba(15, 30, 46, 0.035);
 }
 
 .theme-region--margin.is-linked {
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(11, 95, 122, 0.22) 0 3px,
-    transparent 3px 7px
-  );
-  box-shadow: none;              /* the fill is the highlight here */
+  background: rgba(12, 107, 138, 0.12);
+  box-shadow: none;
 }
 
-.theme-margin__value {
-  position: absolute;
-  pointer-events: none;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 0 5px;
-  font-size: 9px;
-  line-height: 1.6;
-  font-weight: 600;
-  white-space: nowrap;
-  color: var(--text-secondary);
-  background: var(--bg-surface);
-  border-radius: 3px;
-}
-
-.theme-region--margin.is-linked .theme-margin__value {
-  color: var(--accent);
-}
-
-.theme-region--title {
-  background: var(--el-title-bg);
-  border: 1px solid var(--el-title-line);
-}
-
-.theme-region--slicer {
-  background: var(--el-slicer-bg);
-  border: 1px solid var(--el-slicer-line);
-}
-
-.theme-region--kpi {
-  background: var(--el-kpi-bg);
-  border: 1px solid var(--el-kpi-line);
-}
-
-.theme-region--band2 {
-  border-left: 3px solid var(--el-kpi-text);
-}
-
-.theme-region--chart {
-  background: var(--el-chart-bg);
-  border: 1px solid var(--el-chart-line);
-}
-
-.theme-region--chart.is-too-small {
-  border-color: var(--color-error);
-  background: var(--color-error-light);
-}
-
-/* Gap rulers make the two spacing values visible. */
-.theme-region--gap {
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(11, 95, 122, 0.14) 0 4px,
-    transparent 4px 8px
-  );
-  border: 0;
-  z-index: 4;
-}
-
+.theme-margin__value,
 .theme-gap__value {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  padding: 0 5px;
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
   font-size: 9px;
   line-height: 1.5;
   font-weight: 600;
   white-space: nowrap;
-  color: var(--accent);
-  background: var(--bg-surface);
-  border-radius: 3px;
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(15, 30, 46, 0.1);
+  pointer-events: none;
 }
 
-/* Cell subdivisions: what turns a plain rectangle into "the seven slicers
-   this theme will produce". */
+.theme-region--margin.is-linked .theme-margin__value,
+.theme-gap__value {
+  color: var(--accent);
+}
+
+.theme-region--title {
+  background: linear-gradient(90deg, #1a2d44, var(--ink));
+}
+
+.theme-region--slicer {
+  background: var(--slicer-bg);
+  box-shadow: inset 0 0 0 1px rgba(12, 107, 138, 0.18);
+}
+
+.theme-region--kpi {
+  background: var(--kpi-bg);
+  box-shadow: inset 0 0 0 1px rgba(91, 72, 201, 0.18);
+}
+
+.theme-region--band2 {
+  box-shadow: inset 3px 0 0 var(--kpi), inset 0 0 0 1px rgba(91, 72, 201, 0.18);
+}
+
+.theme-region--chart {
+  background: var(--chart-bg);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.theme-region--chart.is-too-small {
+  background: var(--error-bg);
+  box-shadow: inset 0 0 0 1px var(--error);
+}
+
+/* Gap rulers make the two spacing values visible. */
+.theme-region--gap {
+  z-index: 4;
+  background: rgba(12, 107, 138, 0.1);
+}
+
+/* Cell subdivisions: what turns a stripe into "the seven slicers". */
 .theme-cells {
   position: absolute;
   inset: 3px;
@@ -818,40 +732,42 @@ body.theme-editor-reordering .theme-handle {
   flex: 1;
   min-width: 0;
   min-height: 0;
-  border: 1px dashed rgba(16, 35, 58, 0.22);
   border-radius: 2px;
+  background: rgba(255, 255, 255, 0.45);
 }
 
-/* Tags sit *inside* their region rather than hanging off its top edge. */
+.theme-region--title .theme-cell {
+  background: transparent;
+}
+
+/* Tags sit inside their region. */
 .theme-tag {
   position: absolute;
-  left: 3px;
-  top: 3px;
+  left: 4px;
+  top: 4px;
   z-index: 5;
-  padding: 1px 6px;
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
   font-size: 9px;
   line-height: 1.6;
   font-weight: 600;
   white-space: nowrap;
-  color: var(--text-secondary);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-radius: 4px;
-  box-shadow: 0 1px 2px rgba(16, 35, 58, 0.06);
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(15, 30, 46, 0.12);
 }
 
 .theme-tag--wrap {
   white-space: normal;
-  max-width: calc(100% - 6px);
+  max-width: calc(100% - 8px);
 }
 
 .theme-tag--usable {
   left: auto;
-  right: 3px;
-  top: -9px;              /* the outline has no interior to sit in */
-  color: var(--text-muted);
+  right: 4px;
+  top: -9px;
+  color: var(--ink-3);
   font-weight: 500;
-  box-shadow: none;
 }
 
 /* Drag strips on region edges. */
@@ -881,7 +797,6 @@ body.theme-editor-reordering .theme-handle {
   left: -4px;
 }
 
-/* For a band whose *inner* edge is its top one (the bottom margin). */
 .theme-handle--top {
   bottom: auto;
   top: -4px;
@@ -894,7 +809,7 @@ body.theme-editor-reordering .theme-handle {
   border-radius: 2px;
   background: var(--accent);
   opacity: 0;
-  transition: opacity var(--dur-fast) ease;
+  transition: opacity var(--fast) ease;
 }
 
 .theme-handle--x::after {
@@ -905,29 +820,25 @@ body.theme-editor-reordering .theme-handle {
   opacity: 0.85;
 }
 
-/* The reorder grip IS the region's label chip (it carries .theme-tag too),
-   with the dots as a leading glyph. */
+/* The reorder grip is the region's label chip with a dots glyph. */
 .theme-grip {
   z-index: 8;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding-left: 5px;
+  padding-left: 6px;
   cursor: grab;
   outline: none;
-  border-color: var(--border-medium);
-  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease, color var(--dur-fast) ease;
+  transition: background var(--fast) ease, color var(--fast) ease, box-shadow var(--fast) ease;
 }
 
 .theme-grip:hover {
-  background: var(--accent-soft);
-  border-color: var(--accent);
   color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .theme-grip:focus-visible {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  box-shadow: 0 0 0 2px var(--accent-ring);
 }
 
 body.theme-editor-reordering .theme-grip {
@@ -937,7 +848,6 @@ body.theme-editor-reordering .theme-grip {
 .theme-grip__dots {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(3, 1fr);
   gap: 2px;
   flex-shrink: 0;
 }
@@ -946,7 +856,7 @@ body.theme-editor-reordering .theme-grip {
   width: 2px;
   height: 2px;
   border-radius: 50%;
-  background: var(--text-muted);
+  background: var(--ink-3);
 }
 
 .theme-grip:hover .theme-grip__dot,
@@ -954,8 +864,6 @@ body.theme-editor-reordering .theme-grip {
   background: var(--accent);
 }
 
-/* Wrapping variant (the tall narrow slicer column): the dots stay pinned to
-   the first line instead of centring against a two-line label. */
 .theme-grip.theme-tag--wrap {
   align-items: flex-start;
 }
@@ -970,48 +878,46 @@ body.theme-editor-reordering .theme-grip {
 .theme-stage__readout {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-6);
-  margin-top: var(--space-3);
+  gap: 8px 28px;
+  margin-top: 14px;
 }
 
 .theme-stat {
   display: flex;
   flex-direction: column;
-  gap: 1px;
 }
 
 .theme-stat__label {
   font-size: var(--fs-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .theme-stat__value {
-  font-size: var(--fs-md);
+  font-size: var(--fs-lg);
   font-weight: 600;
-  color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .theme-stage__issues {
-  margin: var(--space-3) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 0 0;
   padding: 0;
   max-height: 96px;
   overflow-y: auto;
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
 }
 
 .theme-issue {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 5px var(--space-3);
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
   font-size: var(--fs-sm);
   font-weight: 500;
   line-height: 1.4;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
 }
 
 .theme-issue::before {
@@ -1024,18 +930,18 @@ body.theme-editor-reordering .theme-grip {
 }
 
 .theme-issue--ok {
-  color: var(--color-success);
-  background: var(--color-success-light);
+  color: var(--success);
+  background: var(--success-bg);
 }
 
 .theme-issue--warning {
-  color: var(--color-warning);
-  background: var(--color-warning-light);
+  color: var(--warning);
+  background: var(--warning-bg);
 }
 
 .theme-issue--error {
-  color: var(--color-error);
-  background: var(--color-error-light);
+  color: var(--error);
+  background: var(--error-bg);
 }
 
 @media (max-width: 1100px) {
@@ -1056,10 +962,5 @@ body.theme-editor-reordering .theme-grip {
   .theme-editor__body {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 45%) minmax(0, 55%);
-  }
-
-  .theme-editor__controls {
-    border-right: 0;
-    border-bottom: 1px solid var(--border-light);
   }
 }

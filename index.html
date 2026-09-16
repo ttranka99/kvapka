@@ -133,13 +133,13 @@
                 <section class="panel panel--selection">
                     <h2>Vybraný element</h2>
                     <div id="no-selection" class="collapsible expanded">
-                        <div class="collapsible-inner"><p class="empty-hint">Klikněte na element v náhledu.</p></div>
+                        <div class="collapsible-inner"><p class="empty-hint">Klikněte na element v náhledu. Najetím na něj se zobrazí jeho ovládání.</p></div>
                     </div>
 
                     <div id="selection-details" class="collapsible">
                         <div class="collapsible-inner">
-                            <div class="sel-row sel-row--text"><strong>Typ</strong> <span id="sel-type" class="sel-value"></span></div>
-                            <div class="sel-row sel-row--text"><strong>Index</strong> <span id="sel-index" class="sel-value"></span></div>
+                            <div class="sel-row"><strong>Typ</strong> <span id="sel-type" class="sel-value"></span></div>
+                            <div class="sel-row"><strong>Index</strong> <span id="sel-index" class="sel-value"></span></div>
                             <div class="sel-row">
                                 <strong>Šířka</strong>
                                 <span class="editable-value" id="edit-width-wrapper" tabindex="0" title="Dvojklikem upravit hodnotu">
@@ -198,13 +198,6 @@
         </aside>
 
         <main class="main">
-            <div class="main-head">
-                <h2>Náhled rozložení</h2>
-                <p class="hint">
-                    Najetím na element se zobrazí jeho ovládání, kliknutím otevřete jeho rozměry v panelu vlevo.
-                </p>
-            </div>
-
             <div id="tab-bar" class="tab-bar" role="tablist" aria-label="Stránky reportu"></div>
 
             <div id="canvas-wrapper">
