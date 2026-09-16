@@ -1,51 +1,103 @@
-/* ----------------------------------------------------
-   DESIGN TOKENS
------------------------------------------------------*/
+/* ====================================================
+   kvapka — design system
+
+   One typeface, five sizes, three weights. One accent
+   (deep water) plus three element hues on the canvas.
+   The canvas sheet is the only thing that casts a
+   shadow; everything else sits flat on hairlines.
+==================================================== */
 :root {
-  --color-primary: #d60032;
-  --color-primary-hover: #c1002d;
-  --color-primary-active: #a80027;
-  --color-primary-light: #fde8ed;
+  /* Brand */
+  --accent: #0b5f7a;
+  --accent-hover: #094f66;
+  --accent-active: #073f52;
+  --accent-soft: #e3f2f7;
+  --accent-soft-2: #c9e7f0;
+  --accent-bright: #3fc3e6;
+  --accent-ring: rgba(11, 95, 122, 0.28);
 
-  --bg-app: #f6f6f7;
-  --bg-secondary: #f2f3f5;
+  /* Surfaces */
+  --bg-app: #eef2f5;
+  --bg-secondary: #f4f6f8;
   --bg-surface: #ffffff;
+  --bg-inset: #f8fafb;
 
-  --text-primary: #202124;
-  --text-secondary: #5f6368;
-  --text-muted: #9aa0a6;
-  --text-disabled: #bdc1c6;
+  /* Text */
+  --text-primary: #10233a;
+  --text-secondary: #4b5b6d;
+  --text-muted: #7b8898;
+  --text-disabled: #aeb8c3;
   --text-white: #ffffff;
 
-  --border-light: #e8eaed;
-  --border-medium: #dadce0;
-  --border-divider: #eceff1;
+  /* Lines */
+  --border-light: #e2e8ee;
+  --border-medium: #ccd5de;
+  --border-divider: #e9eef2;
 
-  --color-success: #2e9e44;
-  --color-warning: #f5a623;
-  --color-error: #d93025;
-  --color-info: #2f80ed;
+  /* Canvas element hues: slicer = aqua, KPI = violet, chart = neutral,
+     header = ink. The sidebar's "add" buttons carry the same swatches, so
+     a colour learned once reads everywhere. */
+  --el-slicer-bg: #e0f3f8;
+  --el-slicer-line: #8fd0e2;
+  --el-slicer-text: #0b5f7a;
+  --el-kpi-bg: #ece8fb;
+  --el-kpi-line: #b9acf0;
+  --el-kpi-text: #4d3bb3;
+  --el-chart-bg: #f6f8fa;
+  --el-chart-line: #cfd8e1;
+  --el-chart-text: #4b5b6d;
+  --el-title-bg: #e5ebf2;
+  --el-title-line: #b8c5d3;
 
-  /* Light tints used as solid toast backgrounds, paired with the saturated
-     color above used for icon/text — lighter and easier on the eye than a
-     fully saturated fill, while still reading clearly per type at a glance. */
+  /* Semantic */
+  --color-success: #178a5e;
+  --color-warning: #b86e08;
+  --color-error: #d23b48;
+  --color-info: #0b5f7a;
+  --color-success-light: #e4f5ec;
   --color-warning-light: #fdf1dc;
-  --color-error-light: #fbe9e7;
-  --color-info-light: #e8f1fd;
+  --color-error-light: #fce8ea;
+  --color-info-light: #e3f2f7;
 
-  --radius-card: 8px;
+  /* Legacy aliases still referenced by a few rules. Kept so the two
+     stylesheets share one vocabulary. */
+  --color-primary: var(--accent);
+  --color-primary-hover: var(--accent-hover);
+  --color-primary-active: var(--accent-active);
+  --color-primary-light: var(--accent-soft);
+
+  /* Shape */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
   --radius-control: 6px;
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --radius-card: 12px;
+  --shadow-sheet: 0 1px 2px rgba(16, 35, 58, 0.06), 0 12px 32px -12px rgba(16, 35, 58, 0.22);
+  --shadow-pop: 0 4px 6px -2px rgba(16, 35, 58, 0.08), 0 16px 40px -12px rgba(16, 35, 58, 0.28);
+  --shadow-card: var(--shadow-sheet);
 
-  /* Height of the sidebar's logo/title row. Shared with .main's top padding
-     below so the canvas preview heading lines up with the first sidebar
-     panel's top edge instead of the logo row. */
-  --sidebar-header-height: 24px;
+  /* Type scale — the whole app uses these five. */
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 20px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 240ms;
+
+  --topbar-height: 56px;
+  --sidebar-width: 296px;
 
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
+  --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
   --space-10: 40px;
@@ -73,10 +125,208 @@ html {
 
 body {
   margin: 0;
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: var(--fs-md);
+  line-height: 1.45;
   background: var(--bg-app);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 1, "cv11" 1;
+}
+
+h1, h2, h3, p {
+  margin: 0;
+}
+
+svg {
+  display: block;
+}
+
+::selection {
+  background: var(--accent-soft-2);
+  color: var(--text-primary);
+}
+
+/* ----------------------------------------------------
+   BUTTONS
+   .btn is the base; variants set colour only. Every
+   pressable thing scales on :active — the "I heard you".
+-----------------------------------------------------*/
+button {
+  font-family: inherit;
+  font-size: var(--fs-md);
+  font-weight: 500;
+  line-height: 1.2;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease, transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) ease;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  white-space: nowrap;
+}
+
+.btn svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-white);
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: var(--accent-active);
+}
+
+/* Inert until there's something to apply (the selection panel's button),
+   and back to the full accent look the moment it's re-enabled. */
+.btn-primary:disabled {
+  background: var(--bg-secondary);
+  border-color: var(--border-light);
+  color: var(--text-disabled);
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: var(--bg-surface);
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.btn-ghost:disabled {
+  color: var(--text-disabled);
+}
+
+.btn-dashed {
+  background: transparent;
+  border: 1px dashed var(--border-medium);
+  color: var(--text-secondary);
+}
+
+.btn-dashed:hover:not(:disabled) {
+  border-color: var(--accent);
+  border-style: solid;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.full-btn {
+  width: 100%;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ----------------------------------------------------
+   TOP BAR
+-----------------------------------------------------*/
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: var(--topbar-height);
+  padding: 0 var(--space-16) 0 var(--space-5);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.brand-mark {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 2px 4px rgba(11, 95, 122, 0.25));
+}
+
+.brand-name {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.topbar-subtitle {
+  font-size: var(--fs-md);
+  color: var(--text-muted);
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--border-light);
+  line-height: 1;
+}
+
+.topbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 /* ----------------------------------------------------
@@ -84,65 +334,50 @@ body {
 -----------------------------------------------------*/
 .app {
   display: flex;
-  min-height: 100vh;
-  align-items: flex-start;
+  align-items: stretch;
+  min-height: calc(100vh - var(--topbar-height));
 }
 
 /* ----------------------------------------------------
-   SIDEBAR
+   SIDEBAR — one continuous inspector column. Sections
+   are separated by rules, not floated as cards.
 -----------------------------------------------------*/
 .sidebar {
-  width: 300px;
+  position: sticky;
+  top: var(--topbar-height);
+  align-self: flex-start;
+  width: var(--sidebar-width);
   flex-shrink: 0;
-  background: var(--bg-app);
+  height: calc(100vh - var(--topbar-height));
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-medium) transparent;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-light);
   color: var(--text-primary);
-  padding: var(--space-6) var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
-
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-}
-
-.brand-logo {
-  height: var(--sidebar-header-height);
-  width: auto;
-  flex-shrink: 0;
-  object-fit: contain;
-}
-
-.brand-text h1 {
-  margin: 0;
-  font-size: 16px;
-  line-height: var(--sidebar-header-height);
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-  white-space: nowrap;
 }
 
 .sidebar-panels {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
 }
 
-/* ----------------------------------------------------
-   PANELS (unified card style)
------------------------------------------------------*/
 .panel {
   position: relative;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-card);
-  padding: var(--space-6);
-  font-size: 14px;
-  box-shadow: var(--shadow-card);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  border-bottom: 1px solid var(--border-divider);
+}
+
+.panel:last-child {
+  border-bottom: 0;
+}
+
+.panel h2 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
 }
 
 .panel-header {
@@ -152,32 +387,57 @@ body {
   margin-bottom: var(--space-3);
 }
 
+.panel-header h2 {
+  margin: 0;
+}
+
+.field-label {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.panel-field + .panel-field {
+  margin-top: var(--space-4);
+}
+
+.panel-section {
+  border-top: 1px solid var(--border-divider);
+  margin-top: var(--space-4);
+  padding-top: var(--space-2);
+}
+
+.empty-hint {
+  font-size: var(--fs-md);
+  color: var(--text-muted);
+}
+
+/* Info affordance next to the panel title. */
 .info-trigger {
   position: relative;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border-radius: 50%;
+  border: 0;
   background: transparent;
-  border: 1px solid var(--border-medium);
   color: var(--text-muted);
-  font-size: 11px;
-  font-style: italic;
-  font-weight: 700;
-  font-family: Georgia, "Times New Roman", serif;
-  line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: default;
-  transition: border-color 0.15s ease-out, color 0.15s ease-out, background 0.15s ease-out;
+}
+
+.info-trigger svg {
+  width: 16px;
+  height: 16px;
 }
 
 .info-trigger:hover,
 .info-trigger:focus-visible {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  background: var(--accent-soft);
+  color: var(--accent);
   outline: none;
 }
 
@@ -187,126 +447,92 @@ body {
   right: 0;
   background: var(--text-primary);
   color: var(--text-white);
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  font-style: normal;
+  font-size: var(--fs-xs);
   font-weight: 500;
-  font-size: 11px;
   white-space: nowrap;
-  padding: var(--space-2) var(--space-3);
-  border-radius: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
   opacity: 0;
-  transform: translateY(-4px);
+  transform: translateY(-3px) scale(0.98);
+  transform-origin: top right;
   pointer-events: none;
-  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   z-index: 5;
 }
 
 .info-trigger:hover .tooltip,
 .info-trigger:focus-visible .tooltip {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
-.panel h2 {
-  margin: 0 0 var(--space-3);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.field-note {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-xs);
+  line-height: 1.45;
   color: var(--text-muted);
 }
 
-.panel-header h2 {
-  margin: 0;
-}
-
-/* Deliberately NOT the uppercase treatment .panel h2 uses: an identical
-   caption directly under the panel title flattens the hierarchy and the two
-   read as siblings. Sentence case at 11px keeps these clearly subordinate. */
-.field-label {
-  margin: 0 0 var(--space-2);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-/* .panel sets no gap between its children, so consecutive control groups
-   would otherwise sit flush against each other. */
-.panel-field + .panel-field {
-  margin-top: var(--space-4);
-}
-
-.panel p {
-  margin: var(--space-2) 0;
-  line-height: 1.5;
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.panel p strong {
-  display: inline-block;
-  width: 90px;
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.panel-section {
-  border-top: 1px solid var(--border-divider);
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
+.field-note:empty {
+  display: none;
 }
 
 /* ----------------------------------------------------
-   TEMPLATE SELECTOR (segmented control / chips)
+   SEGMENTED CONTROL (scope / placement)
+   A grey track; the active option is the raised white
+   pill. Disabled options stay in place, greyed.
 -----------------------------------------------------*/
-.template-selector {
+.segmented {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+}
+
+.segmented--3 {
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .template-option {
-  min-height: 38px;
-  border-radius: var(--radius-control);
-  border: 1px solid var(--border-medium);
-  background: var(--bg-surface);
+  min-height: 30px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--text-secondary);
   font-weight: 500;
-  font-size: 13px;
-  transition: background 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out;
+  font-size: var(--fs-md);
+  white-space: nowrap;
 }
 
-.template-option:hover:not(:disabled) {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+.template-option:hover:not(:disabled):not(.active) {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.6);
 }
 
-/* A slicer placement with no template of its own. Kept in place rather than
-   hidden, so the set of shapes a layout can have stays visible — the option
-   is simply not reachable until the user builds one. */
 .template-option:disabled {
-  opacity: 0.45;
+  color: var(--text-disabled);
   cursor: not-allowed;
 }
 
-.template-option:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+.template-option.active {
+  background: var(--bg-surface);
+  border-color: var(--border-light);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(16, 35, 58, 0.08);
 }
 
-.template-option.active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--text-white);
+.template-option:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 /* ----------------------------------------------------
    PANEL ROWS (label left, control right)
 -----------------------------------------------------*/
-/* Deliberately no gap on the container: rows carry their own vertical
-   padding instead, so a row collapsed to 0px (see .collapsible) leaves no
-   ghost gap behind it and the panel height changes by exactly the row. */
 .panel-section.panel-rows {
   padding-top: var(--space-2);
 }
@@ -322,24 +548,50 @@ body {
 .panel-row label {
   color: var(--text-secondary);
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--fs-md);
+}
+
+select {
+  font-family: inherit;
+  font-feature-settings: inherit;
 }
 
 .panel-row select {
-  width: 68px;
+  width: 72px;
   flex-shrink: 0;
-  padding: var(--space-2) var(--space-2);
+  height: 32px;
+  padding: 0 28px 0 var(--space-3);
   border: 1px solid var(--border-medium);
-  border-radius: var(--radius-control);
-  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%237b8898' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 8px center / 14px;
   color: var(--text-primary);
-  font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-md);
+  font-weight: 500;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+}
+
+.panel-row select:hover:not(:disabled) {
+  border-color: var(--accent);
 }
 
 .panel-row select:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.panel-row select:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.reset-layout-btn {
+  margin-top: var(--space-3);
 }
 
 /* ----------------------------------------------------
@@ -353,7 +605,7 @@ body {
 .collapsible {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.22s ease-out;
+  transition: grid-template-rows var(--dur-slow) var(--ease-out);
 }
 
 .collapsible.expanded {
@@ -368,81 +620,124 @@ body {
 #selection-details > .collapsible-inner {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
 }
 
 /* ----------------------------------------------------
-   BUTTONS (global)
+   ADD ELEMENTS PANEL
 -----------------------------------------------------*/
-button {
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-control);
-  border: 1px solid transparent;
-  background: var(--color-primary);
-  color: var(--text-white);
-  cursor: pointer;
-  transition: background 0.18s ease-out, border-color 0.18s ease-out;
+.add-elements .button-group {
+  display: flex;
+  gap: var(--space-2);
 }
 
-button:hover {
-  background: var(--color-primary-hover);
+.add-elements .button-group .btn {
+  flex: 1;
+  justify-content: flex-start;
+  padding-left: var(--space-3);
 }
 
-button:active {
-  background: var(--color-primary-active);
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid;
 }
 
-button:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+.swatch--slicer {
+  background: var(--el-slicer-bg);
+  border-color: var(--el-slicer-line);
 }
 
-#export-layout {
+.swatch--kpi {
+  background: var(--el-kpi-bg);
+  border-color: var(--el-kpi-line);
+}
+
+.swatch--chart {
+  background: var(--el-chart-bg);
+  border-color: var(--el-chart-line);
+}
+
+/* Extra KPI band buttons, one per band (built in app.js). */
+#add-kpi-bands:not(:empty) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.band2-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: var(--space-2);
+  width: 100%;
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
-#export-layout svg {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
+.band2-btn::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--el-kpi-bg);
+  border: 1px solid var(--el-kpi-line);
+  box-shadow: inset 2px 0 0 var(--el-kpi-text);
 }
 
-/* Used by the selection panel's single Apply button: gray + inert while
-   there's nothing pending, and automatically back to the normal red button
-   look the moment it's re-enabled — no separate "dirty" class needed. */
-button:disabled {
-  background: var(--border-medium);
-  color: var(--text-muted);
-  cursor: not-allowed;
+.band2-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
-.hidden {
-  display: none;
+.band2-btn:active {
+  transform: scale(0.97);
 }
 
 /* ----------------------------------------------------
-   SELECTION PANEL — geometry rows with copy-to-clipboard
+   SELECTION PANEL — property rows with copy-to-clipboard
    and double-click-to-edit width/height
 -----------------------------------------------------*/
 .sel-row {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
+  min-height: 32px;
+  border-bottom: 1px solid var(--border-divider);
+}
+
+.sel-row:last-of-type {
+  border-bottom: 0;
+}
+
+.sel-row strong {
+  width: 52px;
+  flex-shrink: 0;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.sel-value {
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
 .copy-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-control);
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-muted);
 }
@@ -450,42 +745,47 @@ button:disabled {
 /* Marks the *first* button in a row's trailing icon-button cluster (the
    lone copy button on X/Y rows; the pencil button on width/height rows).
    Putting the auto margin here instead of on .copy-btn itself keeps the
-   whole cluster pinned together as a unit against the row's right edge —
-   if .copy-btn always had it, the pencil (with no auto margin of its own)
-   would be left behind at its natural, content-dependent position instead
-   of lining up in the same column between rows. */
+   whole cluster pinned together as a unit against the row's right edge. */
 .push-right {
   margin-left: auto;
 }
 
 .copy-btn:hover,
 .copy-btn:active {
-  background: var(--bg-secondary);
-  color: var(--color-primary);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.copy-btn:active {
+  transform: scale(0.92);
 }
 
 .copy-btn svg {
   width: 14px;
   height: 14px;
-  display: block;
 }
 
-/* Briefly shown after a successful copy (see selection.js), tinting the
-   swapped-in checkmark icon green instead of the default muted color. */
+/* Briefly shown after a successful copy (see selection.js). */
 .copy-btn.copy-btn-success {
   color: var(--color-success);
+  background: var(--color-success-light);
 }
 
 /* Wraps a width/height value + its "px" unit. Plain text by default
    (non-editable kinds, e.g. the title); gets the pointer cursor and dotted
-   underline only once JS marks it .is-editable for the current selection.
-   gap gives the unit its own breathing room — a bare whitespace text node
-   between two flex items isn't reliably preserved by every engine, so "px"
-   gets its own span+gap instead of relying on that whitespace. */
+   underline only once JS marks it .is-editable for the current selection. */
 .editable-value {
   display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  align-items: baseline;
+  gap: 3px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.editable-value .unit {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 .editable-value.is-editable {
@@ -493,24 +793,18 @@ button:disabled {
 }
 
 .editable-value.is-editable span:first-child {
-  border-bottom: 1px dashed var(--text-muted);
+  border-bottom: 1px dashed var(--border-medium);
+  transition: color var(--dur-fast) ease, border-color var(--dur-fast) ease;
 }
 
 .editable-value.is-editable:hover span:first-child {
-  border-bottom-color: var(--color-primary);
-  color: var(--color-primary);
+  border-bottom-color: var(--accent);
+  color: var(--accent);
 }
 
-/* Pencil button sits directly to the left of the copy button, in the same
-   visual style/size (it shares the .copy-btn class for that — padding,
-   colors, hover, and the 14px icon size all come from there) and carries
-   .push-right (see above) so the pencil+copy pair aligns as a unit. Hidden
-   by default, only visible once JS marks it .is-editable for the current
-   selection — not hover-gated, so editability is discoverable without
-   guessing. Uses visibility rather than display: an invisible-but-still-
-   laid-out pencil keeps its .push-right margin doing its job, so the copy
-   button next to it (and therefore the whole trailing cluster) stays in the
-   same column across rows instead of sliding left when there's no pencil. */
+/* Pencil button: hidden by default, visible once JS marks it .is-editable.
+   Uses visibility rather than display so its .push-right margin keeps the
+   trailing cluster aligned across rows. */
 .edit-pencil-btn {
   visibility: hidden;
 }
@@ -520,95 +814,108 @@ button:disabled {
 }
 
 .inline-edit-input {
-  width: 64px;
-  padding: 2px 6px;
-  border-radius: var(--radius-control);
-  border: 1px solid var(--color-primary);
+  width: 72px;
+  height: 26px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
   background: var(--bg-surface);
   color: var(--text-primary);
   font: inherit;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: var(--fs-md);
 }
 
-/* Deliberately no focus outline ring here — the single subtle red border
-   above is already the "this is being edited" cue; adding a 2px outline on
-   top of it (which is focused immediately on open) read as two competing
-   borders stacked on a tiny control. */
 .inline-edit-input:focus-visible {
   outline: none;
 }
 
 #apply-selection {
-  width: 100%;
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 /* ----------------------------------------------------
-   MAIN AREA
+   MAIN AREA — the workspace. A dot grid so the canvas
+   sheet reads as a sheet lying on a desk.
 -----------------------------------------------------*/
 .main {
   flex: 1;
   min-width: 0;
-  /* Top padding = sidebar padding-top + header row height + gap before the
-     first panel, so this heading lines up with the "Šablona layoutu" panel
-     rather than the logo row above it. */
-  padding-top: calc(var(--space-6) + var(--sidebar-header-height) + var(--space-6));
-  padding-right: var(--space-10);
-  padding-bottom: var(--space-8);
-  padding-left: var(--space-10);
-  background: var(--bg-app);
+  padding: var(--space-5) var(--space-8) var(--space-6);
+  background-color: var(--bg-app);
+  background-image: radial-gradient(circle, rgba(16, 35, 58, 0.11) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  background-position: 11px 11px;
+}
+
+.main-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
 }
 
 .main h2 {
-  margin: 0 0 var(--space-2);
-  font-size: 22px;
+  font-size: var(--fs-lg);
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
 }
 
 .hint {
-  margin-top: 0;
-  margin-bottom: var(--space-4);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
 }
 
 /* ----------------------------------------------------
-   PAGE TABS
+   PAGE TABS — underline tabs sitting on the workspace.
 -----------------------------------------------------*/
 .tab-bar {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: 0 0 var(--space-4);
+  gap: var(--space-1);
+  margin: 0 0 var(--space-3);
+  border-bottom: 1px solid var(--border-medium);
 }
 
 .tab {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-control);
-  border: 1px solid var(--border-medium);
-  background: var(--bg-surface);
+  gap: 6px;
+  height: 34px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  margin-bottom: -1px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--fs-md);
+  font-weight: 500;
   cursor: pointer;
   user-select: none;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition: color var(--dur-fast) ease, background var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.tab:not(.tab--active) {
+  padding-right: var(--space-3);
 }
 
 .tab:hover {
-  background: var(--bg-secondary);
-  border-color: var(--border-medium);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .tab--active,
 .tab--active:hover {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--text-white);
+  color: var(--accent);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .tab-close {
@@ -617,61 +924,77 @@ button:disabled {
   justify-content: center;
   width: 18px;
   height: 18px;
-  padding: 3px;
-  border: none;
+  padding: 0;
+  border: 0;
   border-radius: 4px;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-fast) ease, background var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+
+.tab:hover .tab-close,
+.tab--active .tab-close,
+.tab-close:focus-visible {
+  opacity: 1;
 }
 
 .tab-close svg {
-  width: 12px;
-  height: 12px;
-  display: block;
+  width: 11px;
+  height: 11px;
 }
 
 .tab-close:hover {
-  background: var(--border-medium);
-  color: var(--text-secondary);
-}
-
-.tab--active .tab-close {
-  color: var(--text-white);
+  background: var(--border-light);
+  color: var(--text-primary);
 }
 
 .tab--active .tab-close:hover {
-  background: rgba(255, 255, 255, 0.25);
-  color: var(--text-white);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .tab-rename-input {
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-control);
-  font-size: 13px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+  font: inherit;
+  font-size: var(--fs-md);
   padding: 2px var(--space-2);
-  width: 110px;
+  width: 120px;
   color: var(--text-primary);
   background: var(--bg-surface);
+  outline: none;
 }
 
 .tab-add {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-control);
-  border: 1px solid var(--border-medium);
-  background: var(--bg-surface);
+  width: 30px;
+  height: 30px;
+  margin-bottom: 2px;
+  margin-left: var(--space-1);
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-medium);
+  background: transparent;
   color: var(--text-secondary);
   font-size: 16px;
+  line-height: 1;
   cursor: pointer;
-  transition: background 0.15s ease;
 }
 
 .tab-add:hover:not(:disabled) {
-  background: var(--bg-secondary);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  border-style: solid;
+  color: var(--accent);
+}
+
+.tab-add:active:not(:disabled) {
+  transform: scale(0.94);
 }
 
 .tab-add:disabled {
@@ -680,52 +1003,55 @@ button:disabled {
 }
 
 .tab--new {
-  animation: tab-in 0.2s ease-out;
+  animation: tab-in var(--dur-base) var(--ease-out);
 }
 
 @keyframes tab-in {
   from {
     opacity: 0;
-    transform: scale(0.85);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: none;
   }
 }
 
 .tab--renamed {
-  animation: tab-renamed-pulse 0.4s ease-out;
+  animation: tab-renamed-pulse 0.5s var(--ease-out);
 }
 
 @keyframes tab-renamed-pulse {
   from {
-    background: var(--color-primary-light);
-    border-color: var(--color-primary);
+    background: var(--accent-soft);
   }
 }
 
 .tab--removing {
-  animation: tab-out 0.18s ease-out forwards;
+  animation: tab-out var(--dur-base) var(--ease-out) forwards;
   pointer-events: none;
 }
 
 @keyframes tab-out {
   to {
     opacity: 0;
-    transform: scale(0.85);
+    transform: translateY(4px);
   }
 }
 
 /* ----------------------------------------------------
-   CANVAS WRAPPER
+   CANVAS WRAPPER — the paper sheet on the desk.
+   Padding is deliberately thin: computeEffectiveScale()
+   (renderLayout.js) reads it from computed style, so it
+   may change freely, but every pixel here is a pixel
+   the layout cannot use.
 -----------------------------------------------------*/
 #canvas-wrapper {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-card);
-  padding: var(--space-6);
-  box-shadow: var(--shadow-card);
+  /* A transparent frame: the #canvas inside it IS the sheet. Zero padding
+     and border so every available pixel goes to the layout. */
+  background: transparent;
+  border: 0;
+  padding: 0;
   /* block + fit-content (not inline-block) avoids the inline line-box's
      descender gap adding a few unaccounted px below the wrapper, which was
      enough to push an "exact fit" canvas past the viewport height. */
@@ -736,230 +1062,230 @@ button:disabled {
 
 #canvas {
   position: relative;
-  background: var(--bg-secondary);
-  border-radius: 10px;
+  background: var(--bg-surface);
+  border-radius: 3px;
+  box-shadow: var(--shadow-sheet), 0 0 0 1px var(--border-light);
   overflow: visible;
   /* No width/height transition: computeEffectiveScale() (renderLayout.js)
      measures the canvas-wrapper's current box on every render to decide the
      next scale. An animated width/height meant a render that landed mid-
      transition would measure the still-shrinking/growing old box instead of
-     its settled size, feeding a wrong scale into the very next render
-     (worst case collapsing toward the 0.12 floor after a template switch). */
+     its settled size, feeding a wrong scale into the very next render. */
 }
 
 /* ----------------------------------------------------
-   CANVAS ELEMENTS
+   CANVAS ELEMENTS — colour-coded by kind so the layout
+   reads at a glance, tinted rather than filled so they
+   still feel like placeholders.
 -----------------------------------------------------*/
 .canvas-element {
   position: absolute;
-  border-radius: 6px;
+  border-radius: 4px;
   box-sizing: border-box;
   cursor: pointer;
-  transition: box-shadow 0.15s ease-out, transform 0.15s ease-out;
+  transition: box-shadow var(--dur-fast) ease, background var(--dur-fast) ease;
+}
+
+.canvas-element:hover {
+  box-shadow: 0 0 0 1px var(--border-medium);
 }
 
 .canvas-element.slicer {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
+  background: var(--el-slicer-bg);
+  border: 1px solid var(--el-slicer-line);
+}
+
+.canvas-element.kpi {
+  background: var(--el-kpi-bg);
+  border: 1px solid var(--el-kpi-line);
 }
 
 .canvas-element.chart {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
+  background: var(--el-chart-bg);
+  border: 1px solid var(--el-chart-line);
   overflow: visible;
   position: absolute;
 }
 
-/* Width-locked charts get a dashed brand-colored border so it's visible at a
-   glance which charts are excluded from auto width redistribution, without
-   needing to hover or select them first. */
-.canvas-element.chart.width-locked {
-  border: 1.5px dashed var(--color-primary);
-}
-
-/* Height-locked sub-charts inside a vertical stack — the height counterpart
-   of .width-locked above, shown on the individual sub-chart rather than the
-   whole cell since only that one sub-chart's height is frozen. */
-.canvas-element.chart.height-locked {
-  border: 1.5px dashed var(--color-primary);
-}
-
-/* Previews which chart the sidebar "Graf" split button will act on, while
-   hovering that button (see app.js) — same light-red tint used for the
-   reset/export buttons on hover (.reset-layout-wrapper button:hover). */
-.canvas-element.chart.split-target-highlight {
-  background: var(--color-primary-light);
-}
-
-.canvas-element.kpi {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-}
-
-/* The single element serving both as the actual drag hitbox AND the visible
-   affordance. left is set inline in renderLayout.js to the true computed
-   midpoint between this chart and the next one (getBoundingClientRect-based,
-   corrected for border width) — not a formula, and not anchored to this
-   chart's own edge. pointer-events stays "auto" unconditionally (not gated
-   behind the parent chart's :hover) specifically so it can sit centered in
-   the gap, potentially outside this chart's own box, and still be directly
-   hoverable/grabbable there — a child gated by the parent's :hover only
-   responds within the parent's own box, which a centered position may fall
-   outside of. Using this element's *own* :hover below keeps the visible cue
-   and the actual grabbable area permanently in the same place, since they're
-   now the same element instead of two separately-positioned ones. */
-/* Appended directly as a #canvas sibling (not nested inside a chart div —
-   see renderLayout.js), with left/top/height all set inline per-handle from
-   the actual rendered positions of the two charts it sits between. This is
-   the single element serving both as the real drag hitbox AND the visible
-   affordance; being a canvas sibling means there's no chart-parent
-   border/padding box-model to account for, unlike nesting it inside one. */
-.chart-resize-handle {
+/* A faint plot-area hint inside charts, so the biggest boxes on the sheet
+   are not just empty grey. */
+.canvas-element.chart::before {
+  content: "";
   position: absolute;
+  inset: 10% 6% 22% 6%;
+  border-left: 1px solid rgba(16, 35, 58, 0.08);
+  border-bottom: 1px solid rgba(16, 35, 58, 0.08);
+  pointer-events: none;
+}
+
+.canvas-element.title {
+  background: var(--el-title-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--el-title-line);
+  display: flex;
+  align-items: center;
+  padding-left: var(--space-2);
+  font-weight: 500;
+  overflow: hidden;
+}
+
+/* Width-locked charts get a dashed accent border so it's visible at a
+   glance which charts are excluded from auto width redistribution. */
+.canvas-element.chart.width-locked,
+.canvas-element.chart.height-locked {
+  border: 1.5px dashed var(--accent);
+}
+
+.canvas-element.slicer.height-locked {
+  border: 1.5px dashed var(--accent);
+}
+
+/* Previews which chart the sidebar "Graf" split button will act on. */
+.canvas-element.chart.split-target-highlight {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.canvas-element.selected,
+.canvas-element.selected:hover {
+  box-shadow: 0 0 0 2px var(--accent), 0 0 0 6px var(--accent-ring);
+  z-index: 1;
+}
+
+.canvas-element-label {
+  position: absolute;
+  bottom: 4px;
+  left: 6px;
+  font-size: var(--label-font-size, 10px);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--el-chart-text);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.canvas-element.slicer .canvas-element-label {
+  color: var(--el-slicer-text);
+}
+
+.canvas-element.kpi .canvas-element-label {
+  color: var(--el-kpi-text);
+}
+
+.canvas-element.title .canvas-element-label {
+  color: var(--text-primary);
+  position: static;
+  right: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ----------------------------------------------------
+   RESIZE HANDLES
+   Invisible hitboxes that reveal a grip on hover.
+-----------------------------------------------------*/
+.chart-resize-handle,
+.row-resize-handle,
+.stack-resize-handle {
+  position: absolute;
+  background: transparent;
+  border-radius: 4px;
+  pointer-events: auto;
+  z-index: 40;
+  transition: background var(--dur-fast) ease;
+}
+
+.chart-resize-handle {
   width: 16px;
   transform: translateX(-50%);
   cursor: ew-resize;
-  background: transparent;
-  border-radius: 4px;
-  pointer-events: auto;
-  z-index: 40;
-  transition: background 0.12s ease-out;
 }
 
-.chart-resize-handle:hover {
-  background: rgba(32, 33, 36, 0.12);
-}
-
-.chart-resize-handle::before,
-.chart-resize-handle::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 2px;
-  height: 16px;
-  background: rgba(32, 33, 36, 0.55);
-  border-radius: 1px;
-  /* Symmetric around the handle's true center (-2px / +2px), not one dot
-     exactly at center and the other offset from it — that would make the
-     pair's combined visual center land 2px off from the actual midpoint. */
-  transform: translate(calc(-50% - 2px), -50%);
-  opacity: 0;
-  transition: opacity 0.12s ease-out;
-}
-
-.chart-resize-handle::after {
-  transform: translate(calc(-50% + 2px), -50%);
-}
-
-.chart-resize-handle:hover::before,
-.chart-resize-handle:hover::after {
-  opacity: 1;
-}
-
-/* Row-height resize handle — the vertical-axis counterpart to
-   .chart-resize-handle above, created only between adjacent chart rows (see
-   renderLayout.js), and only when a second row actually exists. Unlike the
-   chart-width handle, this one's hitbox spans the *entire* usable width
-   (left/width set inline to state.MARGIN/state.USABLE_WIDTH) so it can be
-   grabbed anywhere along the row boundary — but the visible grip icon is
-   still centered horizontally within that span via left:50% on the
-   pseudo-elements below, matching how the chart-width handle's grip is
-   centered within its own (much narrower) strip. */
 .row-resize-handle {
-  position: absolute;
   height: 16px;
   transform: translateY(-50%);
   cursor: ns-resize;
-  background: transparent;
-  border-radius: 4px;
-  pointer-events: auto;
-  z-index: 40;
-  transition: background 0.12s ease-out;
 }
 
-.row-resize-handle:hover {
-  background: rgba(32, 33, 36, 0.12);
-}
-
-.row-resize-handle::before,
-.row-resize-handle::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 16px;
-  height: 2px;
-  background: rgba(32, 33, 36, 0.55);
-  border-radius: 1px;
-  /* Symmetric around true center (-2px / +2px on the Y axis this time),
-     same reasoning as the chart-width handle's two dots. */
-  transform: translate(-50%, calc(-50% - 2px));
-  opacity: 0;
-  transition: opacity 0.12s ease-out;
-}
-
-.row-resize-handle::after {
-  transform: translate(-50%, calc(-50% + 2px));
-}
-
-.row-resize-handle:hover::before,
-.row-resize-handle:hover::after {
-  opacity: 1;
-}
-
-/* Stack-height resize handle — the row-resize-handle's counterpart for
-   dragging the boundary between two charts stacked inside one cell. Only
-   spans the stacked cell's own width (left/width set inline in
-   renderLayout.js from the sub-charts' real rendered rects), unlike the
-   full-row-width row-resize-handle above, since a stack drag only ever
-   affects the two sub-charts inside that one cell. */
 .stack-resize-handle {
-  position: absolute;
   height: 14px;
   transform: translateY(-50%);
   cursor: ns-resize;
-  background: transparent;
-  border-radius: 4px;
-  pointer-events: auto;
-  z-index: 40;
-  transition: background 0.12s ease-out;
 }
 
+.chart-resize-handle:hover,
+.row-resize-handle:hover,
 .stack-resize-handle:hover {
-  background: rgba(32, 33, 36, 0.12);
+  background: rgba(11, 95, 122, 0.1);
 }
 
+.chart-resize-handle::before,
+.chart-resize-handle::after,
+.row-resize-handle::before,
+.row-resize-handle::after,
 .stack-resize-handle::before,
 .stack-resize-handle::after {
   content: "";
   position: absolute;
   top: 50%;
   left: 50%;
+  background: var(--accent);
+  border-radius: 1px;
+  opacity: 0;
+  transition: opacity var(--dur-fast) ease;
+}
+
+.chart-resize-handle::before,
+.chart-resize-handle::after {
+  width: 2px;
+  height: 16px;
+  /* Symmetric around the handle's true center (-2px / +2px). */
+  transform: translate(calc(-50% - 2px), -50%);
+}
+
+.chart-resize-handle::after {
+  transform: translate(calc(-50% + 2px), -50%);
+}
+
+.row-resize-handle::before,
+.row-resize-handle::after {
+  width: 16px;
+  height: 2px;
+  transform: translate(-50%, calc(-50% - 2px));
+}
+
+.row-resize-handle::after {
+  transform: translate(-50%, calc(-50% + 2px));
+}
+
+.stack-resize-handle::before,
+.stack-resize-handle::after {
   width: 14px;
   height: 2px;
-  background: rgba(32, 33, 36, 0.55);
-  border-radius: 1px;
   transform: translate(-50%, calc(-50% - 2px));
-  opacity: 0;
-  transition: opacity 0.12s ease-out;
 }
 
 .stack-resize-handle::after {
   transform: translate(-50%, calc(-50% + 2px));
 }
 
+.chart-resize-handle:hover::before,
+.chart-resize-handle:hover::after,
+.row-resize-handle:hover::before,
+.row-resize-handle:hover::after,
 .stack-resize-handle:hover::before,
 .stack-resize-handle:hover::after {
   opacity: 1;
 }
 
-/* Hover-activated "+" add-controls — replace the old always-visible
-   arrow/add buttons. Each is a zone/handle + button + indicator line trio
-   (see appendEdgeAddControl in renderLayout.js), always appended to #canvas
-   in that DOM order so the adjacent-sibling selectors below work: hovering
-   the invisible zone (or an existing resize handle sitting in the same
-   spot) reveals the button; hovering the button itself reveals the line. */
+/* ----------------------------------------------------
+   HOVER "+" ADD CONTROLS
+   zone/handle + button + scope trio (see
+   appendEdgeAddControl in renderLayout.js), always
+   appended to #canvas in that DOM order so the
+   adjacent-sibling selectors below work.
+-----------------------------------------------------*/
 .canvas-add-zone {
   position: absolute;
   background: transparent;
@@ -972,27 +1298,25 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   line-height: 1;
-  border-radius: var(--radius-control);
-  border: none;
-  background: var(--color-error);
+  border-radius: 50%;
+  border: 2px solid var(--bg-surface);
+  background: var(--accent);
   color: #fff;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
+  box-shadow: 0 2px 6px rgba(11, 95, 122, 0.35);
   transform: translate(-50%, -50%);
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
   /* No opacity transition in the resting state, so un-revealing is instant —
-     see the mutual-exclusion rule near .element-controls for why the fade-out
-     had to go: a 0.12s fade out of the "+" overlapping a 0.15s fade in of the
-     "×" leaves both on screen together in the same pixels, which is the very
-     thing that rule exists to prevent. The fade-IN lives on the reveal rule
-     below instead, so appearing is still soft. */
-  transition: background 0.15s ease;
+     the mutual-exclusion rule near .element-controls needs the "+" gone the
+     moment the "×" appears. The fade-IN lives on the reveal rule below. */
+  transition: background var(--dur-fast) ease;
   z-index: 45;
 }
 
@@ -1003,63 +1327,45 @@ button:disabled {
 .canvas-add-btn:hover {
   opacity: 1;
   pointer-events: auto;
-  transition: opacity 0.12s ease-out, background 0.15s ease;
+  transition: opacity var(--dur-fast) var(--ease-out), background var(--dur-fast) ease;
 }
 
 .canvas-add-btn:hover {
-  filter: brightness(0.9);
+  background: var(--accent-hover);
 }
 
-/* Insertion scope preview — replaces the old hairline indicator, which had
-   to be drawn *across* an element's content (crossing its label) whenever a
-   control's position was nudged off the real boundary to keep hover zones
-   from colliding. This covers the element the new one will sit next to and
-   caps it with a solid bar on that side instead, so the cue is always an
-   edge of the layout rather than a line stamped over it, and two controls
-   sharing a boundary (a stacked cell's bottom "+" and the full-width row
-   "+") stay distinguishable by how far their bar runs.
+.canvas-add-btn:active {
+  transform: translate(-50%, -50%) scale(0.92);
+}
 
-   The rect itself is invisible; it only positions the bar (see the per-edge
-   rules below) and defines its length.
-
-   Sits above the canvas elements it overlays but below the resize handles
-   (z-index 40) and the "+" itself (45). Only shown while the "+" is hovered,
-   matching the two-stage reveal the indicator line used. */
+/* Insertion scope preview — a solid bar along the edge the new element will
+   appear on. The rect itself is invisible; it only positions the bar. */
 .canvas-add-scope {
   position: absolute;
-  border-radius: 6px;
+  border-radius: 4px;
   opacity: 0;
   pointer-events: none;
   z-index: 38;
-  transition: opacity 0.12s ease-out;
+  transition: opacity var(--dur-fast) ease;
 }
 
 .canvas-add-btn:hover + .canvas-add-scope {
   opacity: 1;
 }
 
-/* Bar only, no fill: the scope rect earns its keep purely through the bar's
-   *extent* — a stacked cell's bottom "+" caps one column, the row "+" the
-   full usable width — so a tint on top of that was redundant and competed
-   with the selection ring and the red control chrome. Drawn as an inset
-   box-shadow so it follows the border-radius above and hugs the element's
-   corners instead of overhanging them. */
 .canvas-add-scope--bottom {
-  box-shadow: inset 0 -3px 0 var(--color-primary);
+  box-shadow: inset 0 -3px 0 var(--accent);
 }
 
 .canvas-add-scope--right {
-  box-shadow: inset -3px 0 0 var(--color-primary);
+  box-shadow: inset -3px 0 0 var(--accent);
 }
 
 .canvas-add-scope--left {
-  box-shadow: inset 3px 0 0 var(--color-primary);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
-/* Hide every add-control while any width/height/stack drag is in progress —
-   same body flag all three resize flows already toggle for .element-controls
-   above, reused here so the "+" UI can't be clicked mid-drag or visually
-   clash with the guide line. */
+/* Hide every add-control while any width/height/stack drag is in progress. */
 body.is-resizing-chart .canvas-add-zone,
 body.is-resizing-chart .canvas-add-btn,
 body.is-resizing-chart .canvas-add-scope {
@@ -1068,116 +1374,54 @@ body.is-resizing-chart .canvas-add-scope {
 }
 
 /* Vertical alignment guide shown while a chart-width drag is "strong"
-   snapped to a slicer/KPI edge (see chartResizeEvents.js). Spans the full
-   canvas height so the alignment is unambiguous at a glance, Figma-style.
-   Deliberately a light, dotted grey hint rather than a bold solid line —
-   it's a subtle confirmation of alignment, not something that should compete
-   visually with the chart content itself. */
+   snapped to a slicer/KPI edge (see chartResizeEvents.js). */
 .chart-snap-guide {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 1px;
-  /* border-left drew the visible line starting AT `left` and extending
-     rightward from there — never actually centered on the midpoint value
-     it was given, just flush against it. translateX(-50%) centers the line
-     itself on `left` regardless of its own width, so it truly sits in the
-     middle of the gap instead of merely starting there. Using a repeating
-     gradient (not border-style:dotted) since a background can be centered
-     this way; a border can't. */
   transform: translateX(-50%);
   background-image: repeating-linear-gradient(
     to bottom,
-    var(--text-muted) 0,
-    var(--text-muted) 2px,
-    transparent 2px,
-    transparent 5px
+    var(--accent) 0,
+    var(--accent) 3px,
+    transparent 3px,
+    transparent 6px
   );
   pointer-events: none;
   z-index: 50;
 }
 
-.canvas-element.title {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1.5px solid var(--border-medium);
-  display: flex;
-  align-items: center;
-  padding-left: var(--space-2);
-  font-weight: 500;
-  overflow: hidden;
-}
-
-.canvas-element.selected {
-  box-shadow: 0 0 0 2px var(--color-primary);
-}
-
+/* ----------------------------------------------------
+   ELEMENT CONTROLS (hover cluster: lock / remove)
+-----------------------------------------------------*/
 .element-controls {
   position: absolute;
   top: 4px;
   right: 4px;
   display: flex;
-  gap: 4px;
+  gap: 3px;
   opacity: 0;
-  /* Above the add zone (39) and the "+" itself (45). Those two overlap this
-     cluster's own footprint — the zone reaches 8px inside the element's edge
-     and the "+" 12px — so without this they win the hit test over the "×"'s
-     last few pixels: the button would vanish under the cursor as you moved
-     onto its right side, and the mutual-exclusion rule below would fire while
-     you were aiming at the "×" itself. Raising the cluster instead settles
-     the priority by stacking, with no extra rules: on the "×" the "×" wins,
-     anywhere else the add trigger does. .canvas-element is position:absolute
-     with z-index:auto, so it creates no stacking context and this value is
-     compared against the canvas's other children directly. */
+  /* Above the add zone (39) and the "+" itself (45), so on the "×" the "×"
+     wins the hit test. */
   z-index: 46;
-  /* Fade-in only (declared on the reveal rule below); hiding is instant, for
-     the same reason as .canvas-add-btn above. */
 }
 
 .canvas-element:hover .element-controls {
   opacity: 1;
-  transition: opacity 0.15s ease-out;
+  transition: opacity var(--dur-fast) var(--ease-out);
 }
 
-/* Slicers and KPIs are short wide bars whose rendered height tracks
-   EFFECTIVE_SCALE — a slicer swings between roughly 30px and 61px as the
-   window resizes. The cluster's own size is fixed, so anchoring it to the top
-   left it pinned 5px below the edge at every scale while the bar grew
-   underneath it: stranded in the corner with an empty middle at large scale,
-   and drifting to a different relative position on every rescale. Centring it
-   is stable at any height — it always reads as sitting in the bar's right end.
-
-   Charts keep the top-right anchor: they're tall panels rather than bars, and
-   they carry two controls, which belong in a corner rather than floating in
-   the middle of the chart body. */
+/* Slicers and KPIs are short bars: centre the cluster vertically so it
+   reads as sitting in the bar's right end at any scale. */
 .canvas-element.slicer .element-controls,
 .canvas-element.kpi .element-controls {
   top: 50%;
   transform: translateY(-50%);
 }
 
-/* Mutual exclusion: while the pointer is on anything that reveals a "+", this
-   element's own controls are hidden.
-
-   The two controls physically overlap and no amount of repositioning fixes
-   it. The "+" is centred ON the element's edge (translate(-50%, -50%)), so it
-   protrudes ~12px INTO the element, while this cluster is inset only 4px from
-   that same edge — they claim the same strip. They only miss each other when
-   the element is tall enough to separate them vertically, and at SCALE 0.4 a
-   slicer renders ~28-32px tall and a chart squeezed to HARD_MIN_CHART_HEIGHT
-   only ~16px. The add zone is 16px wide and centred on the boundary too, so
-   its inner 8px sits on top of the element and triggers both at once.
-   Showing only one at a time makes the overlap impossible at any element
-   height and any EFFECTIVE_SCALE, with no positional math.
-
-   :has() rather than a JS-toggled body class deliberately: #canvas is torn
-   down and rebuilt on every render, and a flag would have to be re-synced
-   against the cursor after each rebuild. A selector is always live and can
-   never go stale. If :has() is ever unsupported the rule is simply dropped
-   and behaviour falls back to what it is today, so it degrades safely.
-
-   Wins over .canvas-element:hover .element-controls on specificity (one id),
-   so no !important is needed. */
+/* Mutual exclusion: while the pointer is on anything that reveals a "+",
+   this element's own controls are hidden (they physically overlap). */
 #canvas:has(.canvas-add-zone:hover) .element-controls,
 #canvas:has(.chart-resize-handle:hover) .element-controls,
 #canvas:has(.row-resize-handle:hover) .element-controls,
@@ -1187,14 +1431,6 @@ body.is-resizing-chart .canvas-add-scope {
   pointer-events: none;
 }
 
-/* While actively dragging a chart's resize handle, #canvas is rebuilt from
-   scratch on every tick (see project render model), which briefly clears
-   and recreates every chart's hover controls even though the cursor never
-   left the chart — reading as a flicker. Controls aren't useful mid-drag
-   anyway, so force them hidden for the whole drag instead (class toggled in
-   chartResizeEvents.js). !important is needed here since it must override
-   the :hover rule above, which would otherwise still apply to the chart
-   currently under the cursor. */
 body.is-resizing-chart .element-controls {
   opacity: 0 !important;
   pointer-events: none !important;
@@ -1204,37 +1440,35 @@ body.is-resizing-chart .element-controls {
   padding: 2px 6px;
   font-size: 10px;
   line-height: 16px;
-  border-radius: 4px;
-  border: none;
-  background: rgba(214, 0, 50, 0.92);
+  border-radius: 5px;
+  border: 0;
+  background: rgba(16, 35, 58, 0.88);
   color: var(--text-white);
+  box-shadow: 0 1px 3px rgba(16, 35, 58, 0.25);
+  backdrop-filter: blur(4px);
 }
 
 .element-controls button:hover {
-  background: var(--color-primary);
+  background: var(--accent);
 }
 
-/* Icon-based controls (currently just the chart width lock/unlock toggle).
-   Text-based controls (+/-/arrows) size themselves via font-size + line-height,
-   but an inline SVG needs explicit width/height or it renders at the SVG's
-   own intrinsic size. color: var(--text-white) feeds the icon's stroke via
-   currentColor so it matches the other controls without hardcoding it twice.
+.element-controls button:active {
+  transform: scale(0.94);
+}
 
-   Shows the chart's *current* lock state by default; on hover, swaps to a
-   preview of what clicking will do (the opposite icon), so the button never
-   shows an icon that doesn't match reality until the user is about to act. */
 .element-controls button.icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 3px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
   color: var(--text-white);
 }
 
 .element-controls button.icon-btn svg {
   width: 12px;
   height: 12px;
-  display: block;
 }
 
 .icon-btn .icon-default,
@@ -1257,9 +1491,7 @@ body.is-resizing-chart .element-controls {
 }
 
 /* Applied right after a click causes a re-render while the cursor is still
-   resting on the (freshly-created) button — see renderLayout.js. Keeps
-   showing the current-state icon even though :hover matches, until the
-   user actually moves the cursor away and back (real mouseleave clears it). */
+   resting on the (freshly-created) button — see renderLayout.js. */
 .icon-btn.suppress-hover:hover .icon-default {
   display: flex;
 }
@@ -1268,108 +1500,26 @@ body.is-resizing-chart .element-controls {
   display: none;
 }
 
-.canvas-element-label {
-  position: absolute;
-  bottom: 4px;
-  left: 6px;
-  font-size: var(--label-font-size, 10px);
-  font-weight: 500;
-  color: var(--text-secondary);
-  opacity: 0.85;
-}
-
-.canvas-element.title .canvas-element-label {
-  color: var(--text-primary);
-  right: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* ----------------------------------------------------
-   ADD ELEMENTS PANEL
+   NOTIFICATION BELL — lives in the top bar's right end.
 -----------------------------------------------------*/
-.add-elements .button-group {
-  display: flex;
-  gap: var(--space-3);
-}
-
-.add-elements button {
-  flex: 1;
-}
-
-/* ----------------------------------------------------
-   RESET LAYOUT BUTTON
------------------------------------------------------*/
-.reset-layout-wrapper {
-  display: flex;
-  justify-content: center;
-}
-
-.reset-layout-wrapper button {
-  width: 100%;
-  background: var(--bg-surface);
-  color: var(--color-primary);
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-control);
-  padding: var(--space-3) var(--space-4);
-  font-weight: 600;
-}
-
-.reset-layout-wrapper button:hover {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-}
-
-.reset-layout-wrapper button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.reset-layout-wrapper button:disabled:hover {
-  background: var(--bg-surface);
-  border-color: var(--border-medium);
-}
-
-.reset-layout-btn {
-  width: 100%;
-  background: var(--bg-surface);
-  color: var(--color-primary);
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-control);
-  padding: var(--space-3) var(--space-4);
-  font-weight: 600;
-  margin-top: var(--space-3);
-}
-
-.reset-layout-btn:hover {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-}
-
-/* ----------------------------------------------------
-   NOTIFICATION BELL
------------------------------------------------------*/
-/* Icon-only by default — no visible button chrome (background/border/shadow)
-   until the user interacts with it, so it reads as a plain icon sitting in
-   the corner rather than a persistent button. */
 .notification-bell {
   position: fixed;
-  top: var(--space-4);
-  right: var(--space-4);
+  top: 10px;
+  right: var(--space-5);
   z-index: 1100;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border-radius: 50%;
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-secondary);
-  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease, transform var(--dur-fast) var(--ease-out);
 }
 
 .notification-bell svg {
@@ -1379,50 +1529,39 @@ body.is-resizing-chart .element-controls {
   z-index: 1;
 }
 
-/* Rounded button chrome only appears on hover/focus, or while the panel is
-   open (menu-open class, toggled in warnings.js) so it stays visibly
-   "pressed" for as long as the panel is showing. */
 .notification-bell:hover,
 .notification-bell:focus-visible,
 .notification-bell.menu-open {
-  background: var(--bg-surface);
+  background: var(--bg-secondary);
   border-color: var(--border-light);
-  box-shadow: var(--shadow-card);
-  color: var(--color-primary);
+  color: var(--accent);
   outline: none;
 }
 
-/* While at least one notification is actively showing as a toast (not yet
-   resolved or moved into the panel), the bell gets a solid colored circle
-   with a white icon so a new push is hard to miss — then automatically
-   reverts to its normal resting color once nothing is actively showing
-   (renderBell() in warnings.js toggles this class). Takes precedence over
-   the plain hover/focus styling above. */
-.notification-bell.pulse-active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--text-white);
-  box-shadow: var(--shadow-card);
+.notification-bell:active {
+  transform: scale(0.94);
 }
 
-/* Small red dot shown on the bell when at least one notification exists.
-   Positioned to sit slightly over the bell icon's own strokes (not just in
-   the button's corner), so it reads as attached to the bell glyph itself
-   rather than floating in the button's empty padding. Hidden via
-   opacity/scale rather than removed from the DOM, so it can transition in/out
-   smoothly. */
+/* While at least one toast is showing, the bell fills with the accent so a
+   new push is hard to miss (renderBell() in warnings.js toggles this). */
+.notification-bell.pulse-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-white);
+}
+
 .notification-dot {
   position: absolute;
-  top: 9px;
-  right: 10px;
+  top: 7px;
+  right: 8px;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--color-error);
-  border: 1.5px solid var(--bg-app);
+  border: 1.5px solid var(--bg-surface);
   opacity: 0;
   transform: scale(0.6);
-  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  transition: opacity var(--dur-fast) ease, transform var(--dur-fast) var(--ease-out);
   z-index: 2;
 }
 
@@ -1436,25 +1575,26 @@ body.is-resizing-chart .element-controls {
 -----------------------------------------------------*/
 .notification-panel {
   position: fixed;
-  top: calc(var(--space-4) + 48px);
-  right: var(--space-4);
+  top: calc(var(--topbar-height) + 6px);
+  right: var(--space-5);
   z-index: 1099;
-  width: 320px;
-  max-height: 400px;
+  width: 340px;
+  max-height: 420px;
   overflow-y: auto;
   background: var(--bg-surface);
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
   opacity: 0;
-  transform: translateY(-8px);
+  transform: translateY(-4px) scale(0.98);
+  transform-origin: top right;
   pointer-events: none;
-  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
 }
 
 .notification-panel.open {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
   pointer-events: auto;
 }
 
@@ -1465,7 +1605,7 @@ body.is-resizing-chart .element-controls {
 
 .notification-panel-header h3 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -1476,9 +1616,10 @@ body.is-resizing-chart .element-controls {
 }
 
 .notification-empty {
-  padding: var(--space-4);
-  font-size: 13px;
+  padding: var(--space-5) var(--space-4);
+  font-size: var(--fs-md);
   color: var(--text-muted);
+  text-align: center;
 }
 
 .notification-item {
@@ -1501,12 +1642,11 @@ body.is-resizing-chart .element-controls {
 }
 
 .notification-message {
-  font-size: 13px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-primary);
 }
 
-/* Type-specific icon colors, shared between toasts and the panel */
 .notification-info .notification-icon {
   color: var(--color-info);
 }
@@ -1520,24 +1660,19 @@ body.is-resizing-chart .element-controls {
 }
 
 /* ----------------------------------------------------
-   TOASTS
+   TOASTS — stack under the bell, right-aligned with it;
+   a leaving toast shrinks back up toward it.
 -----------------------------------------------------*/
-/* Deliberately anchored at the exact same top/right coordinates as
-   .notification-bell. The bell sits on top (higher z-index), so the topmost
-   toast's right edge is visually tucked behind the bell — like the
-   notification pill is emerging from underneath it. Each toast reserves
-   enough right-side padding to stay clear of that hidden area, so its text
-   always renders in the visible left portion regardless of stack position. */
 .toast-container {
   position: fixed;
-  top: var(--space-4);
-  right: var(--space-4);
+  top: calc(var(--topbar-height) + 8px);
+  right: var(--space-5);
   z-index: 1050;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: var(--space-2);
-  max-width: 360px;
+  max-width: 400px;
   pointer-events: none;
 }
 
@@ -1547,16 +1682,16 @@ body.is-resizing-chart .element-controls {
   align-items: center;
   gap: var(--space-2);
   width: 100%;
-  height: 40px;
+  height: 36px;
   box-sizing: border-box;
-  /* Extra right padding reserves space equal to roughly the bell's width so
-     text never sits underneath it, even for toasts stacked below the first. */
-  padding: 0 52px 0 var(--space-4);
-  border-radius: 20px;
-  box-shadow: var(--shadow-card);
+  padding: 0 var(--space-4) 0 var(--space-3);
+  border-radius: 18px;
+  border: 1px solid;
+  box-shadow: var(--shadow-sheet);
   background: var(--color-warning-light);
+  border-color: rgba(184, 110, 8, 0.25);
   color: var(--color-warning);
-  animation: toast-in 0.2s ease-out;
+  animation: toast-in var(--dur-slow) var(--ease-out);
   transform-origin: top right;
 }
 
@@ -1570,7 +1705,7 @@ body.is-resizing-chart .element-controls {
 .toast-message {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 500;
   line-height: 1.4;
   color: var(--text-primary);
@@ -1580,64 +1715,56 @@ body.is-resizing-chart .element-controls {
 }
 
 .toast-leaving {
-  animation: toast-out 0.22s ease-in forwards;
+  animation: toast-out var(--dur-base) var(--ease-out) forwards;
 }
 
-/* Type variants — light tinted background per type (easier on the eye than
-   a fully saturated fill) with the saturated color reserved for the icon,
-   so each type still reads clearly at a glance. Message text stays a neutral
-   dark color across all types for readability. */
 .toast-info {
   background: var(--color-info-light);
+  border-color: rgba(11, 95, 122, 0.25);
   color: var(--color-info);
 }
 
 .toast-warning {
   background: var(--color-warning-light);
+  border-color: rgba(184, 110, 8, 0.25);
   color: var(--color-warning);
 }
 
 .toast-error {
   background: var(--color-error-light);
+  border-color: rgba(210, 59, 72, 0.25);
   color: var(--color-error);
 }
 
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translateY(-6px) scale(0.97);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
-/* Shrinks/slides up-and-right toward the bell's position, so a resolved or
-   timed-out toast reads as sliding into the button rather than just fading. */
+/* Slides toward the bell, so a resolved toast reads as filed away. */
 @keyframes toast-out {
   to {
     opacity: 0;
-    transform: scale(0.4) translateY(-10px);
+    transform: scale(0.6) translateY(-8px);
   }
 }
 
+/* ----------------------------------------------------
+   REDUCED MOTION — keep fades, drop movement.
+-----------------------------------------------------*/
 @media (prefers-reduced-motion: reduce) {
-  .toast,
-  .toast-leaving,
-  .canvas-element,
-  .template-option,
-  .collapsible,
-  .notification-bell,
-  .notification-dot,
-  .notification-panel,
-  .tab--new,
-  .tab--renamed,
-  .tab--removing,
-  #canvas,
-  button {
-    animation: none !important;
-    transition: none !important;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -1649,24 +1776,43 @@ body.is-resizing-chart .element-controls {
     flex-direction: column;
   }
 
+  .topbar {
+    padding-left: var(--space-4);
+    padding-right: var(--space-16);
+  }
+
+  .topbar-subtitle {
+    display: none;
+  }
+
   .sidebar {
+    position: static;
     width: 100%;
+    height: auto;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-light);
   }
 
   .sidebar-panels {
     flex-direction: row;
     align-items: stretch;
     overflow-x: auto;
-    padding-bottom: var(--space-1);
   }
 
   .sidebar-panels .panel {
-    flex: 1 1 220px;
-    min-width: 220px;
+    flex: 1 1 260px;
+    min-width: 260px;
+    border-bottom: 0;
+    border-right: 1px solid var(--border-divider);
+  }
+
+  .sidebar-panels .panel:last-child {
+    border-right: 0;
   }
 
   .main {
-    padding: var(--space-6) var(--space-4) var(--space-10);
+    padding: var(--space-5) var(--space-4) var(--space-10);
   }
 
   .toast-container {

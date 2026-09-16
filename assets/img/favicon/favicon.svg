@@ -1,1 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:creator>RealFaviconGenerator</dc:creator><dc:source>https://realfavicongenerator.net</dc:source></rdf:Description></rdf:RDF></metadata><g clip-path="url(#SvgjsClipPath1045)"><rect width="1000" height="1000" fill="#ffffff"></rect><g transform="matrix(3.977272727272727,0,0,3.977272727272727,150,151.98863636363637)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="176" height="175" viewBox="0 0 176 175"><image width="176" height="175" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALAAAACvCAYAAABdN1QQAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAIGNIUk0AAHolAACAgwAA+f8AAIDpAAB1MAAA6mAAADqYAAAXb5JfxUYAAAH2SURBVHja7NcxSgNBFMfh/4ZBbC1SWHmHtfUAgmDOoGjhJQIew8rSJvZ2NhaC5cJia2PKZcEyQW8hM/B9J3jM+xVvuo+cXie5CjSmy+9FSXLSJWeeg/YCTll4BlomYAQMAgYBI2AQMAgYBIyAQcAgYBAwAgYBg4ARMAgYBAwCRsAgYBAwCBgBg4BBwCBgBAwCBgEjYBAwCBgEjIBBwCBgEDACBgGDgEHACBgEDAJGwCBgEDAIGAGDgEHAIGAEDAIGAYOAETAIGASMgEHAIGAQMAIGAYOAQcAIGAQMAgYBI2AQMAgYAYOAQcAgYAQMAgYBg4ARMNSjPOS7uoj7vs/lamU7lXjebDIMQ3VzLVMOy2O2i31lg930x7lb3yqnEu+fr3kattXNdZ6jg8U+2VkRLXrJ9OMGxicOBAwCRsDQkFLjUNM0ZRxH26nEPM/VztYluU+ytiYatHRC4AYGAYOAETAIGAQMAkbAIGAQMAgYAYOAQcAIGAQMAgYBI2AQMAgYBIyAQcAgYBAwAgYBg4ARMAgYBAwCRsAgYBAwCBgBg4BBwCBgBAwCBgEjYBAwCBgEjIBBwCBgEDACBgGDgEHACBgEDAJGwCBgEDAIGAGDgEHAIGAEDAIGAYOAETAIGASMgEHA8G9Kkq8kb56CBu3+AAAA//8DAAzDJoA1VqBaAAAAAElFTkSuQmCC"></image></svg></g></g><defs><clipPath id="SvgjsClipPath1045"><rect width="1000" height="1000" x="0" y="0" rx="200" ry="200"></rect></clipPath></defs></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="kv-drop" x1="8" y1="4" x2="24" y2="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3fc3e6"/>
+      <stop offset="1" stop-color="#0b5f7a"/>
+    </linearGradient>
+  </defs>
+  <path d="M16 2.5C16 2.5 5.5 14 5.5 20.25a10.5 10.5 0 0 0 21 0C26.5 14 16 2.5 16 2.5Z" fill="url(#kv-drop)"/>
+  <path d="M10.75 21a5.25 5.25 0 0 0 3.3 4.85" stroke="#fff" stroke-opacity=".85" stroke-width="2" stroke-linecap="round" fill="none"/>
+</svg>

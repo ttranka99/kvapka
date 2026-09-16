@@ -157,7 +157,7 @@ export function exportPowerBILayout() {
   files.unshift({ path: "pages.json", data: JSON.stringify(pages, null, 2) });
 
   const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-");
-  downloadBlob(createZip(files), `kb-layout-${timestamp}.zip`);
+  downloadBlob(createZip(files), `kvapka-layout-${timestamp}.zip`);
 }
 
 export function initExportEvents() {

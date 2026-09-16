@@ -1,10 +1,13 @@
+/* ====================================================
+   kvapka — theme picker (sidebar) + theme editor dialog
+   Shares every token with style.css.
+==================================================== */
+
 /* ----------------------------------------------------
    THEME PICKER (sidebar)
-
-   The resolution control is no longer two fixed buttons, so it is a wrapping
-   list of chips rather than a two-column segmented control. Custom chips
-   carry an edit affordance; built-ins do not, because they are read-only
-   baselines the editor copies from.
+   A wrapping list of chips. Custom chips carry an edit
+   affordance; built-ins do not, because they are
+   read-only baselines the editor copies from.
 -----------------------------------------------------*/
 .theme-selector {
   display: flex;
@@ -15,45 +18,45 @@
 .theme-chip {
   display: inline-flex;
   align-items: stretch;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-medium);
   background: var(--bg-surface);
   overflow: hidden;
-  transition: background 0.2s ease-out, border-color 0.2s ease-out;
+  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
 }
 
 .theme-chip__label {
-  min-height: 34px;
-  padding: var(--space-1) var(--space-3);
+  min-height: 32px;
+  padding: 0 var(--space-3);
   border: 0;
   border-radius: 0;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 500;
   white-space: nowrap;
 }
 
 .theme-chip__label:hover {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .theme-chip:has(.theme-chip__label:hover) {
-  border-color: var(--color-primary);
+  border-color: var(--accent);
 }
 
-/* The whole chip goes red, not just its label — otherwise the edit button
-   beside it keeps the white surface and its white icon disappears. */
 .theme-chip.active {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 1px 2px rgba(11, 95, 122, 0.25);
 }
 
 .theme-chip.active .theme-chip__label,
 .theme-chip.active .theme-chip__label:hover {
-  background: var(--color-primary);
+  background: var(--accent);
   color: var(--text-white);
+  font-weight: 600;
 }
 
 .theme-chip__edit {
@@ -75,62 +78,28 @@
 }
 
 .theme-chip__edit:hover {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .theme-chip.active .theme-chip__edit {
-  border-left-color: rgba(255, 255, 255, 0.35);
+  border-left-color: rgba(255, 255, 255, 0.3);
   color: rgba(255, 255, 255, 0.85);
 }
 
 .theme-chip.active .theme-chip__edit:hover {
-  background: var(--color-primary-hover);
+  background: var(--accent-hover);
   color: var(--text-white);
 }
 
-/* A secondary action inside a panel: reads as a control, not as the panel's
-   primary call to action (which is the red export button). */
-.subtle-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  width: 100%;
+#new-theme {
   margin-top: var(--space-2);
-  background: var(--bg-secondary);
-  border: 1px dashed var(--border-medium);
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.subtle-btn:hover {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.subtle-btn svg {
-  width: 13px;
-  height: 13px;
-}
-
-.field-note {
-  margin: var(--space-2) 0 0;
-  font-size: 11px;
-  line-height: 1.4;
-  color: var(--text-muted);
-}
-
-.band2-btn {
-  width: 100%;
-  margin-top: var(--space-3);
 }
 
 /* The middle KPI band is the same component as the header band, so it keeps
    the KPI look and adds only a left rule marking it as the second band. */
 .canvas-element.kpi--band2 {
-  border-left: 3px solid var(--color-info);
+  border-left: 3px solid var(--el-kpi-text);
 }
 
 /* ----------------------------------------------------
@@ -146,8 +115,7 @@ body.theme-editor-dragging {
 }
 
 /* While a section is being reordered, its resize edges must not be able to
-   hijack the gesture — a pointer that strays onto one mid-drag should keep
-   reordering, not start resizing. */
+   hijack the gesture. */
 body.theme-editor-reordering {
   cursor: grabbing;
   user-select: none;
@@ -174,37 +142,38 @@ body.theme-editor-reordering .theme-handle {
 .theme-editor__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(32, 33, 36, 0.45);
-  backdrop-filter: blur(2px);
+  background: rgba(16, 35, 58, 0.5);
+  backdrop-filter: blur(3px);
+  animation: theme-backdrop-in var(--dur-slow) ease;
+}
+
+@keyframes theme-backdrop-in {
+  from { opacity: 0; }
 }
 
 .theme-editor__dialog {
   position: relative;
   display: flex;
   flex-direction: column;
-  width: min(1320px, 100%);
-  height: min(880px, 100%);
-  background: var(--bg-app);
-  border-radius: var(--radius-card);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+  width: min(1360px, 100%);
+  height: min(900px, 100%);
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 80px -20px rgba(16, 35, 58, 0.5), 0 0 0 1px rgba(16, 35, 58, 0.06);
   overflow: hidden;
-  animation: theme-editor-in 0.18s ease-out;
+  animation: theme-editor-in var(--dur-slow) var(--ease-out);
 }
 
 @keyframes theme-editor-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
   to { opacity: 1; transform: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .theme-editor__dialog { animation: none; }
 }
 
 .theme-editor__head {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-6);
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-5);
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-light);
 }
@@ -216,15 +185,18 @@ body.theme-editor-reordering .theme-handle {
 
 .theme-editor__name {
   width: 100%;
-  max-width: 420px;
-  padding: var(--space-1) var(--space-2);
+  max-width: 440px;
+  padding: 4px var(--space-2);
+  margin-left: calc(var(--space-2) * -1);
   font-family: inherit;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
 }
 
 .theme-editor__name:hover {
@@ -233,19 +205,19 @@ body.theme-editor-reordering .theme-handle {
 
 .theme-editor__name:focus-visible {
   outline: none;
-  border-color: var(--color-primary);
-  background: var(--bg-surface);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .theme-editor__meta {
-  margin: 2px 0 0 var(--space-2);
-  font-size: 12px;
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
 }
 
-/* Where the slicers stand. Sits with the name, not with the slicer tunables,
-   because it identifies the template rather than adjusting it — and after the
-   first save it stops being a control at all and becomes a badge. */
+/* Where the slicers stand. Sits with the name because it identifies the
+   template rather than adjusting it — after the first save it becomes a
+   badge. */
 .theme-editor__placement {
   display: flex;
   align-items: center;
@@ -254,18 +226,18 @@ body.theme-editor-reordering .theme-handle {
 }
 
 .theme-editor__placement-label {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
 }
 
 .theme-editor__placement-badge {
-  padding: 2px var(--space-2);
-  font-size: 12px;
+  padding: 3px var(--space-2);
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-secondary);
-  background: var(--bg-subtle, var(--bg-surface));
+  background: var(--bg-secondary);
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-sm);
   cursor: help;
 }
 
@@ -281,9 +253,39 @@ body.theme-editor-reordering .theme-handle {
 }
 
 .theme-btn {
-  font-size: 13px;
-  padding: var(--space-2) var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  font-size: var(--fs-md);
+  font-weight: 500;
   white-space: nowrap;
+  border-radius: var(--radius-control);
+}
+
+.theme-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.theme-btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-white);
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.theme-btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.theme-btn--primary:disabled {
+  background: var(--border-medium);
+  border-color: var(--border-medium);
+  color: var(--text-white);
+  box-shadow: none;
 }
 
 .theme-btn--ghost {
@@ -294,18 +296,19 @@ body.theme-editor-reordering .theme-handle {
 
 .theme-btn--ghost:hover {
   background: var(--bg-secondary);
+  border-color: var(--border-medium);
   color: var(--text-primary);
 }
 
 .theme-btn--danger {
   background: transparent;
-  border-color: var(--border-medium);
+  border-color: transparent;
   color: var(--color-error);
 }
 
 .theme-btn--danger:hover {
   background: var(--color-error-light);
-  border-color: var(--color-error);
+  border-color: transparent;
 }
 
 .theme-btn--danger[hidden] {
@@ -315,7 +318,7 @@ body.theme-editor-reordering .theme-handle {
 .theme-editor__body {
   flex: 1;
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 350px 1fr;
   min-height: 0;
 }
 
@@ -324,57 +327,56 @@ body.theme-editor-reordering .theme-handle {
 -----------------------------------------------------*/
 .theme-editor__controls {
   overflow-y: auto;
-  padding: var(--space-4) var(--space-4) var(--space-8);
+  padding: var(--space-4) var(--space-5) var(--space-8);
   background: var(--bg-surface);
   border-right: 1px solid var(--border-light);
 }
 
 .theme-group + .theme-group {
-  margin-top: var(--space-6);
-  padding-top: var(--space-4);
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
   border-top: 1px solid var(--border-divider);
 }
 
 .theme-group__title {
   margin: 0 0 var(--space-3);
-  font-size: 11px;
+  font-size: var(--fs-md);
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--text-primary);
 }
 
 /* Explains a whole group where per-field hints would just repeat themselves. */
 .theme-group__note {
   margin: calc(var(--space-2) * -1) 0 var(--space-3);
   padding-left: var(--space-3);
-  border-left: 2px solid var(--border-medium);
-  font-size: 11px;
+  border-left: 2px solid var(--accent-soft-2);
+  font-size: var(--fs-xs);
   line-height: 1.45;
   color: var(--text-muted);
 }
 
 .theme-field {
-  padding: var(--space-2);
+  padding: var(--space-2) var(--space-2);
   margin: 0 calc(var(--space-2) * -1);
-  border-radius: var(--radius-control);
-  transition: background 0.15s ease-out;
+  border-radius: var(--radius-sm);
+  transition: background var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
 }
 
 .theme-field + .theme-field,
 .theme-field + .theme-kpi-bands {
-  margin-top: var(--space-1);
+  margin-top: 2px;
 }
 
 /* The link between a control and the region it governs, lit from whichever
    side the pointer is on. */
 .theme-field.is-linked {
-  background: var(--color-primary-light);
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .theme-field__label {
   display: block;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--text-secondary);
 }
@@ -383,43 +385,54 @@ body.theme-editor-reordering .theme-handle {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-top: var(--space-1);
+  margin-top: 6px;
 }
 
 .theme-field__range {
   flex: 1;
   min-width: 0;
-  accent-color: var(--color-primary);
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 .theme-field__number {
-  width: 68px;
+  width: 72px;
+  height: 30px;
   flex-shrink: 0;
-  padding: 4px var(--space-2);
+  padding: 0 var(--space-2);
   font-family: inherit;
-  font-size: 13px;
+  font-feature-settings: inherit;
+  font-size: var(--fs-md);
+  font-weight: 500;
   color: var(--text-primary);
   background: var(--bg-surface);
   border: 1px solid var(--border-medium);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+}
+
+.theme-field__number:hover {
+  border-color: var(--accent);
 }
 
 .theme-field__number:focus-visible {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-light);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .theme-field__unit {
   width: 20px;
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-muted);
 }
 
 .theme-field__hint {
-  margin: var(--space-1) 0 0;
-  font-size: 11px;
+  margin: 6px 0 0;
+  font-size: var(--fs-xs);
   line-height: 1.45;
   color: var(--text-muted);
 }
@@ -434,41 +447,44 @@ body.theme-editor-reordering .theme-handle {
 .theme-toggle {
   display: inline-flex;
   gap: 2px;
-  padding: 2px;
+  padding: 3px;
   background: var(--bg-secondary);
-  border-radius: var(--radius-control);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
 }
 
 .theme-toggle__option {
   padding: 4px var(--space-3);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--text-secondary);
   background: transparent;
-  border: 0;
-  border-radius: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
 }
 
 .theme-toggle__option:hover {
-  background: var(--bg-surface);
   color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .theme-toggle__option.is-active,
 .theme-toggle__option.is-active:hover {
-  background: var(--color-primary);
-  color: var(--text-white);
+  background: var(--bg-surface);
+  border-color: var(--border-light);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(16, 35, 58, 0.08);
 }
 
 .theme-check {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--color-primary);
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
 }
 
-/* The per-band KPI list — one row per `kpi` section, however many a theme
-   defines, replacing the old fixed "header + one optional second band"
-   checkbox. */
+/* The per-band KPI list — one row per `kpi` section. */
 .theme-kpi-bands__list {
   display: flex;
   flex-direction: column;
@@ -479,59 +495,79 @@ body.theme-editor-reordering .theme-handle {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2);
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-control);
+  border-left: 3px solid var(--el-kpi-line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-inset);
+  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease;
 }
 
 .theme-kpi-band.is-linked {
-  background: var(--color-primary-light);
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
 }
 
 .theme-kpi-band__title {
   flex: 1 0 100%;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .theme-kpi-band__field {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 6px;
+  font-size: var(--fs-xs);
   color: var(--text-muted);
 }
 
 .theme-kpi-band__field input[type="number"] {
   width: 48px;
-  padding: 2px 4px;
+  height: 26px;
+  padding: 0 6px;
   font-family: inherit;
-  font-size: 12px;
-  border: 1px solid var(--border-medium);
-  border-radius: 4px;
-}
-
-.theme-kpi-band__gap {
-  font-family: inherit;
-  font-size: 12px;
-  padding: 2px 4px;
+  font-feature-settings: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-primary);
   border: 1px solid var(--border-medium);
   border-radius: 4px;
   background: var(--bg-surface);
 }
 
+.theme-kpi-band__gap {
+  height: 26px;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  padding: 0 4px;
+  color: var(--text-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: 4px;
+  background: var(--bg-surface);
+}
+
+.theme-kpi-band__field input:focus-visible,
+.theme-kpi-band__gap:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
 .theme-kpi-band__field--check {
-  gap: 4px;
+  gap: 6px;
 }
 
 .theme-kpi-band__remove {
   margin-left: auto;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
   line-height: 1;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--text-muted);
   background: transparent;
   border: 0;
@@ -546,6 +582,14 @@ body.theme-editor-reordering .theme-handle {
 #theme-kpi-band-add {
   margin-top: var(--space-2);
   width: 100%;
+  border-style: dashed;
+}
+
+#theme-kpi-band-add:hover {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .theme-editor__reset {
@@ -561,7 +605,8 @@ body.theme-editor-reordering .theme-handle {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  padding: var(--space-4) var(--space-6) var(--space-4);
+  padding: var(--space-4) var(--space-5) var(--space-4);
+  background: var(--bg-app);
 }
 
 .theme-stage__toolbar {
@@ -573,23 +618,22 @@ body.theme-editor-reordering .theme-handle {
 }
 
 .theme-stage__toolbar-label {
-  font-size: 11px;
+  font-size: var(--fs-md);
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--text-primary);
 }
 
 .theme-toggle--sm .theme-toggle__option {
   padding: 3px var(--space-2);
-  font-size: 11px;
+  font-size: var(--fs-xs);
 }
 
 .theme-stage__rows {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 12px;
+  margin-left: auto;
+  font-size: var(--fs-sm);
   color: var(--text-secondary);
 }
 
@@ -597,6 +641,8 @@ body.theme-editor-reordering .theme-handle {
   width: 56px;
 }
 
+/* The frame keeps a fixed 16px padding: renderPreview() subtracts exactly
+   32px from its clientWidth/Height when sizing the preview. */
 .theme-stage__frame {
   flex: 1;
   display: flex;
@@ -604,17 +650,19 @@ body.theme-editor-reordering .theme-handle {
   justify-content: center;
   min-height: 0;
   padding: var(--space-4);
-  background:
-    repeating-conic-gradient(var(--bg-secondary) 0 25%, transparent 0 50%)
-    0 0 / 16px 16px;
+  background-color: var(--bg-app);
+  background-image: radial-gradient(circle, rgba(16, 35, 58, 0.11) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  background-position: 11px 11px;
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-md);
 }
 
 .theme-preview {
   position: relative;
   background: var(--bg-surface);
-  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-sheet), 0 0 0 1px var(--border-light);
+  transition: box-shadow var(--dur-fast) ease;
 }
 
 .theme-region {
@@ -622,61 +670,48 @@ body.theme-editor-reordering .theme-handle {
   border-radius: 2px;
   /* top/height are what a reorder drag animates — the other bands glide to
      their projected position live, instead of teleporting on drop. */
-  transition: box-shadow 0.15s ease-out, top 0.18s ease-out, height 0.18s ease-out;
+  transition: box-shadow var(--dur-fast) ease, top var(--dur-base) var(--ease-out), height var(--dur-base) var(--ease-out);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .theme-region { transition: box-shadow 0.15s ease-out; }
-}
-
-/* The band under the pointer during a reorder drag: lifted above every
-   other region, tracking the cursor via `transform` written every frame in
-   startSectionDrag() — never through this class, and never animated, or it
-   would lag a frame behind the pointer instead of feeling held. */
+/* The band under the pointer during a reorder drag: lifted above every other
+   region, tracking the cursor via `transform` written every frame in
+   startSectionDrag() — never animated, or it would lag the pointer. */
 .theme-region--dragging {
   z-index: 30;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 12px 32px -6px rgba(16, 35, 58, 0.4), 0 0 0 1px var(--accent);
   cursor: grabbing;
   transition: none;
 }
 
 /* Applied only once a drag has ended (dropped on an invalid slot, or
-   aborted) — the one moment the lifted band's `transform` itself should
-   animate, back to translate(0,0), instead of tracking the pointer. */
+   aborted) — the one moment the lifted band's `transform` should animate. */
 .theme-region--returning {
-  transition: box-shadow 0.15s ease-out, top 0.18s ease-out, height 0.18s ease-out, transform 0.18s ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .theme-region--returning { transition: box-shadow 0.15s ease-out; }
+  transition: box-shadow var(--dur-fast) ease, top var(--dur-base) var(--ease-out), height var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
 }
 
 .theme-region.is-linked {
-  box-shadow: 0 0 0 2px var(--color-primary);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px var(--accent-ring);
   z-index: 6;
 }
 
-/* The canvas outlines itself when its own width/height are being touched.
-   Same ring as a region, drawn outside the edge so it doesn't crop. */
+/* The canvas outlines itself when its own width/height are being touched. */
 .theme-preview.is-linked {
-  box-shadow: 0 0 0 2px var(--color-primary);
+  box-shadow: var(--shadow-sheet), 0 0 0 2px var(--accent), 0 0 0 5px var(--accent-ring);
 }
 
-/* The usable-area outline sits behind everything: it is context, not a
-   component. */
+/* The usable-area outline sits behind everything: context, not a component. */
 .theme-region--usable {
   border: 1px dashed var(--border-medium);
   background: transparent;
   pointer-events: none;
 }
 
-/* The four bands of outer space. Neutral hatching, so they read as the
-   canvas's empty frame rather than as another component — but they are real
-   elements, so the margin can be hovered and dragged from any side. */
+/* The four bands of outer space, hatched so they read as the canvas's empty
+   frame — but real elements, so the margin can be dragged from any side. */
 .theme-region--margin {
   background: repeating-linear-gradient(
     45deg,
-    rgba(95, 99, 104, 0.10) 0 3px,
+    rgba(75, 91, 109, 0.09) 0 3px,
     transparent 3px 7px
   );
   border-radius: 0;
@@ -686,7 +721,7 @@ body.theme-editor-reordering .theme-handle {
 .theme-region--margin.is-linked {
   background: repeating-linear-gradient(
     45deg,
-    rgba(214, 0, 50, 0.22) 0 3px,
+    rgba(11, 95, 122, 0.22) 0 3px,
     transparent 3px 7px
   );
   box-shadow: none;              /* the fill is the highlight here */
@@ -700,41 +735,40 @@ body.theme-editor-reordering .theme-handle {
   transform: translate(-50%, -50%);
   padding: 0 5px;
   font-size: 9px;
-  line-height: 1.5;
-  font-weight: 500;
+  line-height: 1.6;
+  font-weight: 600;
   white-space: nowrap;
   color: var(--text-secondary);
   background: var(--bg-surface);
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 .theme-region--margin.is-linked .theme-margin__value {
-  color: var(--color-primary);
+  color: var(--accent);
 }
 
 .theme-region--title {
-  background: #eceff3;
-  border: 1px solid var(--border-medium);
+  background: var(--el-title-bg);
+  border: 1px solid var(--el-title-line);
 }
 
 .theme-region--slicer {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-medium);
+  background: var(--el-slicer-bg);
+  border: 1px solid var(--el-slicer-line);
 }
 
 .theme-region--kpi {
-  background: #fff;
-  border: 1px solid var(--border-light);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  background: var(--el-kpi-bg);
+  border: 1px solid var(--el-kpi-line);
 }
 
 .theme-region--band2 {
-  border-left: 3px solid var(--color-info);
+  border-left: 3px solid var(--el-kpi-text);
 }
 
 .theme-region--chart {
-  background: #fbfbfc;
-  border: 1px solid var(--border-light);
+  background: var(--el-chart-bg);
+  border: 1px solid var(--el-chart-line);
 }
 
 .theme-region--chart.is-too-small {
@@ -742,12 +776,11 @@ body.theme-editor-reordering .theme-handle {
   background: var(--color-error-light);
 }
 
-/* Gap rulers make the two spacing values visible: without them the only
-   evidence of a gap is the emptiness between two boxes. */
+/* Gap rulers make the two spacing values visible. */
 .theme-region--gap {
   background: repeating-linear-gradient(
     45deg,
-    rgba(214, 0, 50, 0.10) 0 4px,
+    rgba(11, 95, 122, 0.14) 0 4px,
     transparent 4px 8px
   );
   border: 0;
@@ -759,13 +792,14 @@ body.theme-editor-reordering .theme-handle {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  padding: 0 4px;
+  padding: 0 5px;
   font-size: 9px;
-  line-height: 1.4;
+  line-height: 1.5;
+  font-weight: 600;
   white-space: nowrap;
-  color: var(--color-primary);
+  color: var(--accent);
   background: var(--bg-surface);
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 /* Cell subdivisions: what turns a plain rectangle into "the seven slicers
@@ -784,27 +818,26 @@ body.theme-editor-reordering .theme-handle {
   flex: 1;
   min-width: 0;
   min-height: 0;
-  border: 1px dashed rgba(95, 99, 104, 0.35);
+  border: 1px dashed rgba(16, 35, 58, 0.22);
   border-radius: 2px;
 }
 
-/* Tags sit *inside* their region rather than hanging off its top edge: a
-   region's neighbour is often only a few scaled pixels away, and an outside
-   tag would paint over it. */
+/* Tags sit *inside* their region rather than hanging off its top edge. */
 .theme-tag {
   position: absolute;
   left: 3px;
   top: 3px;
   z-index: 5;
-  padding: 1px 5px;
+  padding: 1px 6px;
   font-size: 9px;
-  line-height: 1.5;
-  font-weight: 500;
+  line-height: 1.6;
+  font-weight: 600;
   white-space: nowrap;
   color: var(--text-secondary);
   background: var(--bg-surface);
   border: 1px solid var(--border-light);
-  border-radius: 3px;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(16, 35, 58, 0.06);
 }
 
 .theme-tag--wrap {
@@ -817,10 +850,11 @@ body.theme-editor-reordering .theme-handle {
   right: 3px;
   top: -9px;              /* the outline has no interior to sit in */
   color: var(--text-muted);
+  font-weight: 500;
+  box-shadow: none;
 }
 
-/* Drag strips on region edges. Kept generously thick relative to the preview
-   scale so they stay grabbable even on a small canvas. */
+/* Drag strips on region edges. */
 .theme-handle {
   position: absolute;
   z-index: 7;
@@ -858,9 +892,9 @@ body.theme-editor-reordering .theme-handle {
   position: absolute;
   inset: 4px 0;
   border-radius: 2px;
-  background: var(--color-primary);
+  background: var(--accent);
   opacity: 0;
-  transition: opacity 0.15s ease-out;
+  transition: opacity var(--dur-fast) ease;
 }
 
 .theme-handle--x::after {
@@ -868,36 +902,32 @@ body.theme-editor-reordering .theme-handle {
 }
 
 .theme-handle:hover::after {
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 /* The reorder grip IS the region's label chip (it carries .theme-tag too),
-   with the dots as a leading glyph rather than a separate widget parked on
-   top of one. As two elements both wanted the region's top-left corner and
-   visibly collided; as one they cannot. It still sits above the edge
-   dragHandles (z-index 7) so the two never compete for a pointerdown. */
+   with the dots as a leading glyph. */
 .theme-grip {
   z-index: 8;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding-left: 4px;
+  padding-left: 5px;
   cursor: grab;
   outline: none;
-  /* A movable chip reads as a control rather than as a caption. */
   border-color: var(--border-medium);
-  transition: background 0.15s ease-out, border-color 0.15s ease-out;
+  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease, color var(--dur-fast) ease;
 }
 
 .theme-grip:hover {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .theme-grip:focus-visible {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-light);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 body.theme-editor-reordering .theme-grip {
@@ -921,7 +951,7 @@ body.theme-editor-reordering .theme-grip {
 
 .theme-grip:hover .theme-grip__dot,
 .theme-grip:focus-visible .theme-grip__dot {
-  background: var(--color-primary);
+  background: var(--accent);
 }
 
 /* Wrapping variant (the tall narrow slicer column): the dots stay pinned to
@@ -931,21 +961,16 @@ body.theme-editor-reordering .theme-grip {
 }
 
 .theme-grip.theme-tag--wrap .theme-grip__dots {
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
-/* No insertion marker of any kind is drawn during a reorder. The dragged band
-   is genuinely lifted and the others genuinely displace live (see
-   .theme-region--dragging above and applyProjectedLayout() in
-   themeEditor.js), so a line marking the slot would be redundant clutter.
-   The one marker that survived that reasoning was the gutter dock's vertical
-   line, and gutter docking is gone: a drag can no longer change a template's
-   placement, only reorder its bands. */
-
+/* ----------------------------------------------------
+   THEME EDITOR — readout + issues
+-----------------------------------------------------*/
 .theme-stage__readout {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--space-2) var(--space-6);
   margin-top: var(--space-3);
 }
 
@@ -956,14 +981,12 @@ body.theme-editor-reordering .theme-grip {
 }
 
 .theme-stat__label {
-  font-size: 10px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: var(--fs-xs);
   color: var(--text-muted);
 }
 
 .theme-stat__value {
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -980,19 +1003,33 @@ body.theme-editor-reordering .theme-grip {
 }
 
 .theme-issue {
-  padding: 4px var(--space-3);
-  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 5px var(--space-3);
+  font-size: var(--fs-sm);
+  font-weight: 500;
   line-height: 1.4;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.theme-issue::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
 }
 
 .theme-issue--ok {
   color: var(--color-success);
-  background: rgba(46, 158, 68, 0.08);
+  background: var(--color-success-light);
 }
 
 .theme-issue--warning {
-  color: #8a5b00;
+  color: var(--color-warning);
   background: var(--color-warning-light);
 }
 
@@ -1010,6 +1047,10 @@ body.theme-editor-reordering .theme-grip {
     width: 100%;
     height: 100%;
     border-radius: 0;
+  }
+
+  .theme-editor__head {
+    flex-wrap: wrap;
   }
 
   .theme-editor__body {
