@@ -289,8 +289,9 @@ button:disabled {
   flex-direction: column;
   max-height: 100%;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--ink-4) transparent;
+  /* Scrolls (rarely, on short viewports) without a bar cutting into the
+     rounded card; the clipped last section is the cue. */
+  scrollbar-width: none;
   background: var(--glass);
   backdrop-filter: blur(20px) saturate(1.4);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
@@ -311,17 +312,6 @@ button:disabled {
   font-size: var(--fs-lg);
   font-weight: 600;
   letter-spacing: -0.015em;
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.panel-header h2 {
-  margin: 0;
 }
 
 .field-label {
@@ -353,55 +343,6 @@ button:disabled {
 
 .field-note:empty {
   display: none;
-}
-
-.info-trigger {
-  position: relative;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  color: var(--ink-3);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: default;
-}
-
-.info-trigger svg {
-  width: 16px;
-  height: 16px;
-}
-
-.info-trigger:hover,
-.info-trigger:focus-visible {
-  color: var(--accent);
-  background: var(--accent-soft);
-  outline: none;
-}
-
-.info-trigger .tooltip {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 5;
-  padding: 6px 10px;
-  border-radius: var(--r-sm);
-  background: var(--ink);
-  color: #fff;
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  white-space: nowrap;
-  opacity: 0;
-  transform: translateY(-3px) scale(0.98);
-  transform-origin: top right;
-  pointer-events: none;
-  transition: opacity var(--fast) var(--ease-out), transform var(--fast) var(--ease-out);
-}
-
-.info-trigger:hover .tooltip,
-.info-trigger:focus-visible .tooltip {
-  opacity: 1;
-  transform: none;
 }
 
 /* ----------------------------------------------------
@@ -881,13 +822,28 @@ select {
    is a pixel the layout can't use.
 -----------------------------------------------------*/
 #canvas-wrapper {
+  position: relative;
   display: block;
   width: fit-content;
   max-width: 100%;
   margin: 0 auto;
-  padding: 0;
+  /* Bottom padding only, sized for the caption: the scale measurement reads
+     this padding, so the caption has to live inside it. */
+  padding: 0 0 32px;
   border: 0;
   text-align: left;
+}
+
+/* The artboard label, placed inside the wrapper's bottom padding. */
+.sheet-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--ink-3);
+  text-align: center;
 }
 
 #canvas {

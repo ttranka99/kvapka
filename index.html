@@ -65,13 +65,7 @@
         <aside class="sidebar">
             <div class="sidebar-panels">
                 <section class="panel">
-                    <div class="panel-header">
-                        <h2>Šablona</h2>
-                        <button type="button" class="info-trigger" aria-label="Rozměry plátna">
-                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="8" r="1.1" fill="currentColor"/></svg>
-                            <span class="tooltip" id="canvas-size-label" role="tooltip">Power BI plátno 1920 × 1080</span>
-                        </button>
-                    </div>
+                    <h2>Šablona</h2>
                     <div class="panel-field">
                         <h3 class="field-label" id="label-resolution">Rozlišení</h3>
                         <!-- Chips are built by ui/themePicker.js: the two built-in
@@ -202,6 +196,8 @@
 
             <div id="canvas-wrapper">
                 <div id="canvas"></div>
+                <!-- Filled by syncTemplateControls() in app.js. -->
+                <p class="sheet-caption" id="canvas-size-label"></p>
             </div>
         </main>
     </div>
