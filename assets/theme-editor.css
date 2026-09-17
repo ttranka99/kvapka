@@ -1,5 +1,5 @@
 /* ====================================================
-   kvapka — theme picker (sidebar) + theme editor dialog
+   kvapka — theme picker (sidebar) + theme editor section
    Tokens come from style.css.
 ==================================================== */
 
@@ -19,7 +19,7 @@
   overflow: hidden;
   border-radius: var(--r-pill);
   background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--line-strong), 0 1px 2px rgba(15, 30, 46, 0.04);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
   transition: background var(--fast) ease, box-shadow var(--fast) ease;
 }
 
@@ -31,16 +31,16 @@
 }
 
 .theme-chip:hover:not(.active) {
-  box-shadow: inset 0 0 0 1px var(--accent-ring);
+  box-shadow: inset 0 0 0 1px var(--pink);
 }
 
 .theme-chip:hover:not(.active) .theme-chip__label {
-  color: var(--accent);
+  color: var(--pink);
 }
 
 .theme-chip.active {
-  background: var(--ink);
-  box-shadow: 0 1px 2px rgba(15, 30, 46, 0.2), 0 6px 14px -6px rgba(15, 30, 46, 0.5);
+  background: var(--slate);
+  box-shadow: none;
 }
 
 .theme-chip.active .theme-chip__label {
@@ -63,34 +63,29 @@
 }
 
 .theme-chip__edit:hover {
-  color: var(--accent);
+  color: var(--pink);
 }
 
 .theme-chip.active .theme-chip__edit {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .theme-chip.active .theme-chip__edit:hover {
-  color: #fff;
-}
-
-#new-theme {
-  margin-top: 8px;
+  color: var(--pink);
 }
 
 /* A middle KPI band is the same component as the header band, with a left
    rule marking it as another band. */
 .canvas-element.kpi--band2 {
-  box-shadow: inset 3px 0 0 var(--kpi), inset 0 0 0 1px rgba(91, 72, 201, 0.18);
+  box-shadow: inset 3px 0 0 var(--slate), inset 0 0 0 1px var(--line-strong);
 }
 
 /* ----------------------------------------------------
-   THEME EDITOR — dialog shell
+   THEME EDITOR — a section of its own, filling the
+   space right of the rail and below the top bar. It is
+   a parallel panel, not a modal: no scrim, fade only,
+   and it sits under the bell and toasts.
 -----------------------------------------------------*/
-body.theme-editor-open {
-  overflow: hidden;
-}
-
 body.theme-editor-dragging,
 body.theme-editor-reordering {
   cursor: grabbing;
@@ -104,52 +99,44 @@ body.theme-editor-reordering .theme-handle {
 
 .theme-editor {
   position: fixed;
-  inset: 0;
-  z-index: 1200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  top: var(--topbar);
+  left: var(--rail);
+  right: 0;
+  bottom: 0;
+  z-index: 900;
+  padding: var(--gutter);
+  background: var(--bg);
+  animation: fade-in 160ms ease-out;
 }
 
 .theme-editor[hidden] {
   display: none;
 }
 
-.theme-editor__backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(15, 30, 46, 0.45);
-  backdrop-filter: blur(6px);
-  animation: fade-in var(--slow) ease;
-}
-
 @keyframes fade-in {
   from { opacity: 0; }
 }
 
-.theme-editor__dialog {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: min(1360px, 100%);
-  height: min(900px, 100%);
-  overflow: hidden;
-  border-radius: 22px;
-  background: var(--surface);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6), 0 40px 100px -20px rgba(15, 30, 46, 0.6);
-  animation: dialog-in var(--slow) var(--ease-out);
+.theme-editor__backdrop {
+  display: none;
 }
 
-@keyframes dialog-in {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+.theme-editor__dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
 }
 
 .theme-editor__head {
   display: flex;
   align-items: center;
   gap: 20px;
-  padding: 16px 24px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--line);
 }
 
 .theme-editor__identity {
@@ -167,7 +154,7 @@ body.theme-editor-reordering .theme-handle {
   font: inherit;
   font-size: var(--fs-xl);
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   color: var(--ink);
   background: transparent;
   transition: box-shadow var(--fast) ease, background var(--fast) ease;
@@ -179,13 +166,13 @@ body.theme-editor-reordering .theme-handle {
 
 .theme-editor__name:focus-visible {
   outline: none;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-ring);
+  box-shadow: inset 0 0 0 1px var(--slate), 0 0 0 3px var(--line);
 }
 
 .theme-editor__meta {
   margin-top: 2px;
   font-size: var(--fs-sm);
+  letter-spacing: 0.01em;
   color: var(--ink-3);
 }
 
@@ -234,20 +221,15 @@ body.theme-editor-reordering .theme-handle {
   white-space: nowrap;
 }
 
-.theme-btn:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
 .theme-btn--primary {
   color: #fff;
   font-weight: 600;
-  background: linear-gradient(180deg, #1580a3, var(--accent));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 2px rgba(12, 107, 138, 0.3),
-    0 8px 20px -8px rgba(12, 107, 138, 0.6);
+  background: var(--pink);
+  box-shadow: 0 6px 16px -8px rgba(251, 73, 163, 0.7);
 }
 
 .theme-btn--primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #146f8f, var(--accent-hover));
+  background: var(--pink-hover);
 }
 
 .theme-btn--primary:disabled {
@@ -262,8 +244,9 @@ body.theme-editor-reordering .theme-handle {
 }
 
 .theme-btn--ghost:hover {
-  color: var(--ink);
-  background: var(--surface-2);
+  color: var(--pink);
+  background: var(--pink-soft);
+  box-shadow: inset 0 0 0 1px var(--pink);
 }
 
 .theme-btn--danger {
@@ -292,7 +275,8 @@ body.theme-editor-reordering .theme-handle {
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--ink-4) transparent;
-  padding: 8px 24px 32px;
+  padding: 16px 24px 32px;
+  border-right: 1px solid var(--line);
 }
 
 .theme-group + .theme-group {
@@ -308,6 +292,7 @@ body.theme-editor-reordering .theme-handle {
 .theme-group__note {
   margin: 0 0 12px;
   font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
   line-height: 1.5;
   color: var(--ink-3);
 }
@@ -321,13 +306,14 @@ body.theme-editor-reordering .theme-handle {
 
 /* A control lit from its region — or the region from its control. */
 .theme-field.is-linked {
-  background: var(--accent-soft);
+  background: var(--pink-soft);
 }
 
 .theme-field__label {
   display: block;
   font-size: var(--fs-sm);
   font-weight: 500;
+  letter-spacing: 0.01em;
   color: var(--ink-2);
 }
 
@@ -352,13 +338,14 @@ body.theme-editor-reordering .theme-handle {
 .theme-field__range::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 2px;
-  background: rgba(15, 30, 46, 0.1);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 .theme-field__range::-moz-range-track {
   height: 4px;
   border-radius: 2px;
-  background: rgba(15, 30, 46, 0.1);
+  background: var(--surface-2);
 }
 
 .theme-field__range::-webkit-slider-thumb {
@@ -367,9 +354,9 @@ body.theme-editor-reordering .theme-handle {
   height: 16px;
   margin-top: -6px;
   border-radius: 50%;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1.5px var(--accent), 0 1px 3px rgba(15, 30, 46, 0.25);
-  transition: transform var(--fast) var(--ease-out);
+  background: var(--slate);
+  box-shadow: 0 0 0 2px var(--surface), 0 1px 3px rgba(28, 33, 40, 0.3);
+  transition: background var(--fast) ease, transform 100ms var(--ease-out);
 }
 
 .theme-field__range::-moz-range-thumb {
@@ -377,13 +364,18 @@ body.theme-editor-reordering .theme-handle {
   height: 16px;
   border: 0;
   border-radius: 50%;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1.5px var(--accent), 0 1px 3px rgba(15, 30, 46, 0.25);
+  background: var(--slate);
+  box-shadow: 0 0 0 2px var(--surface), 0 1px 3px rgba(28, 33, 40, 0.3);
 }
 
 .theme-field__range:hover::-webkit-slider-thumb,
 .theme-field__range:active::-webkit-slider-thumb {
+  background: var(--pink);
   transform: scale(1.15);
+}
+
+.theme-field__range:hover::-moz-range-thumb {
+  background: var(--pink);
 }
 
 .theme-field__range:focus-visible {
@@ -406,10 +398,13 @@ body.theme-editor-reordering .theme-handle {
   transition: box-shadow var(--fast) ease;
 }
 
-.theme-field__number:hover,
+.theme-field__number:hover {
+  box-shadow: inset 0 0 0 1px var(--pink);
+}
+
 .theme-field__number:focus-visible {
   outline: none;
-  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-ring);
+  box-shadow: inset 0 0 0 1px var(--slate), 0 0 0 3px var(--line);
 }
 
 .theme-field__unit {
@@ -422,6 +417,7 @@ body.theme-editor-reordering .theme-handle {
 .theme-field__hint {
   margin: 6px 0 0;
   font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
   line-height: 1.5;
   color: var(--ink-3);
 }
@@ -431,7 +427,7 @@ body.theme-editor-reordering .theme-handle {
   gap: 2px;
   padding: 3px;
   border-radius: var(--r-pill);
-  background: rgba(15, 30, 46, 0.06);
+  background: var(--surface-2);
 }
 
 .theme-toggle__option {
@@ -443,22 +439,21 @@ body.theme-editor-reordering .theme-handle {
 }
 
 .theme-toggle__option:hover {
-  color: var(--ink);
+  color: var(--pink);
 }
 
 .theme-toggle__option.is-active,
 .theme-toggle__option.is-active:hover {
-  color: var(--ink);
+  color: #fff;
   font-weight: 600;
-  background: var(--surface);
-  box-shadow: 0 1px 2px rgba(15, 30, 46, 0.1), 0 2px 6px -2px rgba(15, 30, 46, 0.15);
+  background: var(--slate);
 }
 
 .theme-check {
   width: 16px;
   height: 16px;
   margin: 0;
-  accent-color: var(--accent);
+  accent-color: var(--slate);
 }
 
 /* The per-band KPI list — one row per `kpi` section. */
@@ -476,12 +471,12 @@ body.theme-editor-reordering .theme-handle {
   padding: 10px 12px;
   border-radius: var(--r-md);
   background: var(--surface-2);
-  box-shadow: inset 3px 0 0 var(--kpi);
+  box-shadow: inset 3px 0 0 var(--slate);
   transition: background var(--fast) ease;
 }
 
 .theme-kpi-band.is-linked {
-  background: var(--accent-soft);
+  background: var(--pink-soft);
 }
 
 .theme-kpi-band__title {
@@ -519,7 +514,7 @@ body.theme-editor-reordering .theme-handle {
 .theme-kpi-band__field input:focus-visible,
 .theme-kpi-band__gap:focus-visible {
   outline: none;
-  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-ring);
+  box-shadow: inset 0 0 0 1px var(--slate), 0 0 0 3px var(--line);
 }
 
 .theme-kpi-band__remove {
@@ -533,8 +528,8 @@ body.theme-editor-reordering .theme-handle {
 }
 
 .theme-kpi-band__remove:hover {
-  color: var(--error);
-  background: var(--error-bg);
+  color: #fff;
+  background: var(--pink);
 }
 
 #theme-kpi-band-add {
@@ -555,7 +550,7 @@ body.theme-editor-reordering .theme-handle {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  padding: 8px 24px 20px;
+  padding: 16px 24px 20px;
 }
 
 .theme-stage__toolbar {
@@ -599,15 +594,14 @@ body.theme-editor-reordering .theme-handle {
   justify-content: center;
   min-height: 0;
   padding: 16px;
-  border-radius: var(--r-lg);
-  background: #f2f5f8
-    radial-gradient(600px 360px at 10% 0%, rgba(70, 198, 232, 0.18), transparent 60%);
+  border-radius: var(--r-md);
+  background: var(--bg);
 }
 
 .theme-preview {
   position: relative;
   background: var(--surface);
-  box-shadow: var(--shadow-sheet), 0 0 0 1px var(--line);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-sheet);
   transition: box-shadow var(--fast) ease;
 }
 
@@ -622,7 +616,7 @@ body.theme-editor-reordering .theme-handle {
    every frame — never animated, or it would lag the pointer. */
 .theme-region--dragging {
   z-index: 30;
-  box-shadow: 0 16px 40px -8px rgba(15, 30, 46, 0.45), 0 0 0 1.5px var(--accent);
+  box-shadow: 0 16px 40px -8px rgba(28, 33, 40, 0.4), 0 0 0 1.5px var(--pink);
   cursor: grabbing;
   transition: none;
 }
@@ -634,11 +628,11 @@ body.theme-editor-reordering .theme-handle {
 
 .theme-region.is-linked {
   z-index: 6;
-  box-shadow: 0 0 0 2px var(--accent), 0 0 0 6px var(--accent-ring);
+  box-shadow: 0 0 0 2px var(--pink), 0 0 0 6px var(--pink-ring);
 }
 
 .theme-preview.is-linked {
-  box-shadow: var(--shadow-sheet), 0 0 0 2px var(--accent), 0 0 0 6px var(--accent-ring);
+  box-shadow: 0 0 0 2px var(--pink), 0 0 0 6px var(--pink-ring), var(--shadow-sheet);
 }
 
 /* The usable area is context, not a component: a faint outline behind all. */
@@ -652,11 +646,11 @@ body.theme-editor-reordering .theme-handle {
 .theme-region--margin {
   border-radius: 0;
   z-index: 3;
-  background: rgba(15, 30, 46, 0.035);
+  background: var(--surface-2);
 }
 
 .theme-region--margin.is-linked {
-  background: rgba(12, 107, 138, 0.12);
+  background: var(--pink-soft);
   box-shadow: none;
 }
 
@@ -674,36 +668,28 @@ body.theme-editor-reordering .theme-handle {
   white-space: nowrap;
   color: var(--ink-2);
   background: var(--surface);
-  box-shadow: 0 1px 2px rgba(15, 30, 46, 0.1);
+  box-shadow: 0 0 0 1px var(--line);
   pointer-events: none;
 }
 
 .theme-region--margin.is-linked .theme-margin__value,
-.theme-gap__value {
-  color: var(--accent);
+.theme-region--gap.is-linked .theme-gap__value {
+  color: var(--pink);
 }
 
 .theme-region--title {
-  background: linear-gradient(90deg, #1a2d44, var(--ink));
+  background: var(--slate);
 }
 
-.theme-region--slicer {
-  background: var(--slicer-bg);
-  box-shadow: inset 0 0 0 1px rgba(12, 107, 138, 0.18);
-}
-
-.theme-region--kpi {
-  background: var(--kpi-bg);
-  box-shadow: inset 0 0 0 1px rgba(91, 72, 201, 0.18);
+.theme-region--slicer,
+.theme-region--kpi,
+.theme-region--chart {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
 }
 
 .theme-region--band2 {
-  box-shadow: inset 3px 0 0 var(--kpi), inset 0 0 0 1px rgba(91, 72, 201, 0.18);
-}
-
-.theme-region--chart {
-  background: var(--chart-bg);
-  box-shadow: inset 0 0 0 1px var(--line);
+  box-shadow: inset 3px 0 0 var(--slate), inset 0 0 0 1px var(--line-strong);
 }
 
 .theme-region--chart.is-too-small {
@@ -714,7 +700,11 @@ body.theme-editor-reordering .theme-handle {
 /* Gap rulers make the two spacing values visible. */
 .theme-region--gap {
   z-index: 4;
-  background: rgba(12, 107, 138, 0.1);
+  background: repeating-linear-gradient(45deg, var(--line) 0 3px, transparent 3px 7px);
+}
+
+.theme-region--gap.is-linked {
+  background: var(--pink-soft);
 }
 
 /* Cell subdivisions: what turns a stripe into "the seven slicers". */
@@ -733,7 +723,7 @@ body.theme-editor-reordering .theme-handle {
   min-width: 0;
   min-height: 0;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.45);
+  background: var(--surface-2);
 }
 
 .theme-region--title .theme-cell {
@@ -754,7 +744,7 @@ body.theme-editor-reordering .theme-handle {
   white-space: nowrap;
   color: var(--ink-2);
   background: var(--surface);
-  box-shadow: 0 1px 2px rgba(15, 30, 46, 0.12);
+  box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(28, 33, 40, 0.08);
 }
 
 .theme-tag--wrap {
@@ -807,7 +797,7 @@ body.theme-editor-reordering .theme-handle {
   position: absolute;
   inset: 4px 0;
   border-radius: 2px;
-  background: var(--accent);
+  background: var(--pink);
   opacity: 0;
   transition: opacity var(--fast) ease;
 }
@@ -817,7 +807,7 @@ body.theme-editor-reordering .theme-handle {
 }
 
 .theme-handle:hover::after {
-  opacity: 0.85;
+  opacity: 1;
 }
 
 /* The reorder grip is the region's label chip with a dots glyph. */
@@ -833,12 +823,13 @@ body.theme-editor-reordering .theme-handle {
 }
 
 .theme-grip:hover {
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--pink);
+  background: var(--pink-soft);
+  box-shadow: 0 0 0 1px var(--pink);
 }
 
 .theme-grip:focus-visible {
-  box-shadow: 0 0 0 2px var(--accent-ring);
+  box-shadow: 0 0 0 2px var(--pink);
 }
 
 body.theme-editor-reordering .theme-grip {
@@ -861,7 +852,7 @@ body.theme-editor-reordering .theme-grip {
 
 .theme-grip:hover .theme-grip__dot,
 .theme-grip:focus-visible .theme-grip__dot {
-  background: var(--accent);
+  background: var(--pink);
 }
 
 .theme-grip.theme-tag--wrap {
@@ -889,13 +880,13 @@ body.theme-editor-reordering .theme-grip {
 
 .theme-stat__label {
   font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
   color: var(--ink-3);
 }
 
 .theme-stat__value {
   font-size: var(--fs-lg);
   font-weight: 600;
-  letter-spacing: -0.01em;
 }
 
 .theme-stage__issues {
@@ -945,16 +936,6 @@ body.theme-editor-reordering .theme-grip {
 }
 
 @media (max-width: 1100px) {
-  .theme-editor {
-    padding: 0;
-  }
-
-  .theme-editor__dialog {
-    width: 100%;
-    height: 100%;
-    border-radius: 0;
-  }
-
   .theme-editor__head {
     flex-wrap: wrap;
   }
@@ -962,5 +943,18 @@ body.theme-editor-reordering .theme-grip {
   .theme-editor__body {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 45%) minmax(0, 55%);
+  }
+
+  .theme-editor__controls {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 900px) {
+  .theme-editor {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
   }
 }

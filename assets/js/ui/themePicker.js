@@ -27,6 +27,7 @@ import {
   availablePlacements
 } from "../theme/themeStore.js";
 import { openThemeEditor } from "../theme/themeEditor.js";
+import { setActiveSection } from "./rail.js";
 import { applyThemeToAllTabs, retargetTabsToTheme } from "../state/tabs.js";
 import { addWarning } from "./warnings.js";
 import { PLACEMENTS, placementLabel } from "../theme/themeModel.js";
@@ -219,10 +220,26 @@ function applyThemeEverywhereScopeSays(theme) {
   refreshUI();
 }
 
+/**
+ * The rail's "Vlastní layout" section: the active layout, edited in place if
+ * it is a custom one, forked into a new copy if it is a built-in (built-ins
+ * are read-only baselines).
+ */
+export function openActiveThemeEditor() {
+  const theme = state.getActiveTheme();
+  openEditorFor(theme, theme.builtin ? "new" : undefined);
+}
+
 function openEditorFor(theme, mode) {
+  // The editor is a section of its own, so opening it from anywhere (rail,
+  // chip pencil, "Vlastní šablona…") lights that section on the rail, and
+  // closing it — however it closes — hands the screen back to the template
+  // section.
+  setActiveSection("layout");
   openThemeEditor({
     theme,
     mode,
+    onClose: () => setActiveSection("sablona"),
     onApply: saved => {
       if (!saved) {
         // The theme was deleted. Pages keep the settings they were authored

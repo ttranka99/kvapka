@@ -53,6 +53,7 @@ let draft = null;             // the theme being edited
 let baseTheme = null;         // what it was derived from, for the diff readout
 let editingExistingId = null; // non-null when editing a saved custom theme
 let onApply = null;           // callback handed in by the opener
+let onClose = null;           // fired on every exit path (see closeThemeEditor)
 // Preview-only knobs. Orientation is deliberately NOT one of them any more:
 // the preview shows the layout being edited, and a layout has exactly one
 // shape. A toggle here would put a picture of the other placement next to
@@ -84,6 +85,9 @@ const el = (tag, className, text) => {
  *                                edited in place)
  * @param {(theme: object) => void} options.onApply  called with the saved
  *                                theme when the user confirms
+ * @param {() => void} [options.onClose]  called whenever the editor closes,
+ *                                however it closes — the rail uses it to
+ *                                hand the screen back to the template section
  */
 export function openThemeEditor(options) {
   const source = normalizeTheme(options.theme);
@@ -109,6 +113,7 @@ export function openThemeEditor(options) {
   // change the user never made.
   baseTheme = cloneTheme(baselineFor(draft));
   onApply = options.onApply || null;
+  onClose = options.onClose || null;
 
   // Force both to rebuild for this draft: the dialog is reused across opens,
   // so last session's field set and chooser/badge choice are still in it.
@@ -131,9 +136,10 @@ export function openThemeEditor(options) {
 }
 
 export function closeThemeEditor() {
-  if (!root) return;
+  if (!root || root.hidden) return;
   root.hidden = true;
   document.body.classList.remove("theme-editor-open");
+  if (onClose) onClose();
 }
 
 // --- Dialog construction ------------------------------------------------

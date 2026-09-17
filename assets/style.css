@@ -1,64 +1,60 @@
 /* ====================================================
    kvapka — design system
 
-   A light studio: one soft gradient workspace, a
-   floating inspector, and the report canvas as the
-   only object with real depth. One typeface, five
-   sizes, one accent, four element hues.
+   Monochrome by default: a flat light workspace, white
+   panels, a slate title bar. Pink means "you can act
+   here" — it appears on the export button, the active
+   rail item and the bell dot, and otherwise only on
+   hover, press and selection.
 ==================================================== */
 :root {
-  --accent: #0c6b8a;
-  --accent-hover: #0a5b76;
-  --accent-soft: #e6f4f8;
-  --accent-ring: rgba(12, 107, 138, 0.22);
+  --pink: #fb49a3;
+  --pink-hover: #e93a93;
+  --pink-soft: #ffe9f3;
+  --pink-ring: rgba(251, 73, 163, 0.25);
 
-  --ink: #0f1e2e;
-  --ink-2: #4a5867;
-  --ink-3: #8592a0;
-  --ink-4: #b7c0ca;
+  --slate: #2b3038;
 
+  --ink: #1c2128;
+  --ink-2: #5c6470;
+  --ink-3: #8a929c;
+  --ink-4: #c3c8cf;
+
+  --bg: #f4f5f7;
   --surface: #ffffff;
-  --surface-2: #f4f6f9;
-  --glass: rgba(255, 255, 255, 0.78);
-  --line: rgba(15, 30, 46, 0.08);
-  --line-strong: rgba(15, 30, 46, 0.14);
+  --surface-2: #f0f1f4;
+  --line: rgba(28, 33, 40, 0.08);
+  --line-strong: rgba(28, 33, 40, 0.14);
 
-  /* Element hues: slicer aqua, KPI violet, chart neutral, header ink. */
-  --slicer: #0c6b8a;
-  --slicer-bg: #e4f4f9;
-  --kpi: #5b48c9;
-  --kpi-bg: #ece9fb;
-  --chart: #6c7a89;
-  --chart-bg: #f7f9fb;
-
-  --success: #17855b;
   --warning: #b56a06;
   --error: #d1384a;
-  --success-bg: #e6f5ee;
+  --success: #17855b;
   --warning-bg: #fdf2df;
   --error-bg: #fdeaec;
+  --success-bg: #e6f5ee;
 
   --r-sm: 8px;
   --r-md: 12px;
-  --r-lg: 18px;
+  --r-lg: 16px;
   --r-pill: 999px;
 
-  --shadow-float: 0 1px 2px rgba(15, 30, 46, 0.04), 0 24px 48px -24px rgba(15, 30, 46, 0.25);
-  --shadow-sheet: 0 2px 4px rgba(15, 30, 46, 0.04), 0 40px 80px -32px rgba(15, 30, 46, 0.35);
-  --shadow-pop: 0 4px 8px -4px rgba(15, 30, 46, 0.1), 0 24px 56px -16px rgba(15, 30, 46, 0.35);
+  --shadow-card: 0 1px 2px rgba(28, 33, 40, 0.04), 0 8px 24px -12px rgba(28, 33, 40, 0.12);
+  --shadow-sheet: 0 1px 2px rgba(28, 33, 40, 0.05), 0 24px 48px -24px rgba(28, 33, 40, 0.2);
+  --shadow-pop: 0 4px 8px -4px rgba(28, 33, 40, 0.1), 0 20px 48px -16px rgba(28, 33, 40, 0.3);
 
   --fs-xs: 11px;
   --fs-sm: 12px;
   --fs-md: 13px;
   --fs-lg: 15px;
-  --fs-xl: 22px;
+  --fs-xl: 20px;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --fast: 120ms;
   --base: 180ms;
-  --slow: 260ms;
+  --slow: 240ms;
 
-  --topbar: 64px;
+  --topbar: 60px;
+  --rail: 72px;
   --gutter: 16px;
   --sidebar: 300px;
 }
@@ -80,16 +76,12 @@ html {
 
 body {
   margin: 0;
-  font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: var(--fs-md);
   line-height: 1.45;
   font-feature-settings: "tnum" 1;
   color: var(--ink);
-  background-color: #f2f5f8;
-  background-image:
-    radial-gradient(900px 520px at 8% -8%, rgba(70, 198, 232, 0.22), transparent 62%),
-    radial-gradient(700px 480px at 104% 108%, rgba(91, 72, 201, 0.1), transparent 60%);
-  background-attachment: fixed;
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -97,12 +89,16 @@ h1, h2, h3, p {
   margin: 0;
 }
 
+h2, h3 {
+  line-height: 1.2;
+}
+
 svg {
   display: block;
 }
 
 ::selection {
-  background: rgba(70, 198, 232, 0.35);
+  background: var(--pink-soft);
 }
 
 .hidden {
@@ -110,7 +106,8 @@ svg {
 }
 
 /* ----------------------------------------------------
-   BUTTONS
+   BUTTONS — one base, three variants. Press feedback
+   on every pressable thing.
 -----------------------------------------------------*/
 button {
   font: inherit;
@@ -121,16 +118,20 @@ button {
   background: none;
   cursor: pointer;
   transition: background var(--fast) ease, color var(--fast) ease,
-    box-shadow var(--fast) ease, transform var(--fast) var(--ease-out), opacity var(--fast) ease;
+    box-shadow var(--fast) ease, transform 100ms var(--ease-out);
 }
 
 button:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--pink);
   outline-offset: 2px;
 }
 
 button:disabled {
   cursor: not-allowed;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .btn {
@@ -145,25 +146,20 @@ button:disabled {
 }
 
 .btn svg {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
-}
-
-.btn:active:not(:disabled) {
-  transform: scale(0.97);
 }
 
 .btn-primary {
   color: #fff;
   font-weight: 600;
-  background: linear-gradient(180deg, #1580a3, var(--accent));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 2px rgba(12, 107, 138, 0.3),
-    0 8px 20px -8px rgba(12, 107, 138, 0.6);
+  background: var(--pink);
+  box-shadow: 0 6px 16px -8px rgba(251, 73, 163, 0.7);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #146f8f, var(--accent-hover));
+  background: var(--pink-hover);
 }
 
 .btn-primary:disabled {
@@ -175,13 +171,13 @@ button:disabled {
 .btn-secondary {
   color: var(--ink);
   background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--line-strong), 0 1px 2px rgba(15, 30, 46, 0.04);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  color: var(--accent);
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px var(--accent-ring);
+  color: var(--pink);
+  background: var(--pink-soft);
+  box-shadow: inset 0 0 0 1px var(--pink);
 }
 
 .btn-ghost {
@@ -189,20 +185,8 @@ button:disabled {
 }
 
 .btn-ghost:hover:not(:disabled) {
-  color: var(--ink);
-  background: var(--surface-2);
-}
-
-.btn-dashed {
-  color: var(--ink-2);
-  box-shadow: inset 0 0 0 1px var(--line-strong);
-  background: transparent;
-}
-
-.btn-dashed:hover:not(:disabled) {
-  color: var(--accent);
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px var(--accent-ring);
+  color: var(--pink);
+  background: var(--pink-soft);
 }
 
 .full-btn {
@@ -210,7 +194,7 @@ button:disabled {
 }
 
 /* ----------------------------------------------------
-   TOP BAR — floats over the workspace, no chrome.
+   TOP BAR — brand, page tabs, the one pink action.
 -----------------------------------------------------*/
 .topbar {
   position: sticky;
@@ -218,39 +202,48 @@ button:disabled {
   z-index: 1000;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   height: var(--topbar);
-  padding: 0 72px 0 24px;
+  padding: 0 72px 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   color: var(--ink);
   text-decoration: none;
   border-radius: var(--r-sm);
 }
 
 .brand:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--pink);
   outline-offset: 4px;
 }
 
 .brand-mark {
-  width: 30px;
-  height: 30px;
-  filter: drop-shadow(0 4px 8px rgba(11, 95, 122, 0.3));
+  width: 36px;
+  height: 36px;
+  color: var(--slate);
+  transition: color var(--base) ease;
+}
+
+.brand:hover .brand-mark {
+  color: var(--pink);
 }
 
 .brand-name {
   font-size: var(--fs-xl);
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
   line-height: 1;
 }
 
 .topbar-subtitle {
+  padding-left: 16px;
+  border-left: 1px solid var(--line-strong);
   font-size: var(--fs-md);
   color: var(--ink-3);
 }
@@ -263,7 +256,146 @@ button:disabled {
 }
 
 /* ----------------------------------------------------
-   LAYOUT
+   PAGE TABS — centred in the top bar.
+-----------------------------------------------------*/
+.tab-bar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 40vw;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 8px 0 14px;
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: color var(--fast) ease, background var(--fast) ease, box-shadow var(--fast) ease;
+}
+
+.tab:not(.tab--active) {
+  padding-right: 14px;
+}
+
+.tab:hover {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.tab--active,
+.tab--active:hover {
+  color: #fff;
+  font-weight: 600;
+  background: var(--slate);
+  box-shadow: none;
+}
+
+.tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.65);
+  opacity: 0;
+  transition: opacity var(--fast) ease, background var(--fast) ease, color var(--fast) ease;
+}
+
+.tab:hover .tab-close,
+.tab--active .tab-close,
+.tab-close:focus-visible {
+  opacity: 1;
+}
+
+.tab-close svg {
+  width: 10px;
+  height: 10px;
+}
+
+.tab-close:hover {
+  color: #fff;
+  background: var(--pink);
+}
+
+.tab-rename-input {
+  width: 120px;
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-pill);
+  box-shadow: inset 0 0 0 1px var(--pink), 0 0 0 3px var(--pink-ring);
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+}
+
+.tab-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--ink-2);
+  font-size: 18px;
+  line-height: 1;
+  background: var(--surface-2);
+}
+
+.tab-add:hover:not(:disabled) {
+  color: var(--pink);
+  background: var(--pink-soft);
+}
+
+.tab-add:disabled {
+  opacity: 0.4;
+}
+
+.tab--new {
+  animation: fade-up var(--base) var(--ease-out);
+}
+
+.tab--renamed {
+  animation: tab-renamed 0.5s var(--ease-out);
+}
+
+@keyframes tab-renamed {
+  from {
+    background: var(--pink-soft);
+  }
+}
+
+.tab--removing {
+  animation: fade-up var(--base) var(--ease-out) reverse forwards;
+  pointer-events: none;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ----------------------------------------------------
+   LAYOUT — rail | inspector | workspace
 -----------------------------------------------------*/
 .app {
   display: flex;
@@ -272,7 +404,93 @@ button:disabled {
 }
 
 /* ----------------------------------------------------
-   SIDEBAR — a floating inspector card.
+   RAIL — three sections, one lit.
+-----------------------------------------------------*/
+.rail {
+  position: sticky;
+  top: var(--topbar);
+  align-self: flex-start;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: var(--rail);
+  height: calc(100vh - var(--topbar));
+  padding: 12px 6px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
+
+.rail-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 58px;
+  border-radius: var(--r-md);
+  color: var(--ink-2);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  text-align: center;
+}
+
+.rail-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.rail-btn:hover {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.rail-btn.is-active,
+.rail-btn.is-active:hover {
+  color: var(--pink);
+  background: var(--pink-soft);
+}
+
+/* The "Vlastní prvky" section swaps the inspector + workspace for its
+   placeholder (toggled by ui/rail.js). */
+.placeholder {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 48px;
+  text-align: center;
+  color: var(--ink-3);
+}
+
+.placeholder svg {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 8px;
+  color: var(--ink-4);
+}
+
+.placeholder h2 {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+body.section-prvky .placeholder {
+  display: flex;
+}
+
+body.section-prvky .sidebar,
+body.section-prvky .main {
+  display: none;
+}
+
+/* ----------------------------------------------------
+   SIDEBAR — the inspector card.
 -----------------------------------------------------*/
 .sidebar {
   position: sticky;
@@ -281,7 +499,7 @@ button:disabled {
   flex-shrink: 0;
   width: var(--sidebar);
   height: calc(100vh - var(--topbar));
-  padding: 0 0 var(--gutter) var(--gutter);
+  padding: var(--gutter) 0 var(--gutter) var(--gutter);
 }
 
 .sidebar-panels {
@@ -292,11 +510,9 @@ button:disabled {
   /* Scrolls (rarely, on short viewports) without a bar cutting into the
      rounded card; the clipped last section is the cue. */
   scrollbar-width: none;
-  background: var(--glass);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  background: var(--surface);
   border-radius: var(--r-lg);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6), 0 0 0 1px var(--line), var(--shadow-float);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
 }
 
 .panel {
@@ -311,18 +527,45 @@ button:disabled {
   margin: 0 0 12px;
   font-size: var(--fs-lg);
   font-weight: 600;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.01em;
+}
+
+/* Icon + title + one-line subtitle, on the first panel only. */
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.panel-head svg {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  color: var(--ink-2);
+}
+
+.panel-head h2 {
+  margin: 0 0 2px;
+}
+
+.panel-head p {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
+  color: var(--ink-3);
 }
 
 .field-label {
   margin: 0 0 8px;
   font-size: var(--fs-sm);
   font-weight: 500;
-  color: var(--ink-3);
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
 }
 
 .panel-field + .panel-field {
-  margin-top: 14px;
+  margin-top: 16px;
 }
 
 .panel-section {
@@ -337,6 +580,7 @@ button:disabled {
 .field-note {
   margin: 8px 0 0;
   font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
   line-height: 1.45;
   color: var(--ink-3);
 }
@@ -346,8 +590,7 @@ button:disabled {
 }
 
 /* ----------------------------------------------------
-   SEGMENTED CONTROL — a soft track, the active option
-   is a raised white pill.
+   SEGMENTED CONTROL — light track, slate active pill.
 -----------------------------------------------------*/
 .segmented {
   display: grid;
@@ -355,7 +598,7 @@ button:disabled {
   gap: 2px;
   padding: 3px;
   border-radius: var(--r-pill);
-  background: rgba(15, 30, 46, 0.06);
+  background: var(--surface-2);
 }
 
 .segmented--3 {
@@ -367,12 +610,11 @@ button:disabled {
   padding: 0 8px;
   border-radius: var(--r-pill);
   color: var(--ink-2);
-  font-size: var(--fs-md);
   white-space: nowrap;
 }
 
 .template-option:hover:not(:disabled):not(.active) {
-  color: var(--ink);
+  color: var(--pink);
 }
 
 .template-option:disabled {
@@ -380,14 +622,9 @@ button:disabled {
 }
 
 .template-option.active {
-  color: var(--ink);
+  color: #fff;
   font-weight: 600;
-  background: var(--surface);
-  box-shadow: 0 1px 2px rgba(15, 30, 46, 0.1), 0 2px 6px -2px rgba(15, 30, 46, 0.15);
-}
-
-.template-option:active:not(:disabled) {
-  transform: scale(0.97);
+  background: var(--slate);
 }
 
 /* ----------------------------------------------------
@@ -421,7 +658,7 @@ select {
   color: var(--ink);
   font-weight: 600;
   background: var(--surface)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%238592a0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%235c6470' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
     no-repeat right 8px center / 14px;
   box-shadow: inset 0 0 0 1px var(--line-strong);
   appearance: none;
@@ -430,10 +667,13 @@ select {
   transition: box-shadow var(--fast) ease;
 }
 
-.panel-row select:hover:not(:disabled),
+.panel-row select:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1px var(--pink);
+}
+
 .panel-row select:focus-visible {
   outline: none;
-  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-ring);
+  box-shadow: inset 0 0 0 1px var(--slate), 0 0 0 3px var(--line);
 }
 
 .panel-row select:disabled {
@@ -478,26 +718,15 @@ select {
   padding-left: 12px;
 }
 
-.swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-  flex-shrink: 0;
+.add-elements .btn svg,
+.band2-btn svg {
+  color: var(--ink-3);
+  transition: color var(--fast) ease;
 }
 
-.swatch--slicer {
-  background: var(--slicer-bg);
-  box-shadow: inset 0 0 0 1px var(--slicer);
-}
-
-.swatch--kpi {
-  background: var(--kpi-bg);
-  box-shadow: inset 0 0 0 1px var(--kpi);
-}
-
-.swatch--chart {
-  background: var(--chart-bg);
-  box-shadow: inset 0 0 0 1px var(--chart);
+.add-elements .btn:hover svg,
+.band2-btn:hover svg {
+  color: var(--pink);
 }
 
 #add-kpi-bands:not(:empty) {
@@ -507,8 +736,8 @@ select {
   margin-top: 8px;
 }
 
-/* Extra KPI band buttons, built in app.js — same look as the primary
-   add buttons above, with the band's own left-rule swatch. */
+/* Extra KPI band buttons, built in app.js — same look as the buttons above
+   (`.btn-secondary` isn't on them, so the look is restated here). */
 .band2-btn {
   display: inline-flex;
   align-items: center;
@@ -519,26 +748,28 @@ select {
   border-radius: var(--r-pill);
   color: var(--ink);
   background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--line-strong), 0 1px 2px rgba(15, 30, 46, 0.04);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
 }
 
 .band2-btn::before {
   content: "";
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-  background: var(--kpi-bg);
-  box-shadow: inset 0 0 0 1px var(--kpi), inset 3px 0 0 var(--kpi);
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  color: var(--ink-3);
+  -webkit-mask: var(--glyph-kpi) center / contain no-repeat;
+  mask: var(--glyph-kpi) center / contain no-repeat;
+  transition: color var(--fast) ease;
 }
 
 .band2-btn:hover {
-  color: var(--accent);
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px var(--accent-ring);
+  color: var(--pink);
+  background: var(--pink-soft);
+  box-shadow: inset 0 0 0 1px var(--pink);
 }
 
-.band2-btn:active {
-  transform: scale(0.97);
+.band2-btn:hover::before {
+  color: var(--pink);
 }
 
 /* ----------------------------------------------------
@@ -562,6 +793,7 @@ select {
   flex-shrink: 0;
   font-size: var(--fs-sm);
   font-weight: 500;
+  letter-spacing: 0.01em;
   color: var(--ink-3);
 }
 
@@ -586,17 +818,13 @@ select {
 }
 
 .copy-btn:hover {
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.copy-btn:active {
-  transform: scale(0.92);
+  color: var(--pink);
+  background: var(--pink-soft);
 }
 
 .copy-btn svg {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
 }
 
 .copy-btn.copy-btn-success {
@@ -610,7 +838,6 @@ select {
   gap: 3px;
   font-size: var(--fs-lg);
   font-weight: 600;
-  letter-spacing: -0.01em;
 }
 
 .editable-value .unit {
@@ -629,8 +856,8 @@ select {
 }
 
 .editable-value.is-editable:hover span:first-child {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  color: var(--pink);
+  border-bottom-color: var(--pink);
 }
 
 /* Visible only once JS marks it .is-editable; visibility (not display) keeps
@@ -649,7 +876,7 @@ select {
   padding: 0 8px;
   border: 0;
   border-radius: var(--r-sm);
-  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-ring);
+  box-shadow: inset 0 0 0 1px var(--slate), 0 0 0 3px var(--line);
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -663,164 +890,18 @@ select {
 }
 
 /* ----------------------------------------------------
-   MAIN — the open workspace.
+   MAIN — the workspace. The sheet and its caption sit
+   on the centre line. Only horizontal centring: a
+   vertical one would move the wrapper top that
+   computeEffectiveScale() measures.
 -----------------------------------------------------*/
 .main {
   flex: 1;
   min-width: 0;
-  padding: 0 var(--gutter) var(--gutter) var(--gutter);
-  /* The sheet and its page tabs sit on the workspace centre line. Only
-     horizontal centring: a vertical one would move the wrapper top that
-     computeEffectiveScale() measures and feed back into the scale. */
+  padding: var(--gutter);
   text-align: center;
 }
 
-/* ----------------------------------------------------
-   PAGE TABS — pills on a soft track.
------------------------------------------------------*/
-.tab-bar {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 2px;
-  padding: 3px;
-  margin: 0 0 12px;
-  border-radius: var(--r-pill);
-  background: rgba(15, 30, 46, 0.06);
-}
-
-.tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 30px;
-  padding: 0 6px 0 12px;
-  border-radius: var(--r-pill);
-  color: var(--ink-2);
-  font-weight: 500;
-  cursor: pointer;
-  user-select: none;
-  transition: color var(--fast) ease, background var(--fast) ease, box-shadow var(--fast) ease;
-}
-
-.tab:not(.tab--active) {
-  padding-right: 12px;
-}
-
-.tab:hover {
-  color: var(--ink);
-}
-
-.tab--active,
-.tab--active:hover {
-  color: var(--ink);
-  font-weight: 600;
-  background: var(--surface);
-  box-shadow: 0 1px 2px rgba(15, 30, 46, 0.1), 0 2px 6px -2px rgba(15, 30, 46, 0.15);
-}
-
-.tab-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  color: var(--ink-3);
-  opacity: 0;
-  transition: opacity var(--fast) ease, background var(--fast) ease, color var(--fast) ease;
-}
-
-.tab:hover .tab-close,
-.tab--active .tab-close,
-.tab-close:focus-visible {
-  opacity: 1;
-}
-
-.tab-close svg {
-  width: 10px;
-  height: 10px;
-}
-
-.tab-close:hover {
-  color: var(--ink);
-  background: var(--surface-2);
-}
-
-.tab-rename-input {
-  width: 120px;
-  height: 24px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: var(--r-pill);
-  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-ring);
-  font: inherit;
-  color: var(--ink);
-  background: var(--surface);
-  outline: none;
-}
-
-.tab-add {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--r-pill);
-  color: var(--ink-2);
-  font-size: 17px;
-  line-height: 1;
-}
-
-.tab-add:hover:not(:disabled) {
-  color: var(--accent);
-  background: var(--surface);
-}
-
-.tab-add:active:not(:disabled) {
-  transform: scale(0.94);
-}
-
-.tab-add:disabled {
-  opacity: 0.4;
-}
-
-.tab--new {
-  animation: fade-up var(--base) var(--ease-out);
-}
-
-.tab--renamed {
-  animation: tab-renamed 0.5s var(--ease-out);
-}
-
-@keyframes tab-renamed {
-  from {
-    background: var(--accent-soft);
-  }
-}
-
-.tab--removing {
-  animation: fade-up var(--base) var(--ease-out) reverse forwards;
-  pointer-events: none;
-}
-
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* ----------------------------------------------------
-   CANVAS — the sheet. The wrapper is a transparent
-   frame with no padding: computeEffectiveScale()
-   (renderLayout.js) measures it, and every pixel here
-   is a pixel the layout can't use.
------------------------------------------------------*/
 #canvas-wrapper {
   position: relative;
   display: block;
@@ -834,7 +915,6 @@ select {
   text-align: left;
 }
 
-/* The artboard label, placed inside the wrapper's bottom padding. */
 .sheet-caption {
   position: absolute;
   left: 0;
@@ -842,134 +922,146 @@ select {
   bottom: 0;
   font-size: var(--fs-sm);
   font-weight: 500;
+  letter-spacing: 0.01em;
   color: var(--ink-3);
   text-align: center;
 }
 
 #canvas {
   position: relative;
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--surface);
-  box-shadow: var(--shadow-sheet), 0 0 0 1px var(--line);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-sheet);
   overflow: visible;
   /* No width/height transition: the scale is measured from this box on every
      render, so a mid-transition size would feed a wrong scale into the next. */
 }
 
 /* ----------------------------------------------------
-   CANVAS ELEMENTS — soft tiles colour-coded by kind,
-   with a faint glyph so each reads as what it stands for.
+   CANVAS ELEMENTS — white cards, a grey glyph naming
+   the kind, pink only on hover / selection.
 -----------------------------------------------------*/
+:root {
+  --glyph-slicer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M4 5h16l-6 7v6l-4 2v-8L4 5z'/%3E%3C/svg%3E");
+  --glyph-kpi: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 17l5-6 4 4 7-8M15 7h5v5'/%3E%3C/svg%3E");
+  --glyph-chart: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M5 20V10M12 20V4M19 20v-7'/%3E%3C/svg%3E");
+}
+
 .canvas-element {
   position: absolute;
-  border-radius: 5px;
+  border-radius: 6px;
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
   cursor: pointer;
   transition: box-shadow var(--fast) ease, background var(--fast) ease;
 }
 
+/* The kind glyph: left of the label on bars, large and centred on charts.
+   Sized from --label-font-size so it scales with the canvas. */
 .canvas-element::before {
   content: "";
   position: absolute;
+  left: calc(var(--label-font-size, 10px) * 0.8);
   top: 50%;
-  left: 50%;
-  width: calc(var(--label-font-size, 10px) * 2.2);
-  height: calc(var(--label-font-size, 10px) * 2.2);
-  transform: translate(-50%, -50%);
-  background: currentColor;
-  opacity: 0.14;
-  pointer-events: none;
+  width: calc(var(--label-font-size, 10px) * 1.6);
+  height: calc(var(--label-font-size, 10px) * 1.6);
+  transform: translateY(-50%);
+  background: var(--ink-3);
   -webkit-mask: var(--glyph) center / contain no-repeat;
   mask: var(--glyph) center / contain no-repeat;
+  pointer-events: none;
 }
 
 .canvas-element.slicer {
-  color: var(--slicer);
-  background: var(--slicer-bg);
-  box-shadow: inset 0 0 0 1px rgba(12, 107, 138, 0.18);
-  --glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5h16l-6 7v6l-4 2v-8L4 5z'/%3E%3C/svg%3E");
+  --glyph: var(--glyph-slicer);
 }
 
 .canvas-element.kpi {
-  color: var(--kpi);
-  background: var(--kpi-bg);
-  box-shadow: inset 0 0 0 1px rgba(91, 72, 201, 0.18);
-  --glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 17l5-6 4 4 7-8'/%3E%3Cpath d='M15 7h5v5'/%3E%3C/svg%3E");
+  --glyph: var(--glyph-kpi);
 }
 
 .canvas-element.chart {
-  color: var(--chart);
-  background: var(--chart-bg);
-  box-shadow: inset 0 0 0 1px var(--line);
-  --glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M5 20V10M12 20V4M19 20v-7'/%3E%3C/svg%3E");
+  --glyph: var(--glyph-chart);
+  overflow: visible;
+  position: absolute;
 }
 
 .canvas-element.chart::before {
+  left: 50%;
   width: calc(var(--label-font-size, 10px) * 4);
   height: calc(var(--label-font-size, 10px) * 4);
-  opacity: 0.12;
+  transform: translate(-50%, -50%);
+  background: var(--ink-4);
+}
+
+.canvas-element-label {
+  position: absolute;
+  left: calc(var(--label-font-size, 10px) * 3);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--label-font-size, 10px);
+  font-weight: 600;
+  white-space: nowrap;
+  color: currentColor;
+  pointer-events: none;
+}
+
+.canvas-element.chart .canvas-element-label {
+  top: auto;
+  bottom: calc(var(--label-font-size, 10px) * 0.6);
+  left: calc(var(--label-font-size, 10px) * 0.8);
+  transform: none;
 }
 
 /* The report header is the one solid block on the sheet. */
 .canvas-element.title {
   display: flex;
   align-items: center;
-  padding-left: 8px;
+  padding-left: calc(var(--label-font-size, 10px) * 0.8);
   overflow: hidden;
   color: #fff;
-  background: linear-gradient(90deg, #1a2d44, var(--ink));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: var(--slate);
+  box-shadow: none;
 }
 
 .canvas-element.title::before {
   display: none;
 }
 
-.canvas-element:hover {
-  box-shadow: 0 0 0 1.5px currentColor;
+.canvas-element.title .canvas-element-label {
+  position: static;
+  transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Width/height-locked elements: a dashed accent outline shows at a glance
-   which ones are excluded from auto redistribution. */
+.canvas-element:hover {
+  box-shadow: inset 0 0 0 1px var(--pink);
+}
+
+/* Locked elements: a dashed pink outline marks what auto-redistribution
+   will leave alone. */
 .canvas-element.width-locked,
 .canvas-element.height-locked {
-  outline: 1.5px dashed var(--accent);
+  outline: 1.5px dashed var(--pink);
   outline-offset: -1.5px;
 }
 
 /* Previews which chart the sidebar "Graf" split button will act on. */
 .canvas-element.chart.split-target-highlight {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--pink-soft);
 }
 
 .canvas-element.selected,
 .canvas-element.selected:hover {
   z-index: 1;
-  box-shadow: 0 0 0 2px var(--accent), 0 0 0 6px var(--accent-ring), 0 12px 32px -12px rgba(12, 107, 138, 0.5);
-}
-
-.canvas-element-label {
-  position: absolute;
-  bottom: 4px;
-  left: 6px;
-  font-size: var(--label-font-size, 10px);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: currentColor;
-  pointer-events: none;
-}
-
-.canvas-element.title .canvas-element-label {
-  position: static;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 2px var(--pink), 0 0 0 6px var(--pink-ring);
 }
 
 /* ----------------------------------------------------
    RESIZE HANDLES — invisible hitboxes that reveal a
-   two-line grip on hover.
+   two-line pink grip on hover.
 -----------------------------------------------------*/
 .chart-resize-handle,
 .row-resize-handle,
@@ -1001,7 +1093,7 @@ select {
 .chart-resize-handle:hover,
 .row-resize-handle:hover,
 .stack-resize-handle:hover {
-  background: rgba(12, 107, 138, 0.08);
+  background: var(--pink-soft);
 }
 
 .chart-resize-handle::before,
@@ -1015,7 +1107,7 @@ select {
   top: 50%;
   left: 50%;
   border-radius: 1px;
-  background: var(--accent);
+  background: var(--pink);
   opacity: 0;
   transition: opacity var(--fast) ease;
 }
@@ -1077,8 +1169,8 @@ select {
   font-size: 15px;
   font-weight: 600;
   line-height: 1;
-  background: var(--accent);
-  box-shadow: 0 0 0 2px var(--surface), 0 4px 10px -2px rgba(12, 107, 138, 0.5);
+  background: var(--pink);
+  box-shadow: 0 0 0 2px var(--surface), 0 4px 10px -2px rgba(251, 73, 163, 0.5);
   transform: translate(-50%, -50%);
   opacity: 0;
   pointer-events: none;
@@ -1098,10 +1190,12 @@ select {
 }
 
 .canvas-add-btn:hover {
-  background: var(--accent-hover);
+  background: var(--pink-hover);
 }
 
-.canvas-add-btn:active {
+/* Outranks the generic button:active press rule, which would drop the
+   centring translate and shift the button out from under the pointer. */
+.canvas-add-btn:active:not(:disabled) {
   transform: translate(-50%, -50%) scale(0.92);
 }
 
@@ -1110,7 +1204,7 @@ select {
 .canvas-add-scope {
   position: absolute;
   z-index: 38;
-  border-radius: 5px;
+  border-radius: 6px;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--fast) ease;
@@ -1121,15 +1215,15 @@ select {
 }
 
 .canvas-add-scope--bottom {
-  box-shadow: inset 0 -3px 0 var(--accent);
+  box-shadow: inset 0 -3px 0 var(--pink);
 }
 
 .canvas-add-scope--right {
-  box-shadow: inset -3px 0 0 var(--accent);
+  box-shadow: inset -3px 0 0 var(--pink);
 }
 
 .canvas-add-scope--left {
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: inset 3px 0 0 var(--pink);
 }
 
 body.is-resizing-chart .canvas-add-zone,
@@ -1148,12 +1242,13 @@ body.is-resizing-chart .element-controls {
   z-index: 50;
   width: 1px;
   transform: translateX(-50%);
-  background: repeating-linear-gradient(to bottom, var(--accent) 0 3px, transparent 3px 6px);
+  background: repeating-linear-gradient(to bottom, var(--pink) 0 3px, transparent 3px 6px);
   pointer-events: none;
 }
 
 /* ----------------------------------------------------
-   ELEMENT CONTROLS — hover cluster (lock / remove)
+   ELEMENT CONTROLS — hover cluster (lock / remove):
+   slate at rest, pink under the pointer.
 -----------------------------------------------------*/
 .element-controls {
   position: absolute;
@@ -1195,17 +1290,12 @@ body.is-resizing-chart .element-controls {
   height: 22px;
   border-radius: 6px;
   color: #fff;
-  background: rgba(15, 30, 46, 0.86);
-  box-shadow: 0 2px 6px -1px rgba(15, 30, 46, 0.4);
-  backdrop-filter: blur(4px);
+  background: var(--slate);
+  box-shadow: 0 2px 6px -1px rgba(28, 33, 40, 0.35);
 }
 
 .element-controls button:hover {
-  background: var(--accent);
-}
-
-.element-controls button:active {
-  transform: scale(0.94);
+  background: var(--pink);
 }
 
 .element-controls button svg {
@@ -1235,8 +1325,8 @@ body.is-resizing-chart .element-controls {
 -----------------------------------------------------*/
 .notification-bell {
   position: fixed;
-  top: 14px;
-  right: 24px;
+  top: 12px;
+  right: 20px;
   z-index: 1100;
   display: flex;
   align-items: center;
@@ -1255,20 +1345,15 @@ body.is-resizing-chart .element-controls {
 .notification-bell:hover,
 .notification-bell:focus-visible,
 .notification-bell.menu-open {
-  color: var(--accent);
-  background: var(--surface);
-  box-shadow: 0 1px 2px rgba(15, 30, 46, 0.08), 0 4px 12px -4px rgba(15, 30, 46, 0.2);
+  color: var(--pink);
+  background: var(--pink-soft);
   outline: none;
-}
-
-.notification-bell:active {
-  transform: scale(0.94);
 }
 
 /* Filled while a toast is on screen (renderBell() in warnings.js). */
 .notification-bell.pulse-active {
   color: #fff;
-  background: var(--accent);
+  background: var(--slate);
 }
 
 .notification-dot {
@@ -1278,7 +1363,7 @@ body.is-resizing-chart .element-controls {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--error);
+  background: var(--pink);
   box-shadow: 0 0 0 2px var(--surface);
   opacity: 0;
   transform: scale(0.6);
@@ -1292,8 +1377,8 @@ body.is-resizing-chart .element-controls {
 
 .notification-panel {
   position: fixed;
-  top: calc(var(--topbar) - 6px);
-  right: 24px;
+  top: calc(var(--topbar) - 4px);
+  right: 20px;
   z-index: 1099;
   width: 340px;
   max-height: 420px;
@@ -1359,7 +1444,7 @@ body.is-resizing-chart .element-controls {
 }
 
 .notification-info .notification-icon {
-  color: var(--accent);
+  color: var(--slate);
 }
 
 .notification-warning .notification-icon {
@@ -1372,8 +1457,8 @@ body.is-resizing-chart .element-controls {
 
 .toast-container {
   position: fixed;
-  top: calc(var(--topbar) + 4px);
-  right: 24px;
+  top: calc(var(--topbar) + 8px);
+  right: 20px;
   z-index: 1050;
   display: flex;
   flex-direction: column;
@@ -1407,6 +1492,7 @@ body.is-resizing-chart .element-controls {
   flex: 1;
   min-width: 0;
   font-weight: 500;
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1417,7 +1503,7 @@ body.is-resizing-chart .element-controls {
 }
 
 .toast-info {
-  color: var(--accent);
+  color: var(--slate);
 }
 
 .toast-warning {
@@ -1426,10 +1512,6 @@ body.is-resizing-chart .element-controls {
 
 .toast-error {
   color: var(--error);
-}
-
-.toast .toast-message {
-  color: var(--ink);
 }
 
 @keyframes toast-in {
@@ -1461,26 +1543,55 @@ body.is-resizing-chart .element-controls {
 }
 
 /* ----------------------------------------------------
-   RESPONSIVE — panels stack above the canvas.
+   RESPONSIVE — rail becomes a row, panels stack above
+   the canvas, tabs drop under the brand.
 -----------------------------------------------------*/
 @media (max-width: 900px) {
-  .app {
-    flex-direction: column;
-  }
-
   .topbar {
-    padding: 0 72px 0 var(--gutter);
+    flex-wrap: wrap;
+    height: auto;
+    padding: 10px 72px 10px var(--gutter);
+    row-gap: 8px;
   }
 
   .topbar-subtitle {
     display: none;
   }
 
+  .tab-bar {
+    position: static;
+    transform: none;
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
+    overflow-x: auto;
+  }
+
+  .app {
+    flex-direction: column;
+  }
+
+  .rail,
   .sidebar {
     position: static;
     width: 100%;
     height: auto;
-    padding: 0 var(--gutter) var(--gutter);
+  }
+
+  .rail {
+    flex-direction: row;
+    padding: 6px var(--gutter);
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .rail-btn {
+    flex: 1;
+    height: 52px;
+  }
+
+  .sidebar {
+    padding: var(--gutter);
   }
 
   .sidebar-panels {
@@ -1496,10 +1607,14 @@ body.is-resizing-chart .element-controls {
   }
 
   .sidebar-panels .panel + .panel {
-    padding-top: 20px;
+    padding-top: 18px;
   }
 
+  /* The wrapped top bar has no fixed height to hang toasts under, so they
+     stack from the bottom edge instead. */
   .toast-container {
+    top: auto;
+    bottom: var(--gutter);
     left: var(--gutter);
     right: var(--gutter);
     max-width: none;

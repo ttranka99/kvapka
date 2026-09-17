@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>kvapka</title>
     <meta name="description" content="kvapka — návrhář rozložení Power BI reportů." />
-    <meta name="theme-color" content="#0b5f7a" />
+    <meta name="theme-color" content="#2b3038" />
 
     <link rel="icon" type="image/svg+xml" href="assets/img/favicon/favicon.svg" />
     <link rel="icon" type="image/png" sizes="96x96" href="assets/img/favicon/favicon-96x96.png" />
@@ -16,12 +16,23 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="assets/style.css" />
     <link rel="stylesheet" href="assets/theme-editor.css" />
 </head>
 
 <body>
+    <!-- Icons used more than once are defined here and referenced with <use>. -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+            <symbol id="i-slicer" viewBox="0 0 24 24"><path d="M4 5h16l-6 7v6l-4 2v-8L4 5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+            <symbol id="i-kpi" viewBox="0 0 24 24"><path d="M4 17l5-6 4 4 7-8M15 7h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+            <symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+            <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+            <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+        </defs>
+    </svg>
+
     <button id="notification-bell" class="notification-bell" aria-label="Oznámení" type="button">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
@@ -39,40 +50,63 @@
 
     <header class="topbar">
         <a class="brand" href="./" aria-label="kvapka">
-            <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-                <defs>
-                    <linearGradient id="kv-drop" x1="8" y1="4" x2="24" y2="30" gradientUnits="userSpaceOnUse">
-                        <stop offset="0" stop-color="#3fc3e6" />
-                        <stop offset="1" stop-color="#0b5f7a" />
-                    </linearGradient>
-                </defs>
-                <path d="M16 3.5C16 3.5 6.5 14 6.5 19.75a9.5 9.5 0 0 0 19 0C25.5 14 16 3.5 16 3.5Z" fill="url(#kv-drop)" />
-                <path d="M11.25 20.5a4.75 4.75 0 0 0 3 4.4" stroke="#fff" stroke-opacity=".85" stroke-width="1.8" stroke-linecap="round" fill="none" />
+            <!-- assets/img/logo.svg, inlined so it takes currentColor. -->
+            <svg class="brand-mark" viewBox="0 0 1024 1024" fill="currentColor" aria-hidden="true">
+                <path d="M512.155 226.004C516.011 231.756 519.167 238.789 523.115 244.793C554.794 292.971 592.947 336.254 629.214 380.983C657.706 416.122 687.616 451.624 707.702 492.489C710.777 498.745 714.936 506.954 716.922 513.573C719.911 518.525 724.337 525.165 722.552 531.299C720.619 537.942 714.728 544.187 709.475 549.005C704 554.027 691.489 565.582 683.014 563.11C678.743 561.865 673.565 556.72 669.223 555.096C649.333 545.557 630.745 545.461 609.584 550.015C624.043 552.902 646.901 560.852 656.693 573.177C663.812 582.138 646.19 587.111 640.433 587.874C620.252 592.438 596.012 593.533 576.046 587.851C573.826 587.239 571.651 586.477 569.535 585.568C552.494 607.801 537.22 620.163 509.388 627.427C516.785 612.419 523.193 591.066 512.967 575.876C505.297 571.716 498.11 571.527 489.896 574.039C454.127 584.979 422.809 619.841 434.009 659.163C439.701 679.147 459.703 695.263 477.159 705.239C515.048 725.179 560.422 727.565 601.168 715.281C640.946 703.289 668.376 679.818 695.055 648.945C701.388 641.616 712.459 626.814 717.044 618.233C717.349 617.664 717.64 617.087 717.918 616.504C714.731 628.732 711.904 639.829 707.258 651.612C690.548 693.849 660.29 729.344 621.232 752.531C572.186 781.802 513.398 790.025 458.203 775.335C438.912 770.311 420.771 762.033 403.559 752.046C401 750.561 393.978 746.195 391.983 744.331C384.662 739.787 377.259 733.136 370.714 727.53C357.305 716.042 347.587 701.281 338.551 686.304C334.742 679.99 330.874 673.973 327.587 667.347C319.644 655.111 313.387 637.024 309.192 623.441C294.674 576.443 300.712 523.453 323.962 480.097C344.418 441.953 375.809 404.182 403.555 370.759C419.738 351.271 435.695 331.598 451.425 311.743C473.78 283.747 494.641 257.369 512.155 226.004Z"/>
+                <path d="M512.155 226.004C516.011 231.756 519.167 238.789 523.115 244.793C554.794 292.971 592.947 336.254 629.214 380.983C657.706 416.122 687.616 451.624 707.702 492.489C710.777 498.745 714.936 506.954 716.922 513.573C712.111 509.973 707.598 503.819 702.714 499.687C677.552 478.398 647.533 462.222 615.436 454.39C609.308 452.945 603.128 451.73 596.91 450.747C589.014 449.573 578.903 448.865 571.829 445.24C559.533 438.939 547.349 429.254 536.098 421.089C506.29 399.456 465.905 380.031 428.097 384.568C427.445 384.647 426.794 384.729 426.143 384.815C429.691 390.976 437.272 398.337 441.974 404.045C455.128 420.011 469.983 458.9 445.59 471.86C393.996 499.273 345.267 546.284 330.684 604.773C326.752 620.498 325.183 636.721 326.029 652.908C326.225 657.474 327.735 663.577 327.587 667.347C319.644 655.111 313.387 637.024 309.192 623.441C294.674 576.443 300.712 523.453 323.962 480.097C344.418 441.953 375.809 404.182 403.555 370.759C419.738 351.271 435.695 331.598 451.425 311.743C473.78 283.747 494.641 257.369 512.155 226.004Z"/>
+                <path d="M391.983 744.331C392.812 742.04 389.849 739.85 388.204 738.116C359.601 707.965 354.233 662.105 370.578 624.893C382.873 596.78 405.797 574.676 434.339 563.412C454.088 555.797 477.179 553.768 497.046 562.514C501.43 564.444 511.326 571.24 512.967 575.876C505.297 571.716 498.11 571.527 489.896 574.039C454.127 584.979 422.809 619.841 434.009 659.163C439.701 679.147 459.703 695.263 477.159 705.239C515.048 725.179 560.422 727.565 601.168 715.281C640.946 703.289 668.376 679.818 695.055 648.945C701.388 641.616 712.459 626.814 717.044 618.233C717.349 617.664 717.64 617.087 717.918 616.504C714.731 628.732 711.904 639.829 707.258 651.612C690.548 693.849 660.29 729.344 621.232 752.531C572.186 781.802 513.398 790.025 458.203 775.335C438.912 770.311 420.771 762.033 403.559 752.046C401 750.561 393.978 746.195 391.983 744.331Z"/>
             </svg>
             <span class="brand-name">kvapka</span>
         </a>
-        <span class="topbar-subtitle">návrh rozložení reportu</span>
+        <span class="topbar-subtitle">Návrh rozložení reportu</span>
+
+        <div id="tab-bar" class="tab-bar" role="tablist" aria-label="Stránky reportu"></div>
 
         <div class="topbar-actions">
             <button id="export-layout" class="btn btn-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <span>Exportovat rozložení</span>
             </button>
         </div>
     </header>
 
     <div class="app">
+        <nav class="rail" aria-label="Sekce">
+            <button type="button" class="rail-btn" data-section="sablona">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
+                <span>Šablona</span>
+            </button>
+            <button type="button" class="rail-btn" data-section="layout">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="2" fill="#fff" stroke="currentColor" stroke-width="1.8"/><circle cx="15" cy="12" r="2" fill="#fff" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="17" r="2" fill="#fff" stroke="currentColor" stroke-width="1.8"/></svg>
+                <span>Vlastní layout</span>
+            </button>
+            <button type="button" class="rail-btn" data-section="prvky">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 4a2 2 0 1 1 4 0v1h4v4h1a2 2 0 1 1 0 4h-1v4h-4v-1a2 2 0 1 0-4 0v1H6v-4H5a2 2 0 1 1 0-4h1V5h4V4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                <span>Vlastní prvky</span>
+            </button>
+        </nav>
+
         <aside class="sidebar">
             <div class="sidebar-panels">
                 <section class="panel">
-                    <h2>Šablona</h2>
+                    <div class="panel-head">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
+                        <div>
+                            <h2>Šablona</h2>
+                            <p>Nastavte rozložení a vzhled reportu</p>
+                        </div>
+                    </div>
                     <div class="panel-field">
                         <h3 class="field-label" id="label-resolution">Rozlišení</h3>
                         <!-- Chips are built by ui/themePicker.js: the two built-in
                              presets first, then every saved custom theme. -->
                         <div class="theme-selector" id="theme-selector" role="group" aria-labelledby="label-resolution"></div>
-                        <button type="button" class="btn btn-dashed full-btn" id="new-theme">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </div>
+
+                    <div class="panel-field">
+                        <h3 class="field-label">Vlastní šablona</h3>
+                        <button type="button" class="btn btn-secondary full-btn" id="new-theme">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                             <span>Vlastní šablona…</span>
                         </button>
                     </div>
@@ -121,10 +155,13 @@
                         </div>
                     </div>
 
-                    <button id="reset-layout" class="btn btn-ghost full-btn reset-layout-btn">Reset layoutu</button>
+                    <button id="reset-layout" class="btn btn-ghost full-btn reset-layout-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <span>Reset layoutu</span>
+                    </button>
                 </section>
 
-                <section class="panel panel--selection">
+                <section class="panel">
                     <h2>Vybraný element</h2>
                     <div id="no-selection" class="collapsible expanded">
                         <div class="collapsible-inner"><p class="empty-hint">Klikněte na element v náhledu. Najetím na něj se zobrazí jeho ovládání.</p></div>
@@ -140,12 +177,8 @@
                                     <span id="sel-width"></span><span class="unit">px</span>
                                 </span>
                                 <input id="input-width" type="number" class="inline-edit-input hidden" />
-                                <button class="copy-btn edit-pencil-btn push-right" type="button" id="edit-width-pencil" title="Upravit hodnotu" aria-label="Upravit šířku">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                </button>
-                                <button class="copy-btn" type="button" data-copy-target="sel-width" title="Kopírovat hodnotu" aria-label="Kopírovat šířku">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                </button>
+                                <button class="copy-btn edit-pencil-btn push-right" type="button" id="edit-width-pencil" title="Upravit hodnotu" aria-label="Upravit šířku"><svg aria-hidden="true"><use href="#i-pencil"/></svg></button>
+                                <button class="copy-btn" type="button" data-copy-target="sel-width" title="Kopírovat hodnotu" aria-label="Kopírovat šířku"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
                             </div>
                             <div class="sel-row">
                                 <strong>Výška</strong>
@@ -153,53 +186,50 @@
                                     <span id="sel-height"></span><span class="unit">px</span>
                                 </span>
                                 <input id="input-height" type="number" class="inline-edit-input hidden" />
-                                <button class="copy-btn edit-pencil-btn push-right" type="button" id="edit-height-pencil" title="Upravit hodnotu" aria-label="Upravit výšku">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                </button>
-                                <button class="copy-btn" type="button" data-copy-target="sel-height" title="Kopírovat hodnotu" aria-label="Kopírovat výšku">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                </button>
+                                <button class="copy-btn edit-pencil-btn push-right" type="button" id="edit-height-pencil" title="Upravit hodnotu" aria-label="Upravit výšku"><svg aria-hidden="true"><use href="#i-pencil"/></svg></button>
+                                <button class="copy-btn" type="button" data-copy-target="sel-height" title="Kopírovat hodnotu" aria-label="Kopírovat výšku"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
                             </div>
                             <div class="sel-row"><strong>X</strong> <span class="editable-value"><span id="sel-x"></span><span class="unit">px</span></span>
-                                <button class="copy-btn push-right" type="button" data-copy-target="sel-x" title="Kopírovat hodnotu" aria-label="Kopírovat hodnotu X">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                </button>
+                                <button class="copy-btn push-right" type="button" data-copy-target="sel-x" title="Kopírovat hodnotu" aria-label="Kopírovat hodnotu X"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
                             </div>
                             <div class="sel-row"><strong>Y</strong> <span class="editable-value"><span id="sel-y"></span><span class="unit">px</span></span>
-                                <button class="copy-btn push-right" type="button" data-copy-target="sel-y" title="Kopírovat hodnotu" aria-label="Kopírovat hodnotu Y">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                </button>
+                                <button class="copy-btn push-right" type="button" data-copy-target="sel-y" title="Kopírovat hodnotu" aria-label="Kopírovat hodnotu Y"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
                             </div>
 
                             <button id="apply-selection" class="btn btn-primary full-btn hidden" disabled>Použít změny</button>
                         </div>
                     </div>
                 </section>
+
                 <section class="panel add-elements">
                     <h2>Přidat</h2>
                     <div class="button-group">
-                        <button id="add-slicer" class="btn btn-secondary full-btn"><span class="swatch swatch--slicer" aria-hidden="true"></span>Slicer</button>
-                        <button id="add-kpi" class="btn btn-secondary full-btn"><span class="swatch swatch--kpi" aria-hidden="true"></span>KPI</button>
-                        <button id="add-chart-split" class="btn btn-secondary full-btn hidden"><span class="swatch swatch--chart" aria-hidden="true"></span>Graf</button>
+                        <button id="add-slicer" class="btn btn-secondary full-btn"><svg aria-hidden="true"><use href="#i-slicer"/></svg>Slicer</button>
+                        <button id="add-kpi" class="btn btn-secondary full-btn"><svg aria-hidden="true"><use href="#i-kpi"/></svg>KPI</button>
+                        <button id="add-chart-split" class="btn btn-secondary full-btn hidden"><svg aria-hidden="true"><use href="#i-chart"/></svg>Graf</button>
                     </div>
                     <!-- Filled with one button per KPI band beyond the first
                          (see syncKpiBandControls in app.js). Empty when the
                          active theme defines only the header band. -->
                     <div id="add-kpi-bands"></div>
                 </section>
-
             </div>
         </aside>
 
         <main class="main">
-            <div id="tab-bar" class="tab-bar" role="tablist" aria-label="Stránky reportu"></div>
-
             <div id="canvas-wrapper">
                 <div id="canvas"></div>
                 <!-- Filled by syncTemplateControls() in app.js. -->
                 <p class="sheet-caption" id="canvas-size-label"></p>
             </div>
         </main>
+
+        <!-- Shown by the rail's "Vlastní prvky" section (ui/rail.js). -->
+        <section id="section-prvky" class="placeholder" aria-label="Vlastní prvky">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 4a2 2 0 1 1 4 0v1h4v4h1a2 2 0 1 1 0 4h-1v4h-4v-1a2 2 0 1 0-4 0v1H6v-4H5a2 2 0 1 1 0-4h1V5h4V4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            <h2>Vlastní prvky</h2>
+            <p>Vlastní přizpůsobení elementů (brzy dostupné)</p>
+        </section>
     </div>
 
     <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="false"></div>

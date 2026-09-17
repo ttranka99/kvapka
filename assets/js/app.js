@@ -15,8 +15,10 @@ import {
   renderThemeSelector,
   syncRowLimitOptions,
   syncPlacementControls,
-  defaultThemeLabel
+  defaultThemeLabel,
+  openActiveThemeEditor
 } from "./ui/themePicker.js";
+import { initRail } from "./ui/rail.js";
 
 const addKpiBtn = document.getElementById("add-kpi");
 const addKpiBandsContainer = document.getElementById("add-kpi-bands");
@@ -172,6 +174,7 @@ function start() {
   initTabs();
   initTabsUI({ refreshUI: refreshUIFromState });
   initThemePicker({ refreshUI: refreshUIFromState });
+  initRail({ openEditor: openActiveThemeEditor });
   initRowLimitControls();
   syncTemplateControls();
   syncSlicerRowVisibility();
