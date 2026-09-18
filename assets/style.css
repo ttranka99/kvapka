@@ -410,7 +410,7 @@ button:active:not(:disabled) {
   align-items: center;
   gap: 4px;
   height: 34px;
-  padding: 0 8px 0 14px;
+  padding: 0 14px;
   border-radius: var(--r-pill);
   color: var(--ink-2);
   font-weight: 500;
@@ -421,8 +421,24 @@ button:active:not(:disabled) {
   transition: color var(--fast) ease, background var(--fast) ease, box-shadow var(--fast) ease;
 }
 
-.tab:not(.tab--active) {
-  padding-right: 14px;
+/* Only a pill that actually shows its × gives up the right padding for it;
+   a lone page has no × and keeps the text centred. */
+.tab--active.tab--closable {
+  padding-right: 8px;
+}
+
+.tab-label {
+  position: relative;
+}
+
+/* A page still wearing its generated "Page N" reads as a placeholder. Colour
+   only — a lighter weight would change the width the moment it gets named. */
+.tab--untitled:not(.tab--editing) .tab-label {
+  color: var(--ink-3);
+}
+
+.tab--untitled.tab--active:not(.tab--editing) .tab-label {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .tab:focus-visible {
@@ -466,17 +482,43 @@ button:active:not(:disabled) {
   background: var(--pink);
 }
 
+/* Editing keeps the pill's shape: the label still sizes it (invisible, with
+   the typed text mirrored into it by ui/tabs.js) and the input is laid over
+   it, so the only thing that changes is the ring. */
+.tab--editing,
+.tab--active.tab--editing {
+  box-shadow: inset 0 0 0 2px var(--pink);
+}
+
+.tab--editing .tab-label {
+  visibility: hidden;
+}
+
+/* Outranks the hover/active reveal above — the cursor is on the pill right
+   after a double-click. */
+.tab.tab--editing .tab-close {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .tab-rename-input {
-  width: 120px;
-  height: 26px;
-  padding: 0 8px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  visibility: visible;
+  padding: 0;
   border: 0;
-  border-radius: var(--r-pill);
-  box-shadow: inset 0 0 0 1px var(--pink), 0 0 0 3px var(--pink-ring);
   font: inherit;
-  color: var(--ink);
-  background: var(--surface);
+  color: inherit;
+  background: none;
+  caret-color: currentColor;
   outline: none;
+  user-select: text;   /* the pill itself is user-select: none */
+}
+
+.tab-rename-input::selection {
+  color: #fff;
+  background: var(--pink);
 }
 
 .tab-add {

@@ -5,7 +5,7 @@ import { normalizeTheme } from "../theme/themeModel.js";
 
 export const MAX_TABS = 12;
 
-let tabs = [];            // { id, name, snapshot } — active tab's snapshot is stale by design
+let tabs = [];            // { id, name, named, snapshot } — active tab's snapshot is stale by design
 let activeTabIndex = 0;
 let nextTabId = 1;
 let nextPageNumber = 1;   // monotonic so "Page N" names don't repeat after closes
@@ -88,7 +88,7 @@ function loadDefaults() {
 }
 
 export function initTabs() {
-  tabs = [{ id: nextTabId++, name: `Page ${nextPageNumber++}`, snapshot: null }];
+  tabs = [{ id: nextTabId++, name: `Page ${nextPageNumber++}`, named: false, snapshot: null }];
   activeTabIndex = 0;
   loadDefaults();               // replaces initState() in app.js start()
 }
@@ -105,7 +105,7 @@ export function switchTab(index) {
 export function addTab() {
   if (tabs.length >= MAX_TABS) return false;
   tabs[activeTabIndex].snapshot = captureSnapshot();
-  tabs.push({ id: nextTabId++, name: `Page ${nextPageNumber++}`, snapshot: null });
+  tabs.push({ id: nextTabId++, name: `Page ${nextPageNumber++}`, named: false, snapshot: null });
   activeTabIndex = tabs.length - 1;
   loadDefaults();               // new tab is immediately active with fresh defaults
   return true;
@@ -124,9 +124,16 @@ export function removeTab(index) {
   return false;
 }
 
+// Returns true when the name actually changed. `named` records that the user
+// gave the page a name of their own; until then the tab bar shows the
+// generated "Page N" as a placeholder.
 export function renameTab(index, name) {
   const trimmed = String(name).trim();
-  if (trimmed && tabs[index]) tabs[index].name = trimmed;   // empty → keep old name
+  const tab = tabs[index];
+  if (!trimmed || !tab || trimmed === tab.name) return false;   // empty → keep old name
+  tab.name = trimmed;
+  tab.named = true;
+  return true;
 }
 
 /**

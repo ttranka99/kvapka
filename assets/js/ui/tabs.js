@@ -21,7 +21,14 @@ export function initTabsUI(options) {
   // to keep its identity — the + button and the scroller — is wired once here
   // and only has its state refreshed by renderTabBar().
   addBtnEl.addEventListener("click", () => {
-    if (addTab()) { renderTabBar({ index: getActiveTabIndex(), type: "new" }); refreshUI(); }
+    if (!addTab()) return;
+    const index = getActiveTabIndex();
+    renderTabBar({ index, type: "new" });
+    refreshUI();
+    // A new page opens straight into its name: the one moment everyone
+    // wants to rename, and the only cue the pill gives that it can be.
+    const tabEl = tabBarEl.querySelector(".tab--active");
+    if (tabEl) startRename(tabEl, tabEl.querySelector(".tab-label"), index);
   });
 
   scrollBtnEls.forEach(btn => {
@@ -63,7 +70,7 @@ export function renderTabBar(animate) {
 
   tabs.forEach((tab, index) => {
     const tabEl = document.createElement("div");
-    tabEl.className = "tab" + (index === active ? " tab--active" : "");
+    tabEl.className = "tab" + (index === active ? " tab--active" : "") + (tab.named ? "" : " tab--untitled");
     tabEl.setAttribute("role", "tab");
     tabEl.setAttribute("aria-selected", String(index === active));
     // Roving tabindex: one stop for the whole tablist, arrows move within it.
@@ -86,6 +93,7 @@ export function renderTabBar(animate) {
     tabEl.appendChild(label);
 
     if (tabs.length > 1) {
+      tabEl.classList.add("tab--closable");
       const closeBtn = document.createElement("button");
       closeBtn.type = "button";
       closeBtn.className = "icon-circle tab-close";
@@ -226,21 +234,35 @@ function onTabKeydown(e) {
 }
 
 function startRename(tabEl, label, index) {
+  if (tabEl.classList.contains("tab--editing")) return;
+
+  // The label stays put as the pill's sizer and the input sits over it, so
+  // the pill keeps its exact shape while editing — replacing the label with
+  // a fixed-width input would visibly jump. Typing is mirrored back into the
+  // label, which is what makes the pill follow the text.
   const input = document.createElement("input");
   input.type = "text";
   input.className = "tab-rename-input";
   input.value = getTabs()[index].name;
   input.maxLength = 40;
-  tabEl.replaceChild(input, label);
+  tabEl.classList.add("tab--editing");
+  label.appendChild(input);
   input.focus();
   input.select();
-  // The input is wider than the label it replaced, so it can spill past the
-  // viewport edge on a full strip.
-  scrollActiveIntoView();
-  updateScrollAffordances();
+
+  const mirror = () => {
+    label.firstChild.textContent = input.value || "​";  // never collapse to 0 width
+    updateScrollAffordances();
+  };
+  input.addEventListener("input", mirror);
 
   let finished = false;   // guards against blur firing during DOM teardown
-  const commit = () => { if (finished) return; finished = true; renameTab(index, input.value); renderTabBar({ index, type: "renamed" }); };
+  const commit = () => {
+    if (finished) return;
+    finished = true;
+    const changed = renameTab(index, input.value);
+    renderTabBar(changed ? { index, type: "renamed" } : undefined);
+  };
   const cancel = () => { if (finished) return; finished = true; renderTabBar(); };
 
   input.addEventListener("blur", commit);
