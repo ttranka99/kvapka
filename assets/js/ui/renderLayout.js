@@ -100,7 +100,9 @@ function computeEffectiveScale() {
     ? document.documentElement.clientWidth - paddingX - wrapperPaddingX
     : main.clientWidth - paddingX - wrapperPaddingX;
 
-  if (availableWidth <= 0) return state.SCALE;
+  // Nothing to measure (e.g. .main is display:none while another rail section
+  // is up) — keep the last fitted scale rather than snapping to the base one.
+  if (availableWidth <= 0) return state.EFFECTIVE_SCALE || state.SCALE;
   const fitScaleW = availableWidth / state.CANVAS_WIDTH;
 
   // Fitting by height too in the stacked layout would starve the canvas
