@@ -1,13 +1,9 @@
 import * as state from "../state/state.js";
+import { icon } from "./icon.js";
 
-// Icons for each notification type. Kept as inline path/shape data (not full
-// <svg> wrappers) so they can be dropped into either a toast icon or a panel
-// icon <svg> element, both of which set their own viewBox/size via CSS.
-const ICONS = {
-  info: `<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="12" y1="11" x2="12" y2="16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7.6" r="1.15" fill="currentColor"/>`,
-  warning: `<path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
-  error: `<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="15.5" y1="8.5" x2="8.5" y2="15.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>`
-};
+
+// Sprite icon per notification type (see the <defs> block in index.html).
+const STATUS_ICON = { info: "info", warning: "warning", error: "error" };
 
 // How long a notification stays as an active on-screen toast before it is
 // moved into the bell's notification panel.
@@ -110,7 +106,7 @@ function buildToast(msg, type) {
   toast.setAttribute("role", "status");
 
   toast.innerHTML = `
-    <svg class="toast-icon" viewBox="0 0 24 24" aria-hidden="true">${ICONS[type] || ICONS.warning}</svg>
+    ${icon(STATUS_ICON[type] || "warning", "toast-icon")}
     <div class="toast-message"></div>
   `;
   toast.querySelector(".toast-message").textContent = msg;
@@ -123,7 +119,7 @@ function buildPanelItem(msg, type) {
   item.className = `notification-item notification-${type}`;
 
   item.innerHTML = `
-    <svg class="notification-icon" viewBox="0 0 24 24" aria-hidden="true">${ICONS[type] || ICONS.warning}</svg>
+    ${icon(STATUS_ICON[type] || "warning", "notification-icon")}
     <div class="notification-message"></div>
   `;
   item.querySelector(".notification-message").textContent = msg;

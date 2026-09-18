@@ -31,6 +31,7 @@ import { attachStackResizeHandle } from "../events/stackResizeEvents.js";
 import { attachSlicerColumnResizeHandle } from "../events/slicerColumnResizeEvents.js";
 import { setSelected } from "../ui/selection.js";
 import { renderWarnings } from "../ui/warnings.js";
+import { icon } from "../ui/icon.js";
 
 const canvas = document.getElementById("canvas");
 
@@ -46,23 +47,6 @@ window.addEventListener("pointermove", (e) => {
   lastPointer = { x: e.clientX, y: e.clientY };
 });
 
-// Lock/unlock icons for the chart width-lock control. stroke uses
-// currentColor so it inherits the button's (white) text color, matching the
-// other icon-style controls (+/-/arrows) instead of hardcoding a color here.
-const LOCK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.5 0 25 25" fill="none">
-<path d="M16.5 9.32001H7.5C6.37366 9.25709 5.26818 9.64244 4.42503 10.3919C3.58188 11.1414 3.06958 12.1941 3 13.32V18.32C3.06958 19.446 3.58188 20.4986 4.42503 21.2481C5.26818 21.9976 6.37366 22.3829 7.5 22.32H16.5C17.6263 22.3829 18.7318 21.9976 19.575 21.2481C20.4181 20.4986 20.9304 19.446 21 18.32V13.32C20.9304 12.1941 20.4181 11.1414 19.575 10.3919C18.7318 9.64244 17.6263 9.25709 16.5 9.32001Z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M17 9.32001V7.32001C17 5.99392 16.4732 4.72217 15.5355 3.78448C14.5979 2.8468 13.3261 2.32001 12 2.32001C10.6739 2.32001 9.40214 2.8468 8.46446 3.78448C7.52678 4.72217 7 5.99392 7 7.32001V9.32001" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-
-const UNLOCK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.5 0 25 25" fill="none">
-<path d="M16.5 9.32001H7.5C6.37366 9.25709 5.2682 9.64244 4.42505 10.3919C3.5819 11.1414 3.06958 12.1941 3 13.32V18.32C3.06958 19.446 3.5819 20.4986 4.42505 21.2481C5.2682 21.9976 6.37366 22.3829 7.5 22.32H16.5C17.6263 22.3829 18.7318 21.9976 19.575 21.2481C20.4181 20.4986 20.9304 19.446 21 18.32V13.32C20.9304 12.1941 20.4181 11.1414 19.575 10.3919C18.7318 9.64244 17.6263 9.25709 16.5 9.32001Z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M17 9.32001V7.32001C17 5.99392 16.4732 4.72217 15.5355 3.78448C14.5978 2.8468 13.3261 2.32001 12 2.32001" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-
-const REMOVE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-
 // Clicking the empty canvas background deselects the current element.
 // Registered once here (not inside renderLayout) since the #canvas element
 // itself persists across renders — only its children are cleared and rebuilt.
@@ -76,8 +60,8 @@ function buildLockButton(locked, onClick, lockedTitle, unlockedTitle) {
   const lockBtn = document.createElement("button");
   lockBtn.className = "icon-btn";
   lockBtn.innerHTML = locked
-    ? `<span class="icon-default">${LOCK_ICON}</span><span class="icon-hover">${UNLOCK_ICON}</span>`
-    : `<span class="icon-default">${UNLOCK_ICON}</span><span class="icon-hover">${LOCK_ICON}</span>`;
+    ? `<span class="icon-default">${icon("lock")}</span><span class="icon-hover">${icon("unlock")}</span>`
+    : `<span class="icon-default">${icon("unlock")}</span><span class="icon-hover">${icon("lock")}</span>`;
   lockBtn.title = locked ? lockedTitle : unlockedTitle;
   lockBtn.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -127,19 +111,18 @@ function computeEffectiveScale() {
 
   const wrapperPaddingY = parseFloat(wrapperStyles.paddingTop || 0) + parseFloat(wrapperStyles.paddingBottom || 0);
   const wrapperBorderY = parseFloat(wrapperStyles.borderTopWidth || 0) + parseFloat(wrapperStyles.borderBottomWidth || 0);
-  // The wrapper's top position already accounts for everything stacked above
-  // it (heading, hint text, tab bar, main's own top padding), so subtracting
-  // it from the viewport height gives exactly the room left below it. Using
-  // getBoundingClientRect().top directly (viewport-relative) makes this
-  // scroll-position-dependent: if an earlier overflowing render made the page
-  // scrollable, a re-render while scrolled measures a shrunken/negative
-  // availableHeight and the scale collapses toward the 0.12 floor. Adding
-  // scrollY converts to a document-relative offset, then subtracting the
-  // viewport height back out gives the room the wrapper would have at
-  // scrollY 0, regardless of where the page happens to be scrolled right now.
-  const wrapperDocTop = wrapper.getBoundingClientRect().top + window.scrollY;
+  // .main is the scroll container in this layout (the shell itself is locked
+  // to the viewport), so the room left for the canvas is .main's own height
+  // minus everything stacked above the wrapper inside it. Measuring the
+  // wrapper's rect against .main's rect alone would be scroll-dependent: once
+  // an overflowing render made .main scrollable, a re-render while scrolled
+  // would see a shrunken/negative availableHeight and the scale would collapse
+  // toward the 0.12 floor. Adding scrollTop converts to a content-relative
+  // offset, so the result is the room the wrapper would have at scrollTop 0
+  // regardless of where .main happens to be scrolled right now.
+  const wrapperTopInMain = wrapper.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
   const mainPaddingBottom = parseFloat(mainStyles.paddingBottom || 0);
-  const availableHeight = window.innerHeight - wrapperDocTop - wrapperPaddingY - wrapperBorderY - mainPaddingBottom;
+  const availableHeight = main.clientHeight - wrapperTopInMain - wrapperPaddingY - wrapperBorderY - mainPaddingBottom;
 
   if (availableHeight <= 0) return state.SCALE;
   const fitScaleH = availableHeight / state.CANVAS_HEIGHT;
@@ -186,8 +169,8 @@ function appendEdgeAddControl({ zone, btnPos, scope, onClick, title }) {
 
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "canvas-add-btn";
-  btn.textContent = "+";
+  btn.className = "icon-circle canvas-add-btn";
+  btn.innerHTML = icon("plus");
   btn.title = title;
   btn.style.left = btnPos.x + "px";
   btn.style.top = btnPos.y + "px";
@@ -298,7 +281,7 @@ export function renderLayout() {
 
       const removeBtn = document.createElement("button");
       removeBtn.className = "icon-btn";
-      removeBtn.innerHTML = REMOVE_ICON;
+      removeBtn.innerHTML = icon("close");
       removeBtn.title = "Odebrat slicer";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -380,7 +363,7 @@ export function renderLayout() {
 
       const removeBtn = document.createElement("button");
       removeBtn.className = "icon-btn";
-      removeBtn.innerHTML = REMOVE_ICON;
+      removeBtn.innerHTML = icon("close");
       removeBtn.title = "Odebrat KPI";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -503,7 +486,7 @@ export function renderLayout() {
           // Remove is always the last (rightmost) control.
           const stackRemoveBtn = document.createElement("button");
           stackRemoveBtn.className = "icon-btn";
-          stackRemoveBtn.innerHTML = REMOVE_ICON;
+          stackRemoveBtn.innerHTML = icon("close");
           stackRemoveBtn.title = "Odebrat graf";
           stackRemoveBtn.addEventListener("click", (e) => {
             e.stopPropagation();
@@ -602,7 +585,7 @@ export function renderLayout() {
 
       const removeBtn = document.createElement("button");
       removeBtn.className = "icon-btn";
-      removeBtn.innerHTML = REMOVE_ICON;
+      removeBtn.innerHTML = icon("close");
       removeBtn.title = "Odebrat graf";
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();

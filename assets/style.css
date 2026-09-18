@@ -68,13 +68,23 @@
   box-sizing: border-box;
 }
 
-html {
-  /* Reserves the scrollbar gutter permanently so its appearance/disappearance
-     never changes .main's clientWidth (the auto-fit canvas measures it). */
-  scrollbar-gutter: stable;
+/* The desktop shell is a fixed-height flex column: the top bar is a real row
+   and .main is the only thing that scrolls, so the root never gets a scrollbar
+   and the chrome reaches the true window edge. (A root-level
+   `scrollbar-gutter: stable` used to keep .main's clientWidth steady for the
+   auto-fit canvas, but it permanently inset every sticky/fixed element by the
+   gutter width — the stability now comes from the root simply never scrolling.
+   Below the stacked breakpoint the page does scroll, so the gutter is
+   re-reserved there; see the max-width: 680px block.) */
+html,
+body {
+  height: 100%;
 }
 
 body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   margin: 0;
   font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: var(--fs-md);
@@ -194,22 +204,52 @@ button:active:not(:disabled) {
 }
 
 /* ----------------------------------------------------
+   ICON BUTTONS — one way to put a glyph in a circle.
+
+   Every round icon button composes .icon-circle and sets only its two size
+   tokens plus colours. The glyph is always a sprite <use> (see the <defs>
+   block in index.html), never a text "+" or "×": flex centring aligns a
+   line box, not the ink inside it, so a text glyph sits a pixel high and
+   shifts again when the webfont swaps in. An SVG is centred by geometry.
+-----------------------------------------------------*/
+.icon-circle {
+  --icon-size: 24px;
+  --icon-glyph: 12px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  border-radius: 50%;
+}
+
+.icon-circle svg {
+  width: var(--icon-glyph);
+  height: var(--icon-glyph);
+}
+
+/* ----------------------------------------------------
    TOP BAR — brand, page tabs, the one pink action.
 -----------------------------------------------------*/
 .topbar {
+  /* Sticky is a no-op in the locked desktop shell but keeps the bar pinned in
+     the stacked layout, where the page scrolls normally. */
   position: sticky;
   top: 0;
   z-index: 1000;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 16px;
   height: var(--topbar);
-  padding: 0 72px 0 20px;
+  padding: 0 20px;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
 
 .brand {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -242,14 +282,20 @@ button:active:not(:disabled) {
 }
 
 .topbar-subtitle {
+  flex-shrink: 0;
   padding-left: 16px;
   border-left: 1px solid var(--line-strong);
   font-size: var(--fs-md);
   color: var(--ink-3);
+  white-space: nowrap;
 }
 
 .topbar-actions {
+  /* .tab-strip's flex: 1 already pushes this right on one row; the auto
+     margin is what keeps it pinned right on the wrapped narrow bar, where
+     the strip sits on a row of its own. */
   margin-left: auto;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -257,18 +303,109 @@ button:active:not(:disabled) {
 
 /* ----------------------------------------------------
    PAGE TABS — centred in the top bar.
+
+   The strip is the only elastic item in the bar (flex: 1 + min-width: 0), so
+   it absorbs the slack on wide screens — which centres the tabs — and is the
+   first thing to give when the window narrows. Only .tab-viewport shrinks;
+   the arrows and the + sit outside it at their natural size, so they can
+   never be squashed, and the + never scrolls out of reach.
 -----------------------------------------------------*/
+.tab-strip {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Registered so the mask edges can transition — an unregistered custom
+   property is not an animatable type and the fade would snap. */
+@property --fade-l {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.tab-viewport {
+  --fade-l: 0px;
+  --fade-r: 0px;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  /* Horizontal overscroll here would trigger the browser's back gesture. */
+  overscroll-behavior-x: contain;
+  /* No bar inside a 60px chrome row — the fade and the arrows are the cue
+     (same call as .sidebar-panels). */
+  scrollbar-width: none;
+  /* Only the side that actually has tabs hidden gets a fade; ui/tabs.js
+     toggles the classes from the scroll position. */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  transition: --fade-l var(--base) ease, --fade-r var(--base) ease;
+}
+
+.tab-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-viewport.can-scroll-prev {
+  --fade-l: 20px;
+}
+
+.tab-viewport.can-scroll-next {
+  --fade-r: 20px;
+}
+
 .tab-bar {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 6px;
-  max-width: 40vw;
+  /* Without this the flex items would be squeezed to fit the viewport
+     instead of overflowing it, and nothing would ever scroll. */
+  width: max-content;
+  /* Room for the focus ring and the 4px lift of .tab--new, which a scroll
+     container would otherwise clip. */
+  padding: 3px 2px;
+}
+
+.tab-scroll {
+  --icon-size: 26px;
+  --icon-glyph: 16px;
+  color: var(--ink-3);
+  transition: color var(--fast) ease, background var(--fast) ease, opacity var(--fast) ease;
+}
+
+/* A class-level `display` outranks the UA's `[hidden] { display: none }`, so
+   the attribute has to be honoured explicitly or a hidden arrow still paints. */
+.tab-scroll[hidden] {
+  display: none;
+}
+
+/* Dimmed rather than removed at the ends: the pair keeps its footprint, so
+   reaching the end of the strip doesn't resize the scroller under the cursor. */
+.tab-scroll:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tab-scroll--next svg {
+  transform: rotate(180deg);
+}
+
+.tab-scroll:hover {
+  color: var(--pink);
+  background: var(--pink-soft);
 }
 
 .tab {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -288,6 +425,11 @@ button:active:not(:disabled) {
   padding-right: 14px;
 }
 
+.tab:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 2px;
+}
+
 .tab:hover {
   color: var(--ink);
   background: var(--surface-2);
@@ -302,14 +444,13 @@ button:active:not(:disabled) {
 }
 
 .tab-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
+  --icon-size: 20px;
+  --icon-glyph: 10px;
   color: rgba(255, 255, 255, 0.65);
   opacity: 0;
+  /* Invisible must also mean unclickable: without this, the right 20px of
+     every inactive tab silently closes it instead of selecting it. */
+  pointer-events: none;
   transition: opacity var(--fast) ease, background var(--fast) ease, color var(--fast) ease;
 }
 
@@ -317,11 +458,7 @@ button:active:not(:disabled) {
 .tab--active .tab-close,
 .tab-close:focus-visible {
   opacity: 1;
-}
-
-.tab-close svg {
-  width: 10px;
-  height: 10px;
+  pointer-events: auto;
 }
 
 .tab-close:hover {
@@ -343,15 +480,9 @@ button:active:not(:disabled) {
 }
 
 .tab-add {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
+  --icon-size: 34px;
+  --icon-glyph: 16px;
   color: var(--ink-2);
-  font-size: 18px;
-  line-height: 1;
   background: var(--surface-2);
 }
 
@@ -397,25 +528,26 @@ button:active:not(:disabled) {
 /* ----------------------------------------------------
    LAYOUT — rail | inspector | workspace
 -----------------------------------------------------*/
+/* Fills whatever the top bar leaves, however tall the bar happens to be —
+   the old calc(100vh - var(--topbar)) assumed a 60px bar and overshot the
+   viewport once the bar wrapped to two rows on narrow windows. */
 .app {
+  flex: 1;
+  min-height: 0;
   display: flex;
   align-items: stretch;
-  min-height: calc(100vh - var(--topbar));
 }
 
 /* ----------------------------------------------------
    RAIL — three sections, one lit.
 -----------------------------------------------------*/
 .rail {
-  position: sticky;
-  top: var(--topbar);
-  align-self: flex-start;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
   width: var(--rail);
-  height: calc(100vh - var(--topbar));
+  overflow-y: auto;
   padding: 12px 6px;
   background: var(--surface);
   border-right: 1px solid var(--line);
@@ -493,19 +625,18 @@ body.section-prvky .main {
    SIDEBAR — the inspector card.
 -----------------------------------------------------*/
 .sidebar {
-  position: sticky;
-  top: var(--topbar);
-  align-self: flex-start;
   flex-shrink: 0;
+  display: flex;
   width: var(--sidebar);
-  height: calc(100vh - var(--topbar));
+  min-height: 0;
   padding: var(--gutter) 0 var(--gutter) var(--gutter);
 }
 
 .sidebar-panels {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  max-height: 100%;
+  min-height: 0;
   overflow-y: auto;
   /* Scrolls (rarely, on short viewports) without a bar cutting into the
      rounded card; the clipped last section is the cue. */
@@ -895,9 +1026,15 @@ select {
    vertical one would move the wrapper top that
    computeEffectiveScale() measures.
 -----------------------------------------------------*/
+/* The one scroll container in the desktop shell. The gutter is reserved here
+   (rather than on the root) so a scrollbar appearing can't change the width
+   the auto-fit canvas measures. */
 .main {
   flex: 1;
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
   padding: var(--gutter);
   text-align: center;
 }
@@ -1157,18 +1294,11 @@ select {
 }
 
 .canvas-add-btn {
+  --icon-size: 22px;
+  --icon-glyph: 12px;
   position: absolute;
   z-index: 45;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
   color: #fff;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1;
   background: var(--pink);
   box-shadow: 0 0 0 2px var(--surface), 0 4px 10px -2px rgba(251, 73, 163, 0.5);
   transform: translate(-50%, -50%);
@@ -1282,12 +1412,16 @@ body.is-resizing-chart .element-controls {
   pointer-events: none;
 }
 
+/* The square sibling of .icon-circle: same tokens, same centring, a corner
+   radius instead of a circle so the cluster reads as a toolbar. */
 .element-controls button {
+  --icon-size: 22px;
+  --icon-glyph: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: var(--icon-size);
+  height: var(--icon-size);
   border-radius: 6px;
   color: #fff;
   background: var(--slate);
@@ -1299,8 +1433,8 @@ body.is-resizing-chart .element-controls {
 }
 
 .element-controls button svg {
-  width: 12px;
-  height: 12px;
+  width: var(--icon-glyph);
+  height: var(--icon-glyph);
 }
 
 .icon-btn .icon-default,
@@ -1323,23 +1457,18 @@ body.is-resizing-chart .element-controls {
    NOTIFICATIONS — bell in the top bar, panel below it,
    toasts stacked under the bell.
 -----------------------------------------------------*/
-.notification-bell {
-  position: fixed;
-  top: 12px;
-  right: 20px;
-  z-index: 1100;
+/* Anchor for the panel and the toasts, so both follow the bell wherever the
+   bar puts it instead of being placed at a fixed --topbar offset. */
+.bell-wrap {
+  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  color: var(--ink-2);
 }
 
-.notification-bell svg {
-  width: 20px;
-  height: 20px;
+.notification-bell {
+  --icon-size: 36px;
+  --icon-glyph: 20px;
+  position: relative;
+  color: var(--ink-2);
 }
 
 .notification-bell:hover,
@@ -1376,12 +1505,14 @@ body.is-resizing-chart .element-controls {
 }
 
 .notification-panel {
-  position: fixed;
-  top: calc(var(--topbar) - 4px);
-  right: 20px;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
   z-index: 1099;
   width: 340px;
-  max-height: 420px;
+  /* 100vw includes the scrollbar, hence the extra slack over 2 * --gutter. */
+  max-width: calc(100vw - 40px);
+  max-height: min(420px, 70vh);
   overflow-y: auto;
   border-radius: var(--r-md);
   background: var(--surface);
@@ -1456,15 +1587,16 @@ body.is-resizing-chart .element-controls {
 }
 
 .toast-container {
-  position: fixed;
-  top: calc(var(--topbar) + 8px);
-  right: 20px;
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
   z-index: 1050;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
-  max-width: 420px;
+  width: max-content;
+  max-width: min(420px, calc(100vw - 40px));
   pointer-events: none;
 }
 
@@ -1546,25 +1678,80 @@ body.is-resizing-chart .element-controls {
    RESPONSIVE — rail becomes a row, panels stack above
    the canvas, tabs drop under the brand.
 -----------------------------------------------------*/
+/* Narrow desktops: give the canvas back the chrome it can spare before
+   resorting to the stacked layout. 72 + 300 of fixed rail + sidebar used to
+   hold all the way down to 900px, leaving under 500px for the sheet. */
+@media (max-width: 1200px) {
+  :root {
+    --rail: 64px;
+    --sidebar: 260px;
+  }
+
+  /* The icon still says "export"; the label is what doesn't fit. */
+  .topbar-actions .btn-primary span {
+    display: none;
+  }
+
+  .topbar-actions .btn-primary {
+    width: 36px;
+    padding: 0;
+  }
+}
+
+/* Second squeeze: three columns still hold. The floor is the sidebar's
+   three-way placement control (~210px) plus a rail wide enough for its
+   labels, so 56 + 220 leaves the sheet ~370px even at the 680px stack point. */
 @media (max-width: 900px) {
-  .topbar {
-    flex-wrap: wrap;
-    height: auto;
-    padding: 10px 72px 10px var(--gutter);
-    row-gap: 8px;
+  :root {
+    --rail: 56px;
+    --sidebar: 220px;
   }
 
   .topbar-subtitle {
     display: none;
   }
 
-  .tab-bar {
-    position: static;
-    transform: none;
+  .rail {
+    padding: 12px 4px;
+  }
+
+  .rail-btn {
+    font-size: 9px;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Stack. Everything here is about the columns becoming rows — nothing about
+   the widths, which the tiers above already settled. */
+@media (max-width: 680px) {
+  /* The stacked layout is the one place the page itself scrolls, so the
+     root unlocks here — and reserves the scrollbar gutter, which is what
+     computeFitScale()'s stacked branch measures against. */
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  html,
+  body {
+    height: auto;
+  }
+
+  body {
+    display: block;
+    overflow: visible;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 10px var(--gutter);
+    row-gap: 8px;
+  }
+
+  .tab-strip {
     order: 3;
     flex-basis: 100%;
-    max-width: none;
-    overflow-x: auto;
+    justify-content: flex-start;
   }
 
   .app {
@@ -1573,9 +1760,8 @@ body.is-resizing-chart .element-controls {
 
   .rail,
   .sidebar {
-    position: static;
     width: 100%;
-    height: auto;
+    overflow: visible;
   }
 
   .rail {
@@ -1594,35 +1780,38 @@ body.is-resizing-chart .element-controls {
     padding: var(--gutter);
   }
 
+  .main {
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+
   .sidebar-panels {
     flex-direction: row;
     align-items: stretch;
-    max-height: none;
     overflow-x: auto;
   }
 
   .sidebar-panels .panel {
-    flex: 1 1 260px;
-    min-width: 260px;
+    flex: 1 1 240px;
+    /* min() so a 320px phone gets one full-width panel rather than a panel
+       wider than the screen plus a horizontal page scroll. */
+    min-width: min(240px, 100%);
   }
 
   .sidebar-panels .panel + .panel {
     padding-top: 18px;
   }
 
-  /* The wrapped top bar has no fixed height to hang toasts under, so they
-     stack from the bottom edge instead. */
+  /* The panel still hangs off the bell, but toasts break out to the bottom
+     edge: a two-row bar pushes them far enough down that they'd land on the
+     rail, and the bottom is the reachable corner on a phone anyway. */
   .toast-container {
+    position: fixed;
     top: auto;
     bottom: var(--gutter);
     left: var(--gutter);
     right: var(--gutter);
-    max-width: none;
-  }
-
-  .notification-panel {
-    left: var(--gutter);
-    right: var(--gutter);
     width: auto;
+    max-width: none;
   }
 }

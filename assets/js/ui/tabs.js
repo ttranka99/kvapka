@@ -1,19 +1,62 @@
 import { getTabs, getActiveTabIndex, switchTab, addTab, removeTab, renameTab, MAX_TABS } from "../state/tabs.js";
-
-const REMOVE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
+import { icon } from "./icon.js";
 
 let tabBarEl;
+let viewportEl;
+let addBtnEl;
+let scrollBtnEls;
 let refreshUI;
+
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const scrollBehavior = () => (reducedMotion() ? "auto" : "smooth");
 
 export function initTabsUI(options) {
   refreshUI = options.refreshUI;
   tabBarEl = document.getElementById("tab-bar");
+  viewportEl = document.querySelector(".tab-viewport");
+  addBtnEl = document.getElementById("tab-add");
+  scrollBtnEls = Array.from(document.querySelectorAll(".tab-scroll"));
+
+  // The bar is torn down and rebuilt on every change, so everything that has
+  // to keep its identity — the + button and the scroller — is wired once here
+  // and only has its state refreshed by renderTabBar().
+  addBtnEl.addEventListener("click", () => {
+    if (addTab()) { renderTabBar({ index: getActiveTabIndex(), type: "new" }); refreshUI(); }
+  });
+
+  scrollBtnEls.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const dir = btn.dataset.dir === "prev" ? -1 : 1;
+      viewportEl.scrollBy({ left: dir * viewportEl.clientWidth * 0.8, behavior: scrollBehavior() });
+    });
+  });
+
+  viewportEl.addEventListener("scroll", updateScrollAffordances, { passive: true });
+
+  // A mouse wheel only sends deltaY; without this the strip is unreachable
+  // for anyone without a trackpad or a visible scrollbar.
+  viewportEl.addEventListener("wheel", e => {
+    if (e.deltaX !== 0 || e.deltaY === 0) return;
+    if (viewportEl.scrollWidth <= viewportEl.clientWidth) return;
+    e.preventDefault();
+    viewportEl.scrollLeft += e.deltaY;
+  }, { passive: false });
+
+  // Catches window resizes and the sidebar/rail width changes at the
+  // breakpoints, both of which change what fits.
+  new ResizeObserver(updateScrollAffordances).observe(viewportEl);
+
+  tabBarEl.addEventListener("keydown", onTabKeydown);
+
   renderTabBar();
 }
 
 export function renderTabBar(animate) {
+  // scrollLeft is lost with the DOM it belongs to, so it is carried across
+  // the rebuild by hand — otherwise renaming a tab would jump the strip back
+  // to the start.
+  const savedScroll = viewportEl ? viewportEl.scrollLeft : 0;
+
   tabBarEl.innerHTML = "";
   const tabs = getTabs();
   const active = getActiveTabIndex();
@@ -23,6 +66,9 @@ export function renderTabBar(animate) {
     tabEl.className = "tab" + (index === active ? " tab--active" : "");
     tabEl.setAttribute("role", "tab");
     tabEl.setAttribute("aria-selected", String(index === active));
+    // Roving tabindex: one stop for the whole tablist, arrows move within it.
+    tabEl.tabIndex = index === active ? 0 : -1;
+    tabEl.dataset.index = String(index);
 
     // Only the tab that just changed gets the entry/highlight animation —
     // the whole bar is torn down and rebuilt on every change (see project
@@ -42,9 +88,10 @@ export function renderTabBar(animate) {
     if (tabs.length > 1) {
       const closeBtn = document.createElement("button");
       closeBtn.type = "button";
-      closeBtn.className = "tab-close";
-      closeBtn.innerHTML = REMOVE_ICON;
+      closeBtn.className = "icon-circle tab-close";
+      closeBtn.innerHTML = icon("close");
       closeBtn.title = "Zavřít stránku";
+      closeBtn.tabIndex = -1;
       closeBtn.addEventListener("click", e => {
         e.stopPropagation();
 
@@ -58,7 +105,7 @@ export function renderTabBar(animate) {
         // the closed tab is destroyed by the re-render, so it has to play
         // its exit animation first and only then trigger the state change +
         // rebuild — reversed order from the other two animations.
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        if (reducedMotion()) {
           commitRemoval();
           return;
         }
@@ -80,16 +127,102 @@ export function renderTabBar(animate) {
     tabBarEl.appendChild(tabEl);
   });
 
-  const addBtn = document.createElement("button");
-  addBtn.type = "button";
-  addBtn.className = "tab-add";
-  addBtn.textContent = "+";
-  addBtn.title = "Přidat stránku";
-  addBtn.disabled = tabs.length >= MAX_TABS;
-  addBtn.addEventListener("click", () => {
-    if (addTab()) { renderTabBar({ index: getActiveTabIndex(), type: "new" }); refreshUI(); }
+  addBtnEl.disabled = tabs.length >= MAX_TABS;
+
+  viewportEl.scrollLeft = savedScroll;
+  scrollActiveIntoView();
+  updateScrollAffordances();
+}
+
+/* Scrolls the minimum distance to reveal the active tab. scrollIntoView()
+   would do this too, but it also walks up and scrolls every ancestor, which
+   in the stacked layout drags the whole page.
+
+   Measured with rects rather than offsetLeft: .topbar is positioned, so it —
+   not .tab-bar — is the tabs' offsetParent, and offsetLeft would be measured
+   from the wrong origin. */
+function scrollActiveIntoView(behavior) {
+  const activeEl = tabBarEl.querySelector(".tab--active");
+  if (!activeEl) return;
+
+  const pad = 8; // keeps the tab clear of the edge fade
+  const view = viewportEl.getBoundingClientRect();
+  const tab = activeEl.getBoundingClientRect();
+
+  let delta = 0;
+  if (tab.left - pad < view.left) delta = tab.left - pad - view.left;
+  else if (tab.right + pad > view.right) delta = tab.right + pad - view.right;
+  if (delta === 0) return;
+
+  // Snap through the last `pad` pixels at either end, so revealing the first or
+  // last tab leaves no sliver of scroll behind — which would otherwise keep an
+  // arrow lit for a two-pixel journey.
+  const max = viewportEl.scrollWidth - viewportEl.clientWidth;
+  let left = viewportEl.scrollLeft + delta;
+  if (left < pad) left = 0;
+  else if (left > max - pad) left = max;
+
+  viewportEl.scrollTo({ left, behavior: behavior || "auto" });
+}
+
+/* Arrows and edge fades both describe the same thing — which side still has
+   tabs hidden — so they are derived from the scroll position together.
+
+   The arrows are only ever added or removed as a pair, and the test is
+   "would the tabs overflow even without the arrows?". Toggling them one at a
+   time would be a feedback loop: an arrow appearing narrows the viewport,
+   which changes the very overflow that decided to show it. At the ends the
+   spare arrow is dimmed instead of removed, so the strip never jumps width
+   while you scroll it. */
+function updateScrollAffordances() {
+  if (!viewportEl) return;
+
+  const arrowsShown = !scrollBtnEls[0].hidden;
+  const arrowsWidth = arrowsShown
+    ? scrollBtnEls.reduce((sum, btn) => sum + btn.getBoundingClientRect().width + 6, 0)
+    : 0;
+  const needsArrows = tabBarEl.scrollWidth > viewportEl.clientWidth + arrowsWidth + 1;
+  scrollBtnEls.forEach(btn => { btn.hidden = !needsArrows; });
+
+  const max = viewportEl.scrollWidth - viewportEl.clientWidth;
+  // 1px of slack: fractional layout widths mean scrollLeft rarely lands
+  // exactly on 0 or on max.
+  const canPrev = viewportEl.scrollLeft > 1;
+  const canNext = viewportEl.scrollLeft < max - 1;
+
+  viewportEl.classList.toggle("can-scroll-prev", canPrev);
+  viewportEl.classList.toggle("can-scroll-next", canNext);
+
+  scrollBtnEls.forEach(btn => {
+    btn.disabled = btn.dataset.dir === "prev" ? !canPrev : !canNext;
   });
-  tabBarEl.appendChild(addBtn);
+}
+
+function onTabKeydown(e) {
+  const tabEl = e.target.closest(".tab");
+  if (!tabEl) return;
+
+  const count = getTabs().length;
+  const index = Number(tabEl.dataset.index);
+  let next = null;
+
+  if (e.key === "ArrowRight") next = (index + 1) % count;
+  else if (e.key === "ArrowLeft") next = (index - 1 + count) % count;
+  else if (e.key === "Home") next = 0;
+  else if (e.key === "End") next = count - 1;
+  else if (e.key === "F2" || e.key === "Enter") {
+    e.preventDefault();
+    startRename(tabEl, tabEl.querySelector(".tab-label"), index);
+    return;
+  } else return;
+
+  e.preventDefault();
+  if (!switchTab(next)) return;
+  renderTabBar();
+  refreshUI();
+  const focused = tabBarEl.querySelector(".tab--active");
+  if (focused) focused.focus();
+  scrollActiveIntoView(scrollBehavior());
 }
 
 function startRename(tabEl, label, index) {
@@ -101,6 +234,10 @@ function startRename(tabEl, label, index) {
   tabEl.replaceChild(input, label);
   input.focus();
   input.select();
+  // The input is wider than the label it replaced, so it can spill past the
+  // viewport edge on a full strip.
+  scrollActiveIntoView();
+  updateScrollAffordances();
 
   let finished = false;   // guards against blur firing during DOM teardown
   const commit = () => { if (finished) return; finished = true; renameTab(index, input.value); renderTabBar({ index, type: "renamed" }); };
@@ -108,6 +245,7 @@ function startRename(tabEl, label, index) {
 
   input.addEventListener("blur", commit);
   input.addEventListener("keydown", e => {
+    e.stopPropagation();          // the tablist's arrow keys are not for typing
     if (e.key === "Enter") { e.preventDefault(); input.blur(); }
     else if (e.key === "Escape") { e.preventDefault(); cancel(); }
   });

@@ -28,11 +28,11 @@ import {
 } from "../theme/themeStore.js";
 import { openThemeEditor } from "../theme/themeEditor.js";
 import { setActiveSection } from "./rail.js";
+import { icon } from "./icon.js";
 import { applyThemeToAllTabs, retargetTabsToTheme } from "../state/tabs.js";
 import { addWarning } from "./warnings.js";
 import { PLACEMENTS, placementLabel } from "../theme/themeModel.js";
 
-const EDIT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 let selectorEl;
 let scopeButtons;
@@ -182,7 +182,7 @@ export function renderThemeSelector() {
       const edit = document.createElement("button");
       edit.type = "button";
       edit.className = "theme-chip__edit";
-      edit.innerHTML = EDIT_ICON;
+      edit.innerHTML = icon("pencil");
       edit.title = `Upravit šablonu ${theme.label}`;
       edit.setAttribute("aria-label", `Upravit šablonu ${theme.label}`);
       edit.addEventListener("click", event => {

@@ -45,6 +45,7 @@ import {
 } from "./themeStore.js";
 import { walkSections } from "../layout/sectionWalker.js";
 import { computeChartGroups } from "../layout/chartGroups.js";
+import { icon } from "../ui/icon.js";
 
 // --- Dialog state ------------------------------------------------------
 
@@ -149,13 +150,10 @@ function buildDialog() {
   overlay.id = "theme-editor";
   overlay.hidden = true;
 
-  const backdrop = el("div", "theme-editor__backdrop");
-  backdrop.addEventListener("click", requestClose);
-  overlay.appendChild(backdrop);
-
+  // A section, not a modal: it takes the sidebar + canvas's place beside the
+  // rail (like #section-prvky), so the rail stays reachable at every width.
   const dialog = el("div", "theme-editor__dialog");
-  dialog.setAttribute("role", "dialog");
-  dialog.setAttribute("aria-modal", "true");
+  dialog.setAttribute("role", "region");
   dialog.setAttribute("aria-label", "Editor vlastní šablony");
 
   dialog.appendChild(buildHead());
@@ -166,7 +164,7 @@ function buildDialog() {
   dialog.appendChild(body);
 
   overlay.appendChild(dialog);
-  document.body.appendChild(overlay);
+  document.querySelector(".app").appendChild(overlay);
 
   document.addEventListener("keydown", e => {
     if (overlay.hidden) return;
@@ -237,11 +235,23 @@ function buildHead() {
   return head;
 }
 
-function button(label, variant, onClick, title) {
+/** A sprite icon as an element, for buttons built with DOM calls. */
+function iconEl(name) {
+  const tpl = document.createElement("template");
+  tpl.innerHTML = icon(name);
+  return tpl.content.firstElementChild;
+}
+
+function button(label, variant, onClick, title, iconName) {
   const b = document.createElement("button");
   b.type = "button";
   b.className = `theme-btn theme-btn--${variant}`;
-  b.textContent = label;
+  // A <span>, not a bare text node, so an icon can sit beside it with
+  // .theme-btn's gap keeping the two apart — the same shape as .btn.
+  if (iconName) b.appendChild(iconEl(iconName));
+  const text = document.createElement("span");
+  text.textContent = label;
+  b.appendChild(text);
   if (title) b.title = title;
   b.addEventListener("click", onClick);
   return b;
@@ -573,9 +583,9 @@ function renderKpiBandsList(g) {
 
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
-    removeBtn.className = "icon-btn theme-kpi-band__remove";
+    removeBtn.className = "icon-circle theme-kpi-band__remove";
     removeBtn.title = "Odstranit tento pás KPI";
-    removeBtn.textContent = "×";
+    removeBtn.innerHTML = icon("close");
     removeBtn.addEventListener("click", () => removeSection(bandId));
     row.appendChild(removeBtn);
 
@@ -596,10 +606,10 @@ function buildKpiBandsControl() {
   wrap.appendChild(el("p", "theme-field__hint",
     "Každý pás KPI je vlastní úsek v rozvržení — první pod hlavičkou, každý další uvnitř plochy grafů."));
 
-  const addBtn = button("+ přidat pás KPI", "ghost", () => {
+  const addBtn = button("Přidat pás KPI", "ghost", () => {
     draft = normalizeTheme({ ...draft, sections: appendKpiBand(draft.sections) });
     render();
-  });
+  }, undefined, "plus");
   addBtn.id = "theme-kpi-band-add";
   wrap.appendChild(addBtn);
 

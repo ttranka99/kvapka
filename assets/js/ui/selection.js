@@ -1,5 +1,6 @@
 import * as state from "../state/state.js";
 import { addWarning, renderWarnings } from "./warnings.js";
+import { icon } from "./icon.js";
 
 // Unsaved width/height edits, typed into the panel but not yet applied to
 // app state. Seeded from the selected element's confirmed values on every
@@ -59,9 +60,8 @@ function updateApplyButtonState() {
   applyBtn.disabled = !dirty;
 }
 
-// Swapped into a copy button briefly after a successful copy: the check mark
-// is the only confirmation the user gets, so no notification is raised.
-const CHECK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+// The check mark (icon("check")) swapped into a copy button after a successful
+// copy is the only confirmation the user gets, so no notification is raised.
 const COPY_SUCCESS_MS = 1200;
 
 // Wires the copy-to-clipboard buttons next to the X/Y/width/height rows.
@@ -84,7 +84,7 @@ export function initSelectionCopyButtons() {
       try {
         await navigator.clipboard.writeText(value);
         clearTimeout(revertTimer);
-        btn.innerHTML = CHECK_ICON;
+        btn.innerHTML = icon("check");
         btn.classList.add("copy-btn-success");
         revertTimer = setTimeout(() => {
           btn.innerHTML = originalHTML;
