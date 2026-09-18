@@ -75,7 +75,7 @@
    auto-fit canvas, but it permanently inset every sticky/fixed element by the
    gutter width — the stability now comes from the root simply never scrolling.
    Below the stacked breakpoint the page does scroll, so the gutter is
-   re-reserved there; see the max-width: 680px block.) */
+   re-reserved there; see the max-width: 900px block.) */
 html,
 body {
   height: 100%;
@@ -638,9 +638,11 @@ body.section-prvky .main {
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
-  /* Scrolls (rarely, on short viewports) without a bar cutting into the
-     rounded card; the clipped last section is the cue. */
-  scrollbar-width: none;
+  /* Scrolls on short viewports (a selected element makes the column ~1050px
+     tall). A slim, muted bar appears only then — without it the "Přidat"
+     section below the fold had nothing hinting it was there. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
   background: var(--surface);
   border-radius: var(--r-lg);
   box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
@@ -812,10 +814,6 @@ select {
   cursor: not-allowed;
 }
 
-.reset-layout-btn {
-  margin-top: 8px;
-}
-
 /* ----------------------------------------------------
    COLLAPSIBLE — animates the grid row's fr size; the
    -inner wrapper clips the content while collapsed.
@@ -838,13 +836,16 @@ select {
 /* ----------------------------------------------------
    ADD ELEMENTS
 -----------------------------------------------------*/
+/* Three across in the full-width column; two plus one when the column is
+   narrower (the 260px tier, or a scrollbar taking its share) rather than
+   clipping "Graf" off the end. */
 .add-elements .button-group {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
   gap: 8px;
 }
 
 .add-elements .button-group .btn {
-  flex: 1;
   justify-content: flex-start;
   padding-left: 12px;
 }
@@ -1698,32 +1699,14 @@ body.is-resizing-chart .element-controls {
   }
 }
 
-/* Second squeeze: three columns still hold. The floor is the sidebar's
-   three-way placement control (~210px) plus a rail wide enough for its
-   labels, so 56 + 220 leaves the sheet ~370px even at the 680px stack point. */
+/* Stack. 260px is the sidebar's floor — the three-way placement control needs
+   ~204px of content width — so below 900px the columns become rows instead of
+   squeezing further. Everything here is about that, not about widths. */
 @media (max-width: 900px) {
-  :root {
-    --rail: 56px;
-    --sidebar: 220px;
-  }
-
   .topbar-subtitle {
     display: none;
   }
 
-  .rail {
-    padding: 12px 4px;
-  }
-
-  .rail-btn {
-    font-size: 9px;
-    overflow-wrap: anywhere;
-  }
-}
-
-/* Stack. Everything here is about the columns becoming rows — nothing about
-   the widths, which the tiers above already settled. */
-@media (max-width: 680px) {
   /* The stacked layout is the one place the page itself scrolls, so the
      root unlocks here — and reserves the scrollbar gutter, which is what
      computeFitScale()'s stacked branch measures against. */
@@ -1785,21 +1768,50 @@ body.is-resizing-chart .element-controls {
     scrollbar-gutter: auto;
   }
 
+  /* Two columns: Šablona takes the whole left one, the selection and add
+     panels auto-place into the right one, and the reset button stretches
+     under both. Never a horizontal scroll. */
   .sidebar-panels {
-    flex-direction: row;
-    align-items: stretch;
-    overflow-x: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr auto;
+    overflow: visible;
   }
 
-  .sidebar-panels .panel {
-    flex: 1 1 240px;
-    /* min() so a 320px phone gets one full-width panel rather than a panel
-       wider than the screen plus a horizontal page scroll. */
-    min-width: min(240px, 100%);
+  .sidebar-panels > .panel:first-child {
+    grid-row: 1 / 3;
+  }
+
+  .panel-reset {
+    grid-row: 3;
+    grid-column: 1 / -1;
   }
 
   .sidebar-panels .panel + .panel {
     padding-top: 18px;
+  }
+
+  /* The right column is tuned to sit on the left one's rows: with nothing
+     selected the add buttons line up with "Vlastní šablona…"; with a
+     selection "Použít změny" lines up with the scope switch and the add
+     buttons with the placement switch. The offsets hold as long as neither
+     column wraps text, i.e. down to 600px with a one-line scope note. */
+  .sidebar-panels .panel + .add-elements {
+    padding-top: 14px;
+  }
+
+  /* The unselected state needs 14px more; the hint carries them and takes
+     them away when it collapses. */
+  .empty-hint {
+    margin-bottom: 14px;
+  }
+
+  .sel-row {
+    min-height: 30px;
+  }
+
+  #apply-selection {
+    margin-top: 9px;
   }
 
   /* The panel still hangs off the bell, but toasts break out to the bottom
@@ -1813,5 +1825,13 @@ body.is-resizing-chart .element-controls {
     right: var(--gutter);
     width: auto;
     max-width: none;
+  }
+}
+
+/* Phones: one column. Below 600px a half-width column is under 275px and
+   the hint and panel subtitle start wrapping, which breaks the alignment. */
+@media (max-width: 600px) {
+  .sidebar-panels {
+    grid-template-columns: 1fr;
   }
 }
