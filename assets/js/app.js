@@ -19,6 +19,7 @@ import {
   openActiveThemeEditor
 } from "./ui/themePicker.js";
 import { initRail } from "./ui/rail.js";
+import { initStackedCover } from "./ui/stackedCover.js";
 
 const addKpiBtn = document.getElementById("add-kpi");
 const addKpiBandsContainer = document.getElementById("add-kpi-bands");
@@ -181,12 +182,37 @@ function start() {
   syncKpiBandControls();
   syncRowLimitControls();
   renderLayout();
+  initStackedCover();
   initResizeEvents();
   initExportEvents();
   initSelectionCopyButtons();
   initSelectionInlineEditing();
   setSelected(null);
+  initCanvasRefit();
+}
+
+// Refits the canvas the moment the workspace changes width — the same frame
+// a window drag, a snap, a scrollbar or the stacked breakpoint narrows it —
+// rather than 150ms after the last resize event, during which the previous,
+// wider sheet sat in the narrower page and pushed it out sideways. The
+// debounced resize stays for everything else (a height-only change matters
+// to the desktop fit) and as the whole story where ResizeObserver is missing.
+function initCanvasRefit() {
   window.addEventListener("resize", debounce(renderLayout, 150));
+  const main = document.querySelector(".main");
+  if (!main || typeof ResizeObserver !== "function") return;
+  let lastWidth = main.clientWidth;
+  let queued = false;
+  new ResizeObserver(() => {
+    // Only the width matters to the fit; the height changes on every render
+    // in the stacked layout (the sheet is part of it) and must not re-enter.
+    // Zero means hidden behind another rail section; rail.js refits on return.
+    const width = main.clientWidth;
+    if (width === 0 || width === lastWidth || queued) return;
+    lastWidth = width;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; renderLayout(); });
+  }).observe(main);
 }
 
 window.addEventListener("DOMContentLoaded", start);

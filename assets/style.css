@@ -199,6 +199,19 @@ button:active:not(:disabled) {
   background: var(--pink-soft);
 }
 
+.btn-danger {
+  color: var(--error);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--error-bg);
+}
+
+/* .btn sets display, which would otherwise outrank the UA's [hidden]. */
+.btn[hidden] {
+  display: none;
+}
+
 .full-btn {
   width: 100%;
 }
@@ -756,7 +769,7 @@ body.section-prvky .main {
   margin: 8px 0 0;
   font-size: var(--fs-xs);
   letter-spacing: 0.01em;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--ink-3);
 }
 
@@ -1805,9 +1818,80 @@ body.is-resizing-chart .element-controls {
     padding: var(--gutter);
   }
 
+  /* The cover: the panels pin under the top bar and the sheet scrolls up
+     over them at the page's own speed — the browser does the moving, so it
+     is smooth, exactly reversible, and unmoved by the page changing height
+     (adding an element). --topbar-h / --sidebar-h come from
+     ui/stackedCover.js. */
+  .app {
+    position: relative;
+  }
+
+  .sidebar {
+    position: sticky;
+    /* One gutter under the bar (its own padding supplies the gutter). A
+       sidebar taller than the viewport pins by its bottom edge instead, so
+       its last panel is still reachable. */
+    top: min(var(--topbar-h, 60px), calc(100vh - var(--sidebar-h, 0px)));
+    z-index: 0;
+  }
+
   .main {
     overflow: visible;
     scrollbar-gutter: auto;
+    /* Paints over the pinned panels; the top bar (z-index 1000) still
+       covers it. */
+    position: relative;
+    z-index: 1;
+    /* Enough page below the sheet for it to reach the bar even when the
+       sheet is shorter than the viewport. */
+    min-height: calc(100vh - var(--topbar-h, 60px));
+    /* That box also lies over the pinned panels, and its empty part must
+       not shield them: only the sheet itself is a target, so whatever peeks
+       out under it stays clickable. */
+    pointer-events: none;
+  }
+
+  #canvas-wrapper {
+    pointer-events: auto;
+  }
+
+  /* The caption may end up over the covered panels, so it sits on a chip
+     of the workspace colour. */
+  .sheet-caption {
+    left: 50%;
+    right: auto;
+    width: max-content;
+    padding: 2px 10px;
+    transform: translateX(-50%);
+    border-radius: var(--r-pill);
+    background: var(--bg);
+  }
+
+  /* The covered panels recede — a fade, nothing that changes their size —
+     over the last stretch of the cover, driven by the sheet's own position:
+     from fully in view to its top meeting the bar. Scroll-linked, so it
+     reverses exactly. Only while ui/stackedCover.js says that stretch is
+     long enough to be gradual (a sheet nearly as tall as the scrollport
+     would collapse it into one step); browsers without scroll-driven
+     animations get the plain cover. */
+  @supports (animation-timeline: view()) {
+    .app {
+      timeline-scope: --sheet;
+    }
+
+    /* The sheet itself is the subject — .main is a viewport-tall box whose
+       contain range would be empty. */
+    #canvas-wrapper {
+      view-timeline: --sheet block;
+      view-timeline-inset: var(--topbar-h, 60px) 0;
+    }
+
+    .cover-recede .sidebar {
+      animation: panels-recede linear both;
+      animation-timeline: --sheet;
+      animation-range: contain 0% contain 100%;
+    }
   }
 
   /* Two columns: Šablona takes the whole left one, the selection and add
@@ -1867,6 +1951,18 @@ body.is-resizing-chart .element-controls {
     right: var(--gutter);
     width: auto;
     max-width: none;
+  }
+}
+
+@keyframes panels-recede {
+  to {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    animation: none;
   }
 }
 

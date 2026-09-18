@@ -117,7 +117,7 @@ export function openThemeEditor(options) {
   onClose = options.onClose || null;
 
   // Force both to rebuild for this draft: the dialog is reused across opens,
-  // so last session's field set and chooser/badge choice are still in it.
+  // so last session's field set and live/locked placement row are still in it.
   controlsPlacement = null;
   placementIsEditable = null;
 
@@ -205,11 +205,6 @@ function buildHead() {
   identity.appendChild(el("p", "theme-editor__meta"));
   head.appendChild(identity);
 
-  // Rebuilt by render(), since it switches between a chooser and a badge and
-  // its options track the draft — unlike the rest of the head, which is
-  // static once built.
-  head.appendChild(el("div", "theme-editor__placement-slot"));
-
   const actions = el("div", "theme-editor__head-actions");
 
   const file = document.createElement("input");
@@ -219,11 +214,11 @@ function buildHead() {
   file.addEventListener("change", handleImportFile);
   actions.appendChild(file);
 
-  actions.appendChild(button("Importovat", "ghost", () => file.click(),
+  actions.appendChild(button("Importovat", "secondary", () => file.click(),
     "Načíst šablonu ze souboru JSON"));
-  actions.appendChild(button("Exportovat", "ghost", handleExport,
+  actions.appendChild(button("Exportovat", "secondary", handleExport,
     "Uložit tuto šablonu jako soubor JSON"));
-  actions.appendChild(button("Zrušit", "ghost", requestClose));
+  actions.appendChild(button("Zrušit", "secondary", requestClose));
 
   const del = button("Smazat", "danger", handleDelete, "Smazat tuto šablonu");
   del.classList.add("theme-editor__delete");
@@ -245,9 +240,9 @@ function iconEl(name) {
 function button(label, variant, onClick, title, iconName) {
   const b = document.createElement("button");
   b.type = "button";
-  b.className = `theme-btn theme-btn--${variant}`;
+  b.className = `btn btn-${variant}`;
   // A <span>, not a bare text node, so an icon can sit beside it with
-  // .theme-btn's gap keeping the two apart — the same shape as .btn.
+  // .btn's gap keeping the two apart.
   if (iconName) b.appendChild(iconEl(iconName));
   const text = document.createElement("span");
   text.textContent = label;
@@ -259,6 +254,11 @@ function button(label, variant, onClick, title, iconName) {
 
 function buildControlsPane() {
   const pane = el("aside", "theme-editor__controls");
+
+  // Filled by syncPlacementSlot(): whether it is a live chooser or a locked
+  // one depends on the draft, unlike the groups below, which are fixed per
+  // placement.
+  pane.appendChild(el("div", "theme-editor__placement-slot"));
 
   // Only the fields this layout's shape actually uses. A control that governs
   // the other placement would sit here doing nothing visible — worse than not
@@ -362,32 +362,30 @@ function buildField(field) {
 }
 
 // Where the slicers stand — the one property that decides which *layout*
-// this is, rather than how it is tuned. It sits in the dialog head next to
-// the name for that reason: both identify the template, neither adjusts it.
+// this is, rather than how it is tuned. It is the first row of the controls
+// pane, drawn with the very same segmented control the sidebar's "Slicery"
+// switch uses, so the two sections read as one column.
 //
 // It is settable only while the layout is new. Flipping it on a saved layout
 // would silently turn one template into another — every page using it would
-// change shape — so an existing layout shows the placement as a badge and
-// offers no way to change it. Building the other orientation is a separate
-// act: start a new template and choose its placement here.
+// change shape — so an existing layout shows the control locked (every
+// option disabled) and says why. Building the other orientation is a
+// separate act: start a new template and choose its placement here.
 function buildPlacementControl() {
-  const row = el("div", "theme-editor__placement");
-  row.appendChild(el("span", "theme-editor__placement-label", "Slicery"));
+  const locked = editingExistingId !== null;
+  const row = el("div", "theme-field theme-editor__placement");
+  row.appendChild(el("span", "theme-field__label", "Umístění slicerů"));
 
-  if (editingExistingId !== null) {
-    const badge = el("span", "theme-editor__placement-badge", placementLabel(draft.placement));
-    badge.title = "Umístění slicerů je součástí šablony a po uložení se už nemění. Jinou variantu vytvoříte jako novou šablonu.";
-    row.appendChild(badge);
-    return row;
-  }
-
-  const group = el("div", "theme-toggle theme-toggle--sm");
+  const group = el("div", "segmented segmented--3");
+  group.setAttribute("role", "group");
+  group.setAttribute("aria-label", "Umístění slicerů");
   PLACEMENTS.forEach(placement => {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "theme-toggle__option";
+    b.className = "template-option";
     b.dataset.placement = placement;
     b.textContent = placementLabel(placement);
+    b.disabled = locked;
     b.addEventListener("click", () => {
       if (draft.placement === placement) return;
       // Straight through normalizeTheme so the baseline follows the new
@@ -396,11 +394,20 @@ function buildPlacementControl() {
       draft = normalizeTheme({ ...draft, placement });
       baseTheme = cloneTheme(baselineFor(draft));
       render();
+      // render() rebuilt the pane this button lived in; keep the keyboard
+      // where the user left it.
+      const again = root.querySelector(`.theme-editor__placement [data-placement="${placement}"]`);
+      if (again) again.focus();
     });
     group.appendChild(b);
   });
-
   row.appendChild(group);
+
+  if (locked) {
+    row.appendChild(el("p", "theme-field__hint",
+      "Umístění slicerů je součástí šablony a po uložení se už nemění. Jinou variantu vytvoříte jako novou šablonu."));
+  }
+
   return row;
 }
 
@@ -489,6 +496,38 @@ function removeSection(sectionId) {
   render();
 }
 
+// A two-or-three-way choice as a small toggle, in the pane's own idiom:
+// `onPick` gets the option's value. render() refreshes which one reads as
+// active via setToggleValue.
+function toggle(className, options, onPick) {
+  const group = el("div", `theme-toggle ${className}`);
+  options.forEach(([value, label]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "theme-toggle__option";
+    b.dataset.value = value;
+    b.textContent = label;
+    b.addEventListener("click", () => onPick(value));
+    group.appendChild(b);
+  });
+  return group;
+}
+
+function setToggleValue(group, value) {
+  group.querySelectorAll(".theme-toggle__option").forEach(b => {
+    b.classList.toggle("is-active", b.dataset.value === String(value));
+  });
+}
+
+function bandRow(label, control, title, stack) {
+  const row = el("div", "theme-kpi-band__row");
+  if (stack) row.classList.add("theme-kpi-band__row--stack");
+  if (title) row.title = title;
+  row.appendChild(el("span", null, label));
+  row.appendChild(control);
+  return row;
+}
+
 function renderKpiBandsList(g) {
   const list = root.querySelector("#theme-kpi-bands-list");
   if (!list) return;
@@ -508,11 +547,9 @@ function renderKpiBandsList(g) {
     rendered.forEach((row, i) => {
       const section = sections[i];
       const count = row.querySelector(".theme-kpi-band__count");
-      const secondRow = row.querySelector(".theme-check");
-      const gapSelect = row.querySelector(".theme-kpi-band__gap");
       if (document.activeElement !== count) count.value = String(section.defaultCount);
-      if (document.activeElement !== secondRow) secondRow.checked = section.allowSecondRow;
-      if (document.activeElement !== gapSelect) gapSelect.value = section.gapBefore;
+      setToggleValue(row.querySelector(".theme-kpi-band__second-row"), section.allowSecondRow ? 1 : 0);
+      setToggleValue(row.querySelector(".theme-kpi-band__gap"), section.gapBefore);
       row.querySelector(".theme-kpi-band__title").textContent = bandTitle(section, i, g);
     });
     return;
@@ -525,69 +562,54 @@ function renderKpiBandsList(g) {
     // listener below closes over this id rather than that object.
     const bandId = section.id;
     const row = el("div", "theme-kpi-band");
+    if (i > 0) row.classList.add("theme-kpi-band--extra");
     row.dataset.kpiBandId = bandId;
     row.dataset.region = "kpi-band2";
 
-    row.appendChild(el("span", "theme-kpi-band__title", bandTitle(section, i, g)));
-
-    const countField = el("label", "theme-kpi-band__field");
-    countField.appendChild(el("span", null, "Počet KPI"));
-    const count = document.createElement("input");
-    count.type = "number";
-    count.className = "theme-kpi-band__count";
-    count.min = "0";
-    count.max = "12";
-    count.step = "1";
-    count.value = String(section.defaultCount);
-    count.addEventListener("input", () => {
-      const v = Number(count.value);
-      if (!Number.isFinite(v)) return;
-      updateSection(bandId, { defaultCount: Math.max(0, Math.round(v)) });
-    });
-    countField.appendChild(count);
-    row.appendChild(countField);
-
-    const secondRowField = el("label", "theme-kpi-band__field theme-kpi-band__field--check");
-    const secondRow = document.createElement("input");
-    secondRow.type = "checkbox";
-    secondRow.className = "theme-check";
-    secondRow.checked = section.allowSecondRow;
-    secondRow.addEventListener("change", () => {
-      updateSection(bandId, { allowSecondRow: secondRow.checked });
-    });
-    secondRowField.appendChild(secondRow);
-    secondRowField.appendChild(el("span", null, "2. řádek"));
-    row.appendChild(secondRowField);
-
-    // The gap immediately above this band. "Auto" derives it from the
-    // layout's usual rule (a wide block gap once charts are involved
-    // above it, a tight one otherwise); the other two pin it regardless
-    // of what ends up around it.
-    const gapField = el("label", "theme-kpi-band__field");
-    gapField.title = "Auto: mezera se odvozuje z rozvržení. Malá/velká: mezera je pevně daná bez ohledu na okolí.";
-    gapField.appendChild(el("span", null, "Mezera před"));
-    const gapSelect = document.createElement("select");
-    gapSelect.className = "theme-kpi-band__gap";
-    ["auto", "small", "block"].forEach(value => {
-      const opt = document.createElement("option");
-      opt.value = value;
-      opt.textContent = GAP_BEFORE_LABELS[value];
-      if (section.gapBefore === value) opt.selected = true;
-      gapSelect.appendChild(opt);
-    });
-    gapSelect.addEventListener("change", () => {
-      updateSection(bandId, { gapBefore: gapSelect.value });
-    });
-    gapField.appendChild(gapSelect);
-    row.appendChild(gapField);
+    const head = el("div", "theme-kpi-band__head");
+    head.appendChild(el("span", "theme-kpi-band__title", bandTitle(section, i, g)));
 
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.className = "icon-circle theme-kpi-band__remove";
     removeBtn.title = "Odstranit tento pás KPI";
+    removeBtn.setAttribute("aria-label", "Odstranit tento pás KPI");
     removeBtn.innerHTML = icon("close");
     removeBtn.addEventListener("click", () => removeSection(bandId));
-    row.appendChild(removeBtn);
+    head.appendChild(removeBtn);
+    row.appendChild(head);
+
+    const count = document.createElement("input");
+    count.type = "number";
+    count.className = "theme-field__number theme-kpi-band__count";
+    count.min = "0";
+    count.max = "12";
+    count.step = "1";
+    count.value = String(section.defaultCount);
+    count.setAttribute("aria-label", "Počet KPI");
+    count.addEventListener("input", () => {
+      const v = Number(count.value);
+      if (!Number.isFinite(v)) return;
+      updateSection(bandId, { defaultCount: Math.max(0, Math.round(v)) });
+    });
+    row.appendChild(bandRow("Počet KPI", count));
+
+    const secondRow = toggle("theme-kpi-band__second-row", [["1", "Ano"], ["0", "Ne"]], value => {
+      updateSection(bandId, { allowSecondRow: value === "1" });
+    });
+    setToggleValue(secondRow, section.allowSecondRow ? 1 : 0);
+    row.appendChild(bandRow("Druhý řádek", secondRow));
+
+    // The gap immediately above this band. "Auto" derives it from the
+    // layout's usual rule (a wide block gap once charts are involved
+    // above it, a tight one otherwise); the other two pin it regardless
+    // of what ends up around it.
+    const gap = toggle("theme-kpi-band__gap",
+      ["auto", "small", "block"].map(value => [value, GAP_BEFORE_LABELS[value]]),
+      value => updateSection(bandId, { gapBefore: value }));
+    setToggleValue(gap, section.gapBefore);
+    row.appendChild(bandRow("Mezera před", gap,
+      "Auto: mezera se odvozuje z rozvržení. Malá/velká: mezera je pevně daná bez ohledu na okolí.", true));
 
     row.addEventListener("mouseenter", () => setHighlight("kpi-band2"));
     row.addEventListener("mouseleave", () => setHighlight(null));
@@ -606,7 +628,7 @@ function buildKpiBandsControl() {
   wrap.appendChild(el("p", "theme-field__hint",
     "Každý pás KPI je vlastní úsek v rozvržení — první pod hlavičkou, každý další uvnitř plochy grafů."));
 
-  const addBtn = button("Přidat pás KPI", "ghost", () => {
+  const addBtn = button("Přidat pás KPI", "secondary", () => {
     draft = normalizeTheme({ ...draft, sections: appendKpiBand(draft.sections) });
     render();
   }, undefined, "plus");
@@ -687,8 +709,8 @@ function applyHighlight() {
 
 // --- Rendering ----------------------------------------------------------
 
-// The placement the controls pane was last built for, and whether the head
-// last showed a chooser or a badge. The dialog itself is built once and
+// The placement the controls pane was last built for, and whether its
+// placement row was last built live or locked. The dialog itself is built once and
 // reused across opens, so both have to be rebuilt when the answer changes —
 // unlike every other control, *which* controls exist now depends on the
 // draft.
@@ -700,12 +722,12 @@ function syncControlsPane() {
   controlsPlacement = draft.placement;
   const body = root.querySelector(".theme-editor__body");
   body.replaceChild(buildControlsPane(), body.querySelector(".theme-editor__controls"));
+  // The fresh pane's placement slot is empty; make syncPlacementSlot() fill it.
+  placementIsEditable = null;
 }
 
-// Rebuilt only when it switches between chooser and badge — never merely
-// because the placement changed, or clicking an option would tear out the
-// button that was clicked and drop focus with it. Which option reads as
-// active is handled by renderControls().
+// Refilled when the pane was rebuilt or the chooser flips between live and
+// locked. Which option reads as active is handled by renderControls().
 function syncPlacementSlot() {
   const editable = editingExistingId === null;
   if (placementIsEditable === editable) return;
@@ -764,7 +786,7 @@ function renderControls(g) {
   });
 
   root.querySelectorAll("[data-placement]").forEach(b => {
-    b.classList.toggle("is-active", b.dataset.placement === draft.placement);
+    b.classList.toggle("active", b.dataset.placement === draft.placement);
   });
 
   renderKpiBandsList(g);
@@ -1548,7 +1570,7 @@ function renderReadout(g) {
     });
   }
 
-  root.querySelector(".theme-btn--primary").disabled = issues.some(i => i.severity === "error");
+  root.querySelector(".theme-editor__head-actions .btn-primary").disabled = issues.some(i => i.severity === "error");
 }
 
 // --- Actions ------------------------------------------------------------
