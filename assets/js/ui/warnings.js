@@ -1,5 +1,6 @@
 import * as state from "../state/state.js";
 import { icon } from "./icon.js";
+import { leave } from "./motion.js";
 
 
 // Sprite icon per notification type (see the <defs> block in index.html).
@@ -139,10 +140,8 @@ function renderToasts() {
   const activeIds = new Set(activeMsgs.map(toastId));
 
   Array.from(container.children).forEach(toastEl => {
-    if (activeIds.has(toastEl.id)) return;
-
-    toastEl.classList.add("toast-leaving");
-    toastEl.addEventListener("animationend", () => toastEl.remove(), { once: true });
+    if (activeIds.has(toastEl.id) || toastEl.classList.contains("m-leave")) return;
+    leave(toastEl, () => toastEl.remove());
   });
 
   activeMsgs.forEach(msg => {

@@ -120,7 +120,7 @@
             </button>
         </nav>
 
-        <aside class="sidebar">
+        <aside class="sidebar m-reveal">
             <div class="sidebar-panels">
                 <section class="panel">
                     <div class="panel-head">
@@ -151,7 +151,7 @@
                             <button type="button" class="template-option theme-scope-option active" data-scope="page">Tato stránka</button>
                             <button type="button" class="template-option theme-scope-option" data-scope="global">Všechny</button>
                         </div>
-                        <p class="field-note" id="theme-scope-note"></p>
+                        <p class="field-note m-reveal" id="theme-scope-note"></p>
                     </div>
 
                     <div class="panel-field">
@@ -166,7 +166,7 @@
                             <button type="button" class="template-option" data-placement="vertical-left">Vlevo</button>
                             <button type="button" class="template-option" data-placement="vertical-right">Vpravo</button>
                         </div>
-                        <p class="field-note" id="placement-note"></p>
+                        <p class="field-note m-reveal" id="placement-note"></p>
                     </div>
 
                     <div class="panel-section panel-rows">
@@ -214,27 +214,27 @@
                                 <span class="editable-value" id="edit-width-wrapper" tabindex="0" title="Dvojklikem upravit hodnotu">
                                     <span id="sel-width"></span><span class="unit">px</span>
                                 </span>
-                                <input id="input-width" type="number" class="inline-edit-input hidden" />
-                                <button class="copy-btn edit-pencil-btn push-right" type="button" id="edit-width-pencil" title="Upravit hodnotu" aria-label="Upravit šířku"><svg aria-hidden="true"><use href="#i-pencil"/></svg></button>
-                                <button class="copy-btn" type="button" data-copy-target="sel-width" title="Kopírovat hodnotu" aria-label="Kopírovat šířku"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
+                                <input id="input-width" type="number" class="inline-edit-input m-reveal hidden" />
+                                <button class="icon-swap copy-btn edit-pencil-btn push-right" type="button" id="edit-width-pencil" title="Upravit hodnotu" aria-label="Upravit šířku"><svg aria-hidden="true"><use href="#i-pencil"/></svg></button>
+                                <button class="icon-swap copy-btn" type="button" data-copy-target="sel-width" title="Kopírovat hodnotu" aria-label="Kopírovat šířku"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
                             </div>
                             <div class="sel-row">
                                 <strong>Výška</strong>
                                 <span class="editable-value" id="edit-height-wrapper" tabindex="0" title="Dvojklikem upravit hodnotu">
                                     <span id="sel-height"></span><span class="unit">px</span>
                                 </span>
-                                <input id="input-height" type="number" class="inline-edit-input hidden" />
-                                <button class="copy-btn edit-pencil-btn push-right" type="button" id="edit-height-pencil" title="Upravit hodnotu" aria-label="Upravit výšku"><svg aria-hidden="true"><use href="#i-pencil"/></svg></button>
-                                <button class="copy-btn" type="button" data-copy-target="sel-height" title="Kopírovat hodnotu" aria-label="Kopírovat výšku"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
+                                <input id="input-height" type="number" class="inline-edit-input m-reveal hidden" />
+                                <button class="icon-swap copy-btn edit-pencil-btn push-right" type="button" id="edit-height-pencil" title="Upravit hodnotu" aria-label="Upravit výšku"><svg aria-hidden="true"><use href="#i-pencil"/></svg></button>
+                                <button class="icon-swap copy-btn" type="button" data-copy-target="sel-height" title="Kopírovat hodnotu" aria-label="Kopírovat výšku"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
                             </div>
                             <div class="sel-row"><strong>X</strong> <span class="editable-value"><span id="sel-x"></span><span class="unit">px</span></span>
-                                <button class="copy-btn push-right" type="button" data-copy-target="sel-x" title="Kopírovat hodnotu" aria-label="Kopírovat hodnotu X"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
+                                <button class="icon-swap copy-btn push-right" type="button" data-copy-target="sel-x" title="Kopírovat hodnotu" aria-label="Kopírovat hodnotu X"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
                             </div>
                             <div class="sel-row"><strong>Y</strong> <span class="editable-value"><span id="sel-y"></span><span class="unit">px</span></span>
-                                <button class="copy-btn push-right" type="button" data-copy-target="sel-y" title="Kopírovat hodnotu" aria-label="Kopírovat hodnotu Y"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
+                                <button class="icon-swap copy-btn push-right" type="button" data-copy-target="sel-y" title="Kopírovat hodnotu" aria-label="Kopírovat hodnotu Y"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
                             </div>
 
-                            <button id="apply-selection" class="btn btn-primary full-btn hidden" disabled>Použít změny</button>
+                            <button id="apply-selection" class="btn btn-primary full-btn m-reveal hidden" disabled>Použít změny</button>
                         </div>
                     </div>
                 </section>
@@ -244,7 +244,7 @@
                     <div class="button-group">
                         <button id="add-slicer" class="btn btn-secondary full-btn"><svg aria-hidden="true"><use href="#i-slicer"/></svg>Slicer</button>
                         <button id="add-kpi" class="btn btn-secondary full-btn"><svg aria-hidden="true"><use href="#i-kpi"/></svg>KPI</button>
-                        <button id="add-chart-split" class="btn btn-secondary full-btn hidden"><svg aria-hidden="true"><use href="#i-chart"/></svg>Graf</button>
+                        <button id="add-chart-split" class="btn btn-secondary full-btn m-reveal hidden"><svg aria-hidden="true"><use href="#i-chart"/></svg>Graf</button>
                     </div>
                     <!-- Filled with one button per KPI band beyond the first
                          (see syncKpiBandControls in app.js). Empty when the
@@ -254,7 +254,7 @@
             </div>
         </aside>
 
-        <main class="main">
+        <main class="main m-reveal">
             <div id="canvas-wrapper">
                 <div id="canvas"></div>
                 <!-- Filled by syncTemplateControls() in app.js. -->
@@ -263,7 +263,7 @@
         </main>
 
         <!-- Shown by the rail's "Vlastní prvky" section (ui/rail.js). -->
-        <section id="section-prvky" class="placeholder" aria-label="Vlastní prvky">
+        <section id="section-prvky" class="placeholder m-reveal" aria-label="Vlastní prvky">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 4a2 2 0 1 1 4 0v1h4v4h1a2 2 0 1 1 0 4h-1v4h-4v-1a2 2 0 1 0-4 0v1H6v-4H5a2 2 0 1 1 0-4h1V5h4V4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
             <h2>Vlastní prvky</h2>
             <p>Vlastní přizpůsobení elementů (brzy dostupné)</p>

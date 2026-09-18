@@ -28,6 +28,7 @@ import {
 import { attachChartResizeHandle } from "../events/chartResizeEvents.js";
 import { attachRowResizeHandle } from "../events/rowResizeEvents.js";
 import { attachStackResizeHandle } from "../events/stackResizeEvents.js";
+import { snapshotCanvas, playCanvas } from "./motion.js";
 import { attachSlicerColumnResizeHandle } from "../events/slicerColumnResizeEvents.js";
 import { setSelected } from "../ui/selection.js";
 import { renderWarnings } from "../ui/warnings.js";
@@ -194,7 +195,12 @@ function appendEdgeAddControl({ zone, btnPos, scope, onClick, title }) {
   canvas.appendChild(preview);
 }
 
-export function renderLayout() {
+// `opts.motion`: undefined replays the change as movement (motion.js R1/R2),
+// "swap" fades the new content in without morphing (R3, page/theme switch),
+// false rebuilds silently. Called with a resize Event from app.js, which
+// reads as undefined — the size gate inside playCanvas() skips it anyway.
+export function renderLayout(opts) {
+  const before = snapshotCanvas(canvas);
   state.setEffectiveScale(computeEffectiveScale());
   clearCanvas();
   // Floored so fractional scale math can never round the rendered box up
@@ -895,4 +901,7 @@ export function renderLayout() {
   }
 
   renderWarnings();
+  // Last: the handle and "+" passes above measured the cards at their final
+  // geometry, and a card mid-glide must not feed them a moving box.
+  playCanvas(canvas, before, opts);
 }

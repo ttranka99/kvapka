@@ -108,7 +108,6 @@ body.theme-editor-reordering .theme-handle {
   display: flex;
   padding: var(--gutter);
   background: var(--bg);
-  animation: fade-in 160ms ease-out;
 }
 
 .theme-editor[hidden] {
@@ -118,10 +117,6 @@ body.theme-editor-reordering .theme-handle {
 body.theme-editor-open .sidebar,
 body.theme-editor-open .main {
   display: none;
-}
-
-@keyframes fade-in {
-  from { opacity: 0; }
 }
 
 .theme-editor__dialog {
@@ -308,7 +303,7 @@ body.theme-editor-open .main {
   border-radius: 50%;
   background: var(--slate);
   box-shadow: 0 0 0 2px var(--surface), 0 1px 3px rgba(28, 33, 40, 0.3);
-  transition: background var(--fast) ease, transform 100ms var(--ease-out);
+  transition: background var(--fast) ease, transform var(--fast) var(--ease-out);
 }
 
 .theme-field__range::-moz-range-thumb {
@@ -594,7 +589,7 @@ body.theme-editor-open .main {
   position: absolute;
   border-radius: 3px;
   /* top/height animate during a reorder drag so the other bands glide. */
-  transition: box-shadow var(--fast) ease, top var(--base) var(--ease-out), height var(--base) var(--ease-out);
+  transition: box-shadow var(--fast) ease, top var(--base) var(--ease-in-out), height var(--base) var(--ease-in-out);
 }
 
 /* The lifted band tracks the cursor through an inline transform written
@@ -608,7 +603,7 @@ body.theme-editor-open .main {
 
 /* Only after a drop/abort may the lifted band's transform animate back. */
 .theme-region--returning {
-  transition: box-shadow var(--fast) ease, top var(--base) var(--ease-out), height var(--base) var(--ease-out), transform var(--base) var(--ease-out);
+  transition: box-shadow var(--fast) ease, top var(--base) var(--ease-in-out), height var(--base) var(--ease-in-out), transform var(--base) var(--ease-out);
 }
 
 .theme-region.is-linked {

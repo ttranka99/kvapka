@@ -159,7 +159,9 @@ function refreshUIFromState() {
   syncSlicerRowVisibility();
   syncKpiBandControls();
   syncRowLimitControls();
-  renderLayout();
+  // Another page or another theme is new content, not the old content moved
+  // (see motion.js R3) — it fades in rather than morphing card by card.
+  renderLayout({ motion: "swap" });
   renderWarnings();
 }
 
@@ -201,16 +203,25 @@ function initCanvasRefit() {
   window.addEventListener("resize", debounce(renderLayout, 150));
   const main = document.querySelector(".main");
   if (!main || typeof ResizeObserver !== "function") return;
+  const app = document.querySelector(".app");
   let lastWidth = main.clientWidth;
+  let lastHeight = main.clientHeight;
   let queued = false;
   new ResizeObserver(() => {
-    // Only the width matters to the fit; the height changes on every render
-    // in the stacked layout (the sheet is part of it) and must not re-enter.
+    // Width always matters to the fit. Height matters on the desktop, where
+    // it only changes with the window; in the stacked layout it changes on
+    // every render (the sheet is part of it) and must not re-enter.
     // Zero means hidden behind another rail section; rail.js refits on return.
     const width = main.clientWidth;
-    if (width === 0 || width === lastWidth || queued) return;
+    const height = main.clientHeight;
+    const stacked = getComputedStyle(app).flexDirection === "column";
+    const changed = width !== lastWidth || (!stacked && height !== lastHeight);
+    if (width === 0 || !changed || queued) return;
     lastWidth = width;
+    lastHeight = height;
     queued = true;
+    // Same frame, so the sheet follows the easing side panel (see .sidebar)
+    // frame by frame instead of jumping after it.
     requestAnimationFrame(() => { queued = false; renderLayout(); });
   }).observe(main);
 }

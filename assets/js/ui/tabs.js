@@ -1,13 +1,14 @@
 import { getTabs, getActiveTabIndex, switchTab, addTab, removeTab, renameTab, MAX_TABS } from "../state/tabs.js";
 import { icon } from "./icon.js";
+import { reducedMotion, leave } from "./motion.js";
 
 let tabBarEl;
 let viewportEl;
 let addBtnEl;
 let scrollBtnEls;
 let refreshUI;
+let builtSignature = null;   // the tab list the bar was last built from
 
-const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const scrollBehavior = () => (reducedMotion() ? "auto" : "smooth");
 
 export function initTabsUI(options) {
@@ -58,15 +59,37 @@ export function initTabsUI(options) {
   renderTabBar();
 }
 
+const signatureOf = tabs => JSON.stringify(tabs.map(tab => [tab.name, tab.named]));
+
 export function renderTabBar(animate) {
+  const tabs = getTabs();
+  const active = getActiveTabIndex();
+
+  // Switching pages changes nothing about the list itself, only which pill
+  // is lit — so the pills are kept and only their state is patched, which
+  // is what lets the pill's own colour transition play (motion.js R4). The
+  // signature is everything the build below derives from the list; while
+  // it matches, every pill and every closure's `index` is still right.
+  const signature = signatureOf(tabs);
+  if (!animate && signature === builtSignature && !tabBarEl.querySelector(".tab--editing")) {
+    Array.from(tabBarEl.children).forEach((tabEl, index) => {
+      const isActive = index === active;
+      tabEl.classList.toggle("tab--active", isActive);
+      tabEl.setAttribute("aria-selected", String(isActive));
+      tabEl.tabIndex = isActive ? 0 : -1;
+    });
+    scrollActiveIntoView();
+    updateScrollAffordances();
+    return;
+  }
+
   // scrollLeft is lost with the DOM it belongs to, so it is carried across
   // the rebuild by hand — otherwise renaming a tab would jump the strip back
   // to the start.
   const savedScroll = viewportEl ? viewportEl.scrollLeft : 0;
 
   tabBarEl.innerHTML = "";
-  const tabs = getTabs();
-  const active = getActiveTabIndex();
+  builtSignature = signature;
 
   tabs.forEach((tab, index) => {
     const tabEl = document.createElement("div");
@@ -77,12 +100,11 @@ export function renderTabBar(animate) {
     tabEl.tabIndex = index === active ? 0 : -1;
     tabEl.dataset.index = String(index);
 
-    // Only the tab that just changed gets the entry/highlight animation —
-    // the whole bar is torn down and rebuilt on every change (see project
-    // render model), so an animation on the base .tab class would replay on
-    // every tab, not just the one the user actually acted on.
+    // Only the tab that just changed gets the entrance/highlight — the bar is
+    // rebuilt whenever the list changes, so an animation on the base .tab
+    // class would replay on every tab, not just the one acted on.
     if (animate && index === animate.index) {
-      const animClass = animate.type === "new" ? "tab--new" : "tab--renamed";
+      const animClass = animate.type === "new" ? "m-enter" : "m-flash";
       tabEl.classList.add(animClass);
       tabEl.addEventListener("animationend", () => tabEl.classList.remove(animClass), { once: true });
     }
@@ -110,20 +132,10 @@ export function renderTabBar(animate) {
         };
 
         // Unlike add/rename (which tag the *new* DOM after re-rendering),
-        // the closed tab is destroyed by the re-render, so it has to play
-        // its exit animation first and only then trigger the state change +
-        // rebuild — reversed order from the other two animations.
-        if (reducedMotion()) {
-          commitRemoval();
-          return;
-        }
-
-        let done = false;
-        const finish = () => { if (done) return; done = true; commitRemoval(); };
-        tabEl.classList.add("tab--removing");
+        // the closed tab is destroyed by the re-render, so it plays its exit
+        // first and only then triggers the state change + rebuild.
         closeBtn.disabled = true;
-        tabEl.addEventListener("animationend", finish, { once: true });
-        setTimeout(finish, 250); // safety net in case animationend doesn't fire
+        leave(tabEl, commitRemoval);
       });
       tabEl.appendChild(closeBtn);
     }
@@ -256,19 +268,35 @@ function startRename(tabEl, label, index) {
   };
   input.addEventListener("input", mirror);
 
+  // Ending the edit restores the pill in place rather than rebuilding the
+  // bar. The edit usually ends by a mousedown on another pill (blur), and a
+  // rebuild at that moment would replace the pill under the cursor before
+  // mouseup — the click would never fire and switching would take two
+  // clicks. Left as is, every other pill keeps its identity and the click
+  // lands.
   let finished = false;   // guards against blur firing during DOM teardown
-  const commit = () => {
+  const finish = changed => {
     if (finished) return;
     finished = true;
-    const changed = renameTab(index, input.value);
-    renderTabBar(changed ? { index, type: "renamed" } : undefined);
+    const tab = getTabs()[index];
+    input.remove();
+    label.textContent = tab.name;
+    tabEl.classList.remove("tab--editing");
+    tabEl.classList.toggle("tab--untitled", !tab.named);
+    builtSignature = signatureOf(getTabs());
+    if (changed) {
+      tabEl.classList.add("m-flash");
+      tabEl.addEventListener("animationend", () => tabEl.classList.remove("m-flash"), { once: true });
+    }
+    updateScrollAffordances();
   };
-  const cancel = () => { if (finished) return; finished = true; renderTabBar(); };
+  const commit = () => finish(renameTab(index, input.value));
+  const cancel = () => { finish(false); tabEl.focus(); };
 
   input.addEventListener("blur", commit);
   input.addEventListener("keydown", e => {
     e.stopPropagation();          // the tablist's arrow keys are not for typing
-    if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+    if (e.key === "Enter") { e.preventDefault(); commit(); tabEl.focus(); }
     else if (e.key === "Escape") { e.preventDefault(); cancel(); }
   });
   input.addEventListener("click", e => e.stopPropagation());

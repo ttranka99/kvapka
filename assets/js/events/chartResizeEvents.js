@@ -3,6 +3,7 @@ import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { refreshSelectedChartAfterResize } from "./chartEvents.js";
 import { snapToStep } from "../layout/sizeStep.js";
+import { settleCanvas } from "../ui/motion.js";
 
 let activeResize = null;
 
@@ -237,6 +238,9 @@ export function attachChartResizeHandle(handle, rowIndex, itemIndex, onResize) {
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
+    // The snap targets below are measured from the cards; a card still
+    // gliding from the last change would put them somewhere in between.
+    settleCanvas(document.getElementById("canvas"));
 
     const v = computeVerticalLayout();
     const rowsLayout = computeChartsLayout(v);

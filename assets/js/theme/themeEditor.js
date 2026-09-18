@@ -46,6 +46,7 @@ import {
 import { walkSections } from "../layout/sectionWalker.js";
 import { computeChartGroups } from "../layout/chartGroups.js";
 import { icon } from "../ui/icon.js";
+import { leave, durationMs } from "../ui/motion.js";
 
 // --- Dialog state ------------------------------------------------------
 
@@ -146,7 +147,7 @@ export function closeThemeEditor() {
 // --- Dialog construction ------------------------------------------------
 
 function buildDialog() {
-  const overlay = el("div", "theme-editor");
+  const overlay = el("div", "theme-editor m-reveal");
   overlay.id = "theme-editor";
   overlay.hidden = true;
 
@@ -1205,7 +1206,7 @@ function startSectionDrag(event, sectionType, sectionId) {
     regionEl.classList.remove("theme-region--dragging");
     regionEl.classList.add("theme-region--returning");
     regionEl.style.transform = "";
-    setTimeout(() => regionEl.classList.remove("theme-region--returning"), 220);
+    setTimeout(() => regionEl.classList.remove("theme-region--returning"), durationMs("--base"));
   };
 
   const cleanup = () => {
@@ -1669,7 +1670,7 @@ function handleImportFile(event) {
 
 function flash(text, severity) {
   const list = root.querySelector(".theme-stage__issues");
-  const node = el("li", `theme-issue theme-issue--${severity === "ok" ? "ok" : "error"}`, text);
+  const node = el("li", `theme-issue theme-issue--${severity === "ok" ? "ok" : "error"} m-reveal`, text);
   list.prepend(node);
-  setTimeout(() => node.remove(), 4000);
+  setTimeout(() => leave(node, () => node.remove()), 4000);
 }

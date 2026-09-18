@@ -2,6 +2,7 @@ import * as state from "../state/state.js";
 import { setSelected } from "../ui/selection.js";
 import { addWarning } from "../ui/warnings.js";
 import { renderLayout } from "../ui/renderLayout.js";
+import { flash } from "../ui/motion.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeSlicersLayout } from "../layout/computeSlicersLayout.js";
 import {
@@ -64,6 +65,7 @@ export function handleToggleSlicerLock(globalIndex) {
   }
 
   renderLayout();
+  if (s.locked) flash(`slicer-${globalIndex}`);   // locking only; unlocking is quiet
 }
 
 // Handle removing a slicer at a specific index

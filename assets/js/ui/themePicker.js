@@ -35,6 +35,7 @@ import { PLACEMENTS, placementLabel } from "../theme/themeModel.js";
 
 
 let selectorEl;
+let builtSignature = null;   // the theme list the chips were last built from
 let scopeButtons;
 let placementButtons;
 let placementNote;
@@ -149,7 +150,6 @@ function selectPlacement(placement) {
 
 export function renderThemeSelector() {
   if (!selectorEl) return;
-  selectorEl.innerHTML = "";
 
   const activeId = state.activeTemplate;
   // Only this shape's layouts — the placement switch above the list is what
@@ -163,6 +163,20 @@ export function renderThemeSelector() {
   if (!themes.some(t => t.id === activeId)) {
     themes.push({ ...state.getActiveTheme(), builtin: false, orphaned: true });
   }
+
+  // Picking a theme leaves the list as it was; only the lit chip moves. The
+  // chips are kept and patched so the chip's own transition plays (motion.js
+  // R4) — rebuilt only when the list itself changed.
+  const signature = JSON.stringify(themes.map(t => [t.id, t.label, t.canvasWidth, t.canvasHeight, t.builtin, t.orphaned]));
+  if (signature === builtSignature) {
+    Array.from(selectorEl.children).forEach((chip, i) => {
+      chip.classList.toggle("active", themes[i].id === activeId);
+    });
+    return;
+  }
+
+  selectorEl.innerHTML = "";
+  builtSignature = signature;
 
   themes.forEach(theme => {
     const chip = document.createElement("div");

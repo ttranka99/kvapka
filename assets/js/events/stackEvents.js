@@ -15,6 +15,7 @@ import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
 import { stackMinHeight } from "../layout/computeStackHeights.js";
 import { renderLayout } from "../ui/renderLayout.js";
+import { flash } from "../ui/motion.js";
 import { renderWarnings } from "../ui/warnings.js";
 
 // Computes row heights against a simulated set of chartRows rather than live
@@ -211,6 +212,7 @@ export function handleToggleStackLock(rowIndex, itemIndex, stackIndex) {
   state.setWarnings([]);
   renderLayout();
   renderWarnings();
+  if (entry.locked) flash(`chart-${rowIndex}-${itemIndex}-${stackIndex}`);   // locking only; unlocking is quiet
 }
 
 export function handleSelectStackChart(rowIndex, itemIndex, stackIndex, domId, opts = {}) {

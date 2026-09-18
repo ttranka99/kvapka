@@ -6,6 +6,7 @@ import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
 import { canAddChart } from "../layout/canAddChart.js";
 import { renderLayout } from "../ui/renderLayout.js";
+import { flash } from "../ui/motion.js";
 import { renderWarnings } from "../ui/warnings.js";
 
 // Builds the "row is fully locked" warning shown when every item in a row
@@ -216,6 +217,9 @@ export function handleToggleChartLock(rowIndex, itemIndex) {
   state.setWarnings([]);
   renderLayout();
   renderWarnings();
+  // Locking is the change worth pointing at — the dashed ring appears and
+  // the card stops moving with the row. Unlocking just lets go, quietly.
+  if (item.locked) flash(`chart-${rowIndex}-${itemIndex}`);
 }
 
 // Select chart row

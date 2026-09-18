@@ -48,10 +48,23 @@
   --fs-lg: 15px;
   --fs-xl: 20px;
 
+  /* MOTION — the whole vocabulary. Every transition, animation and JS timeout
+     in the app is built from these (see assets/js/ui/motion.js for the rules):
+       --ease-out     entering things and small UI
+       --ease-in-out  things moving from one place to another
+       --ease-panel   large surfaces: sections, popovers
+     Reduced motion zeroes the shift/scale tokens, so fades stay and only
+     movement goes. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-panel: cubic-bezier(0.32, 0.72, 0, 1);
   --fast: 120ms;
   --base: 180ms;
   --slow: 240ms;
+  --slower: 320ms;
+  --motion-shift: 4px;      /* travel of an entering/leaving element */
+  --motion-scale: 0.97;     /* its scale, and the press scale */
+  --motion-origin: center;  /* overridden per surface (toasts: top right) */
 
   --topbar: 60px;
   --rail: 72px;
@@ -116,8 +129,109 @@ svg {
 }
 
 /* ----------------------------------------------------
+   MOTION PRIMITIVES — two ways for a thing to appear
+   or go, shared by everything in the app.
+
+   m-in / m-out     one keyframe pair for every entrance and exit. Exits are
+                    quicker than entrances: a leaving thing has nothing to
+                    tell you.
+   .m-enter/.m-leave  the pair as classes, for nodes JS creates or destroys
+                    (motion.js leave() waits for the exit before removing).
+   .m-reveal        the entrance for elements toggled out of display:none
+                    (.hidden, [hidden], :empty). Opacity only: these sit in
+                    flow, and a travelling button would wobble its row.
+   .icon-swap       an icon replaced inside a button pops in.
+   .m-flash         a state change on a thing that stays put gets a soft halo.
+-----------------------------------------------------*/
+@keyframes m-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-shift)) scale(var(--motion-scale));
+  }
+}
+
+@keyframes m-out {
+  to {
+    opacity: 0;
+    transform: translateY(var(--motion-shift)) scale(var(--motion-scale));
+  }
+}
+
+.m-enter {
+  animation: m-in var(--base) var(--ease-out);
+  transform-origin: var(--motion-origin);
+}
+
+.m-leave {
+  animation: m-out var(--fast) var(--ease-out) forwards;
+  transform-origin: var(--motion-origin);
+  pointer-events: none;
+}
+
+.m-reveal {
+  transition: opacity var(--base) ease;
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+/* A revealed button keeps its hover/press transitions too. */
+button.m-reveal {
+  transition: background var(--fast) ease, color var(--fast) ease,
+    box-shadow var(--fast) ease, transform var(--fast) var(--ease-out),
+    opacity var(--base) ease;
+}
+
+.icon-swap > svg {
+  transition: opacity var(--fast) ease, transform var(--fast) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(var(--motion-scale));
+  }
+}
+
+/* A state change on something that stays where it is (a lock, a rename,
+   an applied value): a soft halo breathes in and out over the element. It
+   is an overlay, so nothing the element wears (its selection ring, its
+   dashed lock) is touched. The attack is quick (one --base, eased out) so it
+   answers the click; the release is long and eased in so it lets go
+   without a step. A hint, not an alarm. */
+@keyframes m-flash {
+  0% {
+    opacity: 0;
+    animation-timing-function: var(--ease-out);
+  }
+  15% {
+    opacity: 1;
+    animation-timing-function: ease-in;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.m-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(251, 73, 163, 0.05);
+  box-shadow: 0 0 0 5px var(--pink-ring);
+  pointer-events: none;
+  animation: m-flash calc(var(--slower) * 4);
+}
+
+/* Static elements need to host the overlay; positioned ones already do. */
+.m-flash:not(.canvas-element) {
+  position: relative;
+}
+
+/* ----------------------------------------------------
    BUTTONS — one base, three variants. Press feedback
-   on every pressable thing.
+   on every pressable thing, including the page pills,
+   which are not <button>s.
 -----------------------------------------------------*/
 button {
   font: inherit;
@@ -127,8 +241,12 @@ button {
   border: 0;
   background: none;
   cursor: pointer;
+}
+
+button,
+[role="tab"] {
   transition: background var(--fast) ease, color var(--fast) ease,
-    box-shadow var(--fast) ease, transform 100ms var(--ease-out);
+    box-shadow var(--fast) ease, transform var(--fast) var(--ease-out);
 }
 
 button:focus-visible {
@@ -140,8 +258,10 @@ button:disabled {
   cursor: not-allowed;
 }
 
-button:active:not(:disabled) {
-  transform: scale(0.97);
+/* A pill being renamed holds a text input; clicking into it is not a press. */
+button:active:not(:disabled),
+[role="tab"]:active:not(.tab--editing) {
+  transform: scale(var(--motion-scale));
 }
 
 .btn {
@@ -383,8 +503,8 @@ button:active:not(:disabled) {
   /* Without this the flex items would be squeezed to fit the viewport
      instead of overflowing it, and nothing would ever scroll. */
   width: max-content;
-  /* Room for the focus ring and the 4px lift of .tab--new, which a scroll
-     container would otherwise clip. */
+  /* Room for the focus ring and the --motion-shift of an entering pill,
+     which a scroll container would otherwise clip. */
   padding: 3px 2px;
 }
 
@@ -431,7 +551,10 @@ button:active:not(:disabled) {
   cursor: pointer;
   user-select: none;
   box-shadow: inset 0 0 0 1px var(--line-strong);
-  transition: color var(--fast) ease, background var(--fast) ease, box-shadow var(--fast) ease;
+  /* padding: the active pill gives up room for its ×, and a switch must not
+     jump that width when everything else about it eases. */
+  transition: color var(--fast) ease, background var(--fast) ease, box-shadow var(--fast) ease,
+    padding var(--fast) ease, transform var(--fast) var(--ease-out);
 }
 
 /* Only a pill that actually shows its × gives up the right padding for it;
@@ -550,36 +673,6 @@ button:active:not(:disabled) {
   opacity: 0.4;
 }
 
-.tab--new {
-  animation: fade-up var(--base) var(--ease-out);
-}
-
-.tab--renamed {
-  animation: tab-renamed 0.5s var(--ease-out);
-}
-
-@keyframes tab-renamed {
-  from {
-    background: var(--pink-soft);
-  }
-}
-
-.tab--removing {
-  animation: fade-up var(--base) var(--ease-out) reverse forwards;
-  pointer-events: none;
-}
-
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 /* ----------------------------------------------------
    LAYOUT — rail | inspector | workspace
 -----------------------------------------------------*/
@@ -606,6 +699,9 @@ button:active:not(:disabled) {
   padding: 12px 6px;
   background: var(--surface);
   border-right: 1px solid var(--line);
+  /* The chrome eases between breakpoints; the sheet re-fits every frame to
+     follow it (app.js initCanvasRefit). */
+  transition: width var(--slow) var(--ease-in-out);
 }
 
 .rail-btn {
@@ -685,6 +781,7 @@ body.section-prvky .main {
   width: var(--sidebar);
   min-height: 0;
   padding: var(--gutter) 0 var(--gutter) var(--gutter);
+  transition: width var(--slow) var(--ease-in-out), opacity var(--base) ease;
 }
 
 .sidebar-panels {
@@ -876,7 +973,7 @@ select {
 .collapsible {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows var(--slow) var(--ease-out);
+  transition: grid-template-rows var(--slow) var(--ease-in-out);
 }
 
 .collapsible.expanded {
@@ -1127,7 +1224,9 @@ select {
   box-shadow: 0 0 0 1px var(--line), var(--shadow-sheet);
   overflow: visible;
   /* No width/height transition: the scale is measured from this box on every
-     render, so a mid-transition size would feed a wrong scale into the next. */
+     render, so a mid-transition size would feed a wrong scale into the next.
+     On a resize the chrome around it eases instead (.rail, .sidebar) and the
+     sheet is re-fitted every frame to follow. */
 }
 
 /* ----------------------------------------------------
@@ -1147,7 +1246,30 @@ select {
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--line-strong);
   cursor: pointer;
-  transition: box-shadow var(--fast) ease, background var(--fast) ease;
+  transition: box-shadow var(--fast) ease, background var(--fast) ease, opacity var(--base) ease;
+}
+
+/* The canvas is rebuilt from scratch on every change (see renderLayout), so
+   motion.js replays what happened to each card by id: a survivor glides from
+   its old box to its new one, a newcomer fades in, a removed card is left
+   behind as a ghost that fades out. Geometry is eased directly rather than
+   through a transform: a transform would lift the card into its own stacking
+   context above its handles and squash the glyph and rings. */
+.canvas-element.is-moving {
+  transition: box-shadow var(--fast) ease, background var(--fast) ease, opacity var(--base) ease,
+    left var(--base) var(--ease-in-out), top var(--base) var(--ease-in-out),
+    width var(--base) var(--ease-in-out), height var(--base) var(--ease-in-out);
+}
+
+/* transition: none so the start state lands without itself easing —
+   otherwise removing the class would reverse a fade that had barely begun. */
+.canvas-element.m-enter--fade {
+  opacity: 0;
+  transition: none;
+}
+
+.canvas-element.is-ghost {
+  pointer-events: none;
 }
 
 /* The kind glyph: left of the label on bars, large and centred on charts.
@@ -1551,6 +1673,7 @@ body.is-resizing-chart .element-controls {
   background: var(--pink);
   box-shadow: 0 0 0 2px var(--surface);
   opacity: 0;
+  /* Not --motion-scale: on an 8px dot that would be a quarter pixel. */
   transform: scale(0.6);
   transition: opacity var(--fast) ease, transform var(--fast) var(--ease-out);
 }
@@ -1573,11 +1696,12 @@ body.is-resizing-chart .element-controls {
   border-radius: var(--r-md);
   background: var(--surface);
   box-shadow: 0 0 0 1px var(--line), var(--shadow-pop);
+  --motion-shift: -4px;   /* hangs from the bell, so it arrives from above */
   opacity: 0;
-  transform: translateY(-4px) scale(0.98);
+  transform: translateY(var(--motion-shift)) scale(var(--motion-scale));
   transform-origin: top right;
   pointer-events: none;
-  transition: opacity var(--base) var(--ease-out), transform var(--base) var(--ease-out);
+  transition: opacity var(--slow) var(--ease-panel), transform var(--slow) var(--ease-panel);
 }
 
 .notification-panel.open {
@@ -1666,8 +1790,15 @@ body.is-resizing-chart .element-controls {
   background: var(--surface);
   box-shadow: 0 0 0 1px var(--line), var(--shadow-pop);
   pointer-events: auto;
-  animation: toast-in var(--slow) var(--ease-out);
-  transform-origin: top right;
+  /* Enters from the bell: the shared entrance, aimed downward. */
+  --motion-shift: -6px;
+  --motion-origin: top right;
+  transform-origin: var(--motion-origin);
+}
+
+/* :not(.m-leave) so the exit class can take the animation over. */
+.toast:not(.m-leave) {
+  animation: m-in var(--slow) var(--ease-out);
 }
 
 .toast-icon {
@@ -1686,10 +1817,6 @@ body.is-resizing-chart .element-controls {
   text-overflow: ellipsis;
 }
 
-.toast-leaving {
-  animation: toast-out var(--base) var(--ease-out) forwards;
-}
-
 .toast-info {
   color: var(--slate);
 }
@@ -1702,31 +1829,21 @@ body.is-resizing-chart .element-controls {
   color: var(--error);
 }
 
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.97);
-  }
-}
-
-/* Shrinks back toward the bell: a resolved toast reads as filed away. */
-@keyframes toast-out {
-  to {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.7);
-  }
-}
-
 /* ----------------------------------------------------
-   REDUCED MOTION — keep fades, drop movement.
+   REDUCED MOTION — keep fades, drop movement. Every
+   entrance and exit is built from the two tokens, so
+   zeroing them is the whole story; motion.js skips the
+   canvas glide itself.
 -----------------------------------------------------*/
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  :root {
+    --motion-shift: 0px;
+    --motion-scale: 1;
+  }
+
+  .notification-panel,
+  .toast {
+    --motion-shift: 0px;
   }
 }
 
@@ -1800,6 +1917,9 @@ body.is-resizing-chart .element-controls {
   .sidebar {
     width: 100%;
     overflow: visible;
+    /* A change of layout, not a move: the panels go from beside the sheet
+       to above it. Only the reveal fade stays. */
+    transition: opacity var(--base) ease;
   }
 
   .rail {

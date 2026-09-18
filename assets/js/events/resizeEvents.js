@@ -1,5 +1,6 @@
 import * as state from "../state/state.js";
 import { renderLayout } from "../ui/renderLayout.js";
+import { flash } from "../ui/motion.js";
 import { renderWarnings, addWarning } from "../ui/warnings.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
@@ -284,6 +285,10 @@ export function handleApplySelection() {
   if (heightDirty) applyHeightValue(info, getPendingHeight());
 
   refreshSelectedElementPreservingPending();
+  // Only when a value actually landed (a rejected one warned instead):
+  // the card is now locked to it, point at it.
+  const now = state.selectedElement;
+  if (now && (now.width !== info.width || now.height !== info.height)) flash(info.domId);
 }
 
 // Reset layout
