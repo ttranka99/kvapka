@@ -4,6 +4,7 @@ import { addWarning } from "../ui/warnings.js";
 import { renderLayout } from "../ui/renderLayout.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeKpiLayoutForBand } from "../layout/computeKpiLayout.js";
+import { flash } from "../ui/motion.js";
 
 // Every KPI band is edited through the same handlers, addressed by the id
 // of its `kpi` section — however many a theme defines, each behaves the
@@ -68,6 +69,32 @@ export function handleRemoveKpi(index, bandId) {
 
   state.setKpiBand(bandId, next);
   renderLayout();
+}
+
+// Freezes (or releases) a KPI's width at what the solver currently shows,
+// so it is excluded from redistribution when cards are added or removed.
+// One flag covers both of a card's values (a height set by Apply locks the
+// same way), so releasing it lets both go.
+export function handleToggleKpiLock(index, bandId) {
+  const k = state.getKpiBand(bandId)[index];
+  if (!k) return;
+
+  if (k.locked) {
+    k.locked = false;
+    k.width = null;
+    k.height = null;
+  } else {
+    const v = computeVerticalLayout();
+    const item = computeKpiLayoutForBand(v, bandId).flat().find(i => i.index === index);
+    k.width = item ? item.width : k.width;
+    k.locked = true;
+  }
+
+  state.setKpiBand(bandId, [...state.getKpiBand(bandId)]);
+  renderLayout();
+  // Locking only; unlocking is quiet. The card's dom id encodes the band's
+  // ordinal, not its id, so it is found by the data-kpi tag renderLayout sets.
+  if (k.locked) flash(document.querySelector(`.canvas-element.kpi[data-kpi="${bandId}:${index}"]`)?.id);
 }
 
 // Select KPI

@@ -10,7 +10,7 @@ import {
   handleSelectSlicer,
   handleToggleSlicerLock
 } from "../events/slicerEvents.js";
-import { handleAddKpi, handleRemoveKpi, handleSelectKpi } from "../events/kpiEvents.js";
+import { handleAddKpi, handleRemoveKpi, handleSelectKpi, handleToggleKpiLock } from "../events/kpiEvents.js";
 import {
   handleAddChartLeft,
   handleAddChartRight,
@@ -30,7 +30,7 @@ import { attachRowResizeHandle } from "../events/rowResizeEvents.js";
 import { attachStackResizeHandle } from "../events/stackResizeEvents.js";
 import { snapshotCanvas, playCanvas } from "./motion.js";
 import { attachSlicerColumnResizeHandle } from "../events/slicerColumnResizeEvents.js";
-import { setSelected } from "../ui/selection.js";
+import { setSelected, syncSelectionLockState } from "../ui/selection.js";
 import { renderWarnings } from "../ui/warnings.js";
 import { icon } from "../ui/icon.js";
 
@@ -57,9 +57,37 @@ function scale(v) {
   return v * state.EFFECTIVE_SCALE;
 }
 
+// The one place a lock becomes visible. Every kind of lock (a chart width,
+// a row height, a slicer or KPI value set by Apply) goes through here, so
+// the card, its lock button and the inspector all read the same state:
+//   .is-locked + data-lock="width" | "height" | "both"  — for CSS/inspector
+//   .width-locked / .height-locked                      — the dashed outline
+// The always-on mark is the card's own lock button (.icon-btn.is-on), which
+// the CSS keeps visible on a locked card and slides aside on hover.
+function markLocked(el, width, height) {
+  if (!width && !height) return;
+  el.classList.add("is-locked");
+  if (width) el.classList.add("width-locked");
+  if (height) el.classList.add("height-locked");
+  el.dataset.lock = width && height ? "both" : width ? "width" : "height";
+}
+
+// Every card's lock/× cluster lives in the top-right corner, so all kinds
+// read as one design. A card too short for that (a slicer bar on a small
+// window) centres the cluster instead: below this rendered height a corner
+// placement leaves less than a button's height beneath it and looks pinned
+// rather than placed. Decided here, from the real rendered height, rather
+// than by a container query — size containment would make every card a
+// stacking context and put the × under the resize handles.
+const COMPACT_HEIGHT = 48;
+
+function placeControls(el, renderedHeight) {
+  el.classList.toggle("is-compact", renderedHeight < COMPACT_HEIGHT);
+}
+
 function buildLockButton(locked, onClick, lockedTitle, unlockedTitle) {
   const lockBtn = document.createElement("button");
-  lockBtn.className = "icon-btn";
+  lockBtn.className = "icon-btn" + (locked ? " is-on" : "");
   lockBtn.innerHTML = locked
     ? `<span class="icon-default">${icon("lock")}</span><span class="icon-hover">${icon("unlock")}</span>`
     : `<span class="icon-default">${icon("unlock")}</span><span class="icon-hover">${icon("lock")}</span>`;
@@ -263,6 +291,7 @@ export function renderLayout(opts) {
       el.style.top = scale(item.y) + "px";
       el.style.width = scale(item.width) + "px";
       el.style.height = scale(item.height) + "px";
+      placeControls(el, scale(item.height));
 
       const label = document.createElement("div");
       label.className = "canvas-element-label";
@@ -272,20 +301,16 @@ export function renderLayout(opts) {
       const controls = document.createElement("div");
       controls.className = "element-controls";
 
-      // Only the vertical column has per-slicer heights worth freezing —
-      // in a horizontal row every slicer is SLICER_HEIGHT tall, and its
-      // width lock is set by the Apply button instead.
-      let slicerLockBtn = null;
-      if (verticalSlicers) {
-        if (item.stateRef.locked) el.classList.add("height-locked");
-        slicerLockBtn = buildLockButton(
-          item.stateRef.locked,
-          () => handleToggleSlicerLock(item.globalIndex),
-          "Odemknout výšku sliceru",
-          "Zamknout výšku sliceru"
-        );
-        controls.appendChild(slicerLockBtn);
-      }
+      // A horizontal slicer locks its width, a vertical one its height —
+      // the one dimension it owns (the other is the row's / the column's).
+      markLocked(el, !verticalSlicers && item.stateRef.locked, verticalSlicers && item.stateRef.locked);
+      const slicerLockBtn = buildLockButton(
+        item.stateRef.locked,
+        () => handleToggleSlicerLock(item.globalIndex),
+        verticalSlicers ? "Odemknout výšku sliceru" : "Odemknout šířku sliceru",
+        verticalSlicers ? "Zamknout výšku sliceru" : "Zamknout šířku sliceru"
+      );
+      controls.appendChild(slicerLockBtn);
 
       const removeBtn = document.createElement("button");
       removeBtn.className = "icon-btn";
@@ -358,6 +383,7 @@ export function renderLayout(opts) {
       el.style.top = scale(item.y) + "px";
       el.style.width = scale(item.width) + "px";
       el.style.height = scale(item.height) + "px";
+      placeControls(el, scale(item.height));
 
       const label = document.createElement("div");
       label.className = "canvas-element-label";
@@ -365,9 +391,20 @@ export function renderLayout(opts) {
       // continuation of the header band's.
       label.textContent = `KPI ${item.index + 1}`;
       el.appendChild(label);
+      // One flag covers both values; which one it holds says what is locked.
+      markLocked(el, item.stateRef.locked && item.stateRef.width != null, item.stateRef.locked && item.stateRef.height != null);
+      el.dataset.kpi = `${item.bandId}:${item.index}`;
 
       const controls = document.createElement("div");
       controls.className = "element-controls";
+
+      const kpiLockBtn = buildLockButton(
+        item.stateRef.locked,
+        () => handleToggleKpiLock(item.index, item.bandId),
+        "Odemknout šířku KPI",
+        "Zamknout šířku KPI"
+      );
+      controls.appendChild(kpiLockBtn);
 
       const removeBtn = document.createElement("button");
       removeBtn.className = "icon-btn";
@@ -465,11 +502,12 @@ export function renderLayout(opts) {
           // the cell's item.locked is *derived* from the sub-charts (see
           // handleToggleStackLock in stackEvents.js), so mirroring it here
           // too would just double-apply the same lock as a second class.
-          if (stackEntry.locked) el.classList.add("height-locked");
+          markLocked(el, false, stackEntry.locked);
           el.style.left = scale(sub.x) + "px";
           el.style.top = scale(sub.y) + "px";
           el.style.width = scale(sub.width) + "px";
           el.style.height = scale(sub.height) + "px";
+          placeControls(el, scale(sub.height));
 
           const label = document.createElement("div");
           label.className = "canvas-element-label";
@@ -552,13 +590,13 @@ export function renderLayout(opts) {
       const el = document.createElement("div");
       el.id = domId;
       el.className = "canvas-element chart";
-      if (chartStateItem.locked) {
-        el.classList.add("width-locked");
-      }
+      // Width is the chart's own lock; height is the row's (set by Apply).
+      markLocked(el, chartStateItem.locked, state.chartRows[rowIndex].locked);
       el.style.left = scale(item.x) + "px";
       el.style.top = scale(item.y) + "px";
       el.style.width = scale(item.width) + "px";
       el.style.height = scale(item.height) + "px";
+      placeControls(el, scale(item.height));
 
       const label = document.createElement("div");
       label.className = "canvas-element-label";
@@ -583,10 +621,11 @@ export function renderLayout(opts) {
       // icon on hover; locked -> shows unlock icon on hover). Both icons are
       // always in the DOM and toggled via CSS (.icon-btn:hover), so no
       // JS/re-render is needed just to preview the hover state.
+      const rowLocked = state.chartRows[rowIndex].locked;
       const lockBtn = buildLockButton(
-        chartStateItem.locked,
+        chartStateItem.locked || rowLocked,
         () => handleToggleChartLock(rowIndex, i),
-        "Odemknout šířku grafu",
+        rowLocked ? (chartStateItem.locked ? "Odemknout šířku grafu i výšku řady" : "Odemknout výšku řady") : "Odemknout šířku grafu",
         "Zamknout šířku grafu"
       );
       controls.appendChild(lockBtn);
@@ -901,6 +940,7 @@ export function renderLayout(opts) {
   }
 
   renderWarnings();
+  syncSelectionLockState();
   // Last: the handle and "+" passes above measured the cards at their final
   // geometry, and a card mid-glide must not feed them a moving box.
   playCanvas(canvas, before, opts);

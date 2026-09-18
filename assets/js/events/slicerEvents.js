@@ -45,22 +45,28 @@ export function handleAddSlicer(globalIndex) {
   renderLayout();
 }
 
-// Vertical mode only: freezes (or releases) one slicer's height, so the
-// fill/shrink rules redistribute around it instead of resizing it. Locking
-// captures the height the solver is currently showing — same freeze-on-lock
-// behaviour as a chart row, so the element doesn't jump the moment it's
-// locked.
+// Freezes (or releases) the one dimension a slicer owns — its height in a
+// vertical column, its width in a horizontal row — so the fill/shrink rules
+// redistribute around it instead of resizing it. Locking captures the value
+// the solver is currently showing — same freeze-on-lock behaviour as a chart
+// row, so the element doesn't jump the moment it's locked.
 export function handleToggleSlicerLock(globalIndex) {
   const s = state.slicers[globalIndex - 1];
   if (!s) return;
+  const vertical = state.isVerticalSlicers();
 
   if (s.locked) {
     s.locked = false;
-    s.height = null;
+    if (vertical) s.height = null; else s.width = null;
   } else {
     const v = computeVerticalLayout();
-    const heights = computeSlicerColumnHeights(state.slicers, v.slicerColumnHeight);
-    s.height = heights[globalIndex - 1] ?? state.SLICER_HEIGHT;
+    if (vertical) {
+      const heights = computeSlicerColumnHeights(state.slicers, v.slicerColumnHeight);
+      s.height = heights[globalIndex - 1] ?? state.SLICER_HEIGHT;
+    } else {
+      const item = computeSlicersLayout(v).flat().find(i => i.globalIndex === globalIndex);
+      s.width = item ? item.width : s.width;
+    }
     s.locked = true;
   }
 

@@ -1073,6 +1073,9 @@ select {
 }
 
 .sel-row strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   width: 52px;
   flex-shrink: 0;
   font-size: var(--fs-sm);
@@ -1236,6 +1239,7 @@ select {
 :root {
   --glyph-slicer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M4 5h16l-6 7v6l-4 2v-8L4 5z'/%3E%3C/svg%3E");
   --glyph-kpi: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 17l5-6 4 4 7-8M15 7h5v5'/%3E%3C/svg%3E");
+  --glyph-lock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-0.5 0 25 25' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='9.3' width='18' height='13' rx='4'/%3E%3Cpath d='M17 9.3V7.3a5 5 0 0 0-10 0v2'/%3E%3C/svg%3E");
   --glyph-chart: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M5 20V10M12 20V4M19 20v-7'/%3E%3C/svg%3E");
 }
 
@@ -1356,11 +1360,25 @@ select {
 }
 
 /* Locked elements: a dashed pink outline marks what auto-redistribution
-   will leave alone. */
+   will leave alone... */
 .canvas-element.width-locked,
 .canvas-element.height-locked {
   outline: 1.5px dashed var(--pink);
   outline-offset: -1.5px;
+}
+
+/* ...and its own lock button stays put to say what it means — see
+   .element-controls .icon-btn.is-on below. */
+
+/* The inspector names the locked dimension next to its label. */
+.sel-row.is-locked strong::after {
+  content: "";
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  background: var(--pink);
+  mask: var(--glyph-lock) center / contain no-repeat;
+  -webkit-mask: var(--glyph-lock) center / contain no-repeat;
 }
 
 /* Previews which chart the sidebar "Graf" split button will act on. */
@@ -1564,18 +1582,11 @@ body.is-resizing-chart .element-controls {
   right: 4px;
   z-index: 46;
   display: flex;
-  gap: 3px;
-  opacity: 0;
 }
 
-.canvas-element:hover .element-controls {
-  opacity: 1;
-  transition: opacity var(--fast) var(--ease-out);
-}
-
-/* Slicers and KPIs are short bars: centre the cluster vertically. */
-.canvas-element.slicer .element-controls,
-.canvas-element.kpi .element-controls {
+/* A card too short for a corner (renderLayout's placeControls) centres the
+   cluster instead, so it never looks pinned to the edge of a thin bar. */
+.canvas-element.is-compact .element-controls {
   top: 50%;
   transform: translateY(-50%);
 }
@@ -1604,6 +1615,34 @@ body.is-resizing-chart .element-controls {
   color: #fff;
   background: var(--slate);
   box-shadow: 0 2px 6px -1px rgba(28, 33, 40, 0.35);
+  opacity: 0;
+  /* Spacing is a margin, not the cluster's gap, so it can fold with the ×. */
+  transition: background var(--fast) ease, transform var(--fast) var(--ease-out),
+    opacity var(--fast) ease, width var(--base) var(--ease-out), margin-left var(--base) var(--ease-out);
+}
+
+.element-controls button + button {
+  margin-left: 3px;
+}
+
+.canvas-element:hover .element-controls button {
+  opacity: 1;
+}
+
+/* An engaged lock is the card's lock mark: it never hides. Slate, not pink —
+   pink is "you can act here", and this is a state; hovering it goes pink
+   like any button and previews the unlock. */
+.element-controls .icon-btn.is-on {
+  opacity: 1;
+}
+
+/* At rest the × folds away so the lock sits alone in the corner; hovering
+   the card unfolds it, which slides the lock aside to make room. */
+.canvas-element.is-locked:not(:hover) .element-controls .is-on ~ button {
+  width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  box-shadow: none;
 }
 
 .element-controls button:hover {

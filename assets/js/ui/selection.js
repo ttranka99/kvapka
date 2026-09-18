@@ -278,4 +278,16 @@ export function setSelected(info, opts = {}) {
 
   updateApplyButtonState();
   updateSplitChartButtonVisibility(info);
+  syncSelectionLockState();
+}
+
+/* Marks the width/height rows of the inspector with the selected card's
+   lock. The card is the source of truth (renderLayout's markLocked writes
+   data-lock), so this also runs after every render — a lock toggled from
+   the card's own button never re-selects. */
+export function syncSelectionLockState() {
+  const info = state.selectedElement;
+  const lock = info && info.domId ? document.getElementById(info.domId)?.dataset.lock : undefined;
+  document.getElementById("sel-row-width")?.classList.toggle("is-locked", lock === "width" || lock === "both");
+  document.getElementById("sel-row-height")?.classList.toggle("is-locked", lock === "height" || lock === "both");
 }

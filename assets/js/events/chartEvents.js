@@ -192,12 +192,15 @@ export function handleRemoveChart(rowIndex, itemIndex) {
 // resume auto-resizing. It only rejoins the flexible pool the next time an
 // actual add/remove happens in its row (see handleAddChartLeft/Right/Row and
 // handleRemoveChart), which is what freshly frees up unlocked charts' widths.
+// The button is the card's lock mark, so it reads as engaged whenever
+// anything on the card is locked — its own width, or the height its row got
+// from Apply — and clicking an engaged lock releases all of it.
 export function handleToggleChartLock(rowIndex, itemIndex) {
   const row = state.chartRows[rowIndex];
   const item = row?.items?.[itemIndex];
   if (!item) return;
 
-  if (item.locked) {
+  if (item.locked || row.locked) {
     // Unlocking deliberately keeps the current width in place rather than
     // nulling it — the chart's position/size shouldn't visibly jump just
     // because it was unlocked. It stays put until something actually changes
@@ -205,6 +208,10 @@ export function handleToggleChartLock(rowIndex, itemIndex) {
     // every item's width in that row to force a fresh even redistribution
     // (see handleAddChartLeft/Right/Row and handleRemoveChart above).
     item.locked = false;
+    if (row.locked) {
+      row.locked = false;
+      row.height = null;
+    }
   } else {
     const v = computeVerticalLayout();
     const rowsLayout = computeChartsLayout(v);
