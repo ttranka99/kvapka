@@ -687,6 +687,11 @@ body.theme-editor-open .main {
   background: var(--pink-soft);
 }
 
+/* The strip beside a slicer column is upright: its value reads along it. */
+.theme-region--gap-x .theme-gap__value {
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+
 /* Cell subdivisions: what turns a stripe into "the seven slicers". */
 .theme-cells {
   position: absolute;

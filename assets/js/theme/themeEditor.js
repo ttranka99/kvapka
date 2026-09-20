@@ -1428,7 +1428,13 @@ function renderPreview(g) {
     takenBoundaries.add(i);
 
     const entry = g.sections[i];
-    const spansUsable = entry.type === "title" || entry.type === "slicers";
+    // The strip spans the usable width when it separates full-width bands —
+    // or, in a vertical layout, when it is the block gap under the title,
+    // which the slicer column hangs off too (its top is that same boundary):
+    // there it must run over the column as well, or the space above the
+    // column reads as nothing at all.
+    const spansUsable = entry.type === "title" || entry.type === "slicers"
+      || (g.vertical && entry.top === g.slicerColumnTop && value === t.gapKpiToCharts);
     stage.appendChild(gapRuler(regionName, fieldKey, value, {
       left: spansUsable ? t.margin : g.contentLeft,
       top: entry.top - value,
@@ -1436,6 +1442,20 @@ function renderPreview(g) {
       height: value
     }, px, scale));
   });
+
+  // A slicer column is separated from the content block by the block gap
+  // sideways (contentBoxFor() in sectionWalker.js), a boundary the stack walk
+  // never visits — so it gets its own upright strip, on whichever side the
+  // column sits. Same region as the horizontal strip: both are one value.
+  if (g.vertical && t.gapKpiToCharts > 0) {
+    const right = g.slicerColumnLeft > g.contentLeft;
+    stage.appendChild(gapRuler("gap-block", "gapKpiToCharts", t.gapKpiToCharts, {
+      left: right ? g.contentLeft + g.contentWidth : g.slicerColumnLeft + t.slicerColumnWidth,
+      top: g.slicerColumnTop,
+      width: t.gapKpiToCharts,
+      height: g.slicerColumnHeight
+    }, px, scale, right ? { axis: "x", sign: -1, side: "left" } : { axis: "x", sign: 1 }));
+  }
 }
 
 function cellWidth(total, count, gap) {
@@ -1469,10 +1489,18 @@ function stackCells(parent, count, gapPx, direction) {
   parent.appendChild(grid);
 }
 
-function gapRuler(regionName, fieldKey, value, box, px, scale) {
-  const node = region(regionName, "theme-region theme-region--gap", box, px);
-  node.appendChild(el("span", "theme-gap__value", `${value} px`));
-  node.appendChild(dragHandle(fieldKey, "y", 1, scale));
+// `handle` picks the draggable edge: a horizontal strip grows downward by
+// default; an upright one ({ axis: "x", sign, side }) grows sideways and gets
+// the modifier that turns its value pill along the strip.
+function gapRuler(regionName, fieldKey, value, box, px, scale, handle = { axis: "y", sign: 1 }) {
+  const upright = handle.axis === "x";
+  const node = region(regionName, `theme-region theme-region--gap${upright ? " theme-region--gap-x" : ""}`, box, px);
+  // Same guard as the margin label: below a few real pixels the pill would
+  // only spill over the neighbours it is meant to sit between.
+  if (!upright || value * scale >= 11) {
+    node.appendChild(el("span", "theme-gap__value", `${value} px`));
+  }
+  node.appendChild(dragHandle(fieldKey, handle.axis, handle.sign, scale, handle.side));
   return node;
 }
 
