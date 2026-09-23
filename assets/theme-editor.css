@@ -49,6 +49,11 @@
   font-weight: 600;
 }
 
+/* A deleted layout a page still holds by value. */
+.theme-chip--orphaned .theme-chip__label {
+  font-style: italic;
+}
+
 .theme-chip__edit {
   display: inline-flex;
   align-items: center;

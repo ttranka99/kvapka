@@ -21,7 +21,6 @@
 import * as state from "../state/state.js";
 import {
   getTheme,
-  getDefaultThemeId,
   setDefaultThemeId,
   themesForPlacement,
   availablePlacements
@@ -29,7 +28,7 @@ import {
 import { openThemeEditor } from "../theme/themeEditor.js";
 import { setActiveSection } from "./rail.js";
 import { icon } from "./icon.js";
-import { applyThemeToAllTabs, retargetTabsToTheme } from "../state/tabs.js";
+import { applyThemeToAllTabs, retargetTabsToTheme, newPageTheme } from "../state/tabs.js";
 import { addWarning } from "./warnings.js";
 import { PLACEMENTS, placementLabel } from "../theme/themeModel.js";
 import { syncTemplateSummary } from "./templatePanel.js";
@@ -183,12 +182,15 @@ export function renderThemeSelector() {
 
   themes.forEach(theme => {
     const chip = document.createElement("div");
-    chip.className = "theme-chip" + (theme.id === activeId ? " active" : "");
+    chip.className = "theme-chip"
+      + (theme.id === activeId ? " active" : "")
+      + (theme.orphaned ? " theme-chip--orphaned" : "");
 
     const pick = document.createElement("button");
     pick.type = "button";
     pick.className = "theme-chip__label";
-    pick.textContent = theme.label;
+    // Marked, so it never reads as a twin of a live layout with the same name.
+    pick.textContent = theme.orphaned ? t("template.chipDeleted", { label: theme.label }) : theme.label;
     pick.title = t("template.chipTitle", { label: theme.label, width: theme.canvasWidth, height: theme.canvasHeight });
     pick.addEventListener("click", () => selectTheme(theme.id));
     chip.appendChild(pick);
@@ -319,8 +321,8 @@ onLocaleChange(() => {
   syncPlacementControls();
 });
 
-/** The theme id new pages start on, for the sidebar's "global default" hint. */
+/** The layout "+" would create a page on from here, for the sidebar's
+ *  "new pages: …" hint. */
 export function defaultThemeLabel() {
-  const theme = getTheme(getDefaultThemeId());
-  return theme ? theme.label : t("template.noDefault");
+  return newPageTheme(state.getActiveTheme()).label;
 }

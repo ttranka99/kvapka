@@ -79,6 +79,8 @@ export default {
   // Template chips.
   "template.chipTitle": "{label} - plátno {width} × {height}",
   "template.chipEdit": "Upravit šablonu {label}",
+  // A deleted template a page still uses, kept on that page by value.
+  "template.chipDeleted": "{label} (smazáno)",
   // Shown when no default template can be found.
   "template.noDefault": "—",
 
@@ -187,10 +189,10 @@ export default {
   "warnings.kpi.cardsDropped": "Šablona bez pásu KPI - {count} KPIs z odstraněného pásu bylo zahozeno.",
 
   // --- Notifications: charts --------------------------------------------
-  "warnings.chart.allLocked": "Nelze přidat dalšígraf, všechny grafy v řadě jsou uzamčené. Nejprve odemkněte alespoň jeden graf.",
+  "warnings.chart.allLocked": "Nelze přidat další graf, všechny grafy v řadě jsou uzamčené. Nejprve odemkněte alespoň jeden graf.",
   "warnings.chart.allLockedStackNote": "{message} (U sloupce s více grafy je nutné odemknout všechny grafy v tomto sloupci.)",
   "warnings.chart.noSpace": "Nedostatek prostoru pro přidání dalšího grafu",
-  "warnings.chart.tooSmall": "Nelze přidat dalšígraf, ostatní grafy by byly příliš malé.",
+  "warnings.chart.tooSmall": "Nelze přidat další graf, ostatní grafy by byly příliš malé.",
   "warnings.chart.adjustRowHeights": "Nelze přidat další graf, nejprve upravte výšky řad grafů.",
   "warnings.chart.removeUnlockRow": "Nelze odebrat graf, nejprve odemkněte alespoň jeden graf v řadě.",
   "warnings.chart.splitTooLow": "Nelze rozdělit graf, řada je příliš nízká (min. {min}px).",
@@ -289,7 +291,7 @@ export default {
   // --- Template editor: messages ----------------------------------------
   "editor.ok": "Šablona je v pořádku.",
   "editor.nameRequired": "Zadejte název šablony.",
-  "editor.confirmDelete": "Smazat šablonu „{label}\"? Stránky, které ji používají, si ponechají její současné nastavení.",
+  "editor.confirmDelete": "Smazat šablonu „{label}\"? Stránky, které ji používají, si ponechají její současné nastavení; nové stránky začnou na FULL HD nebo HD.",
   "editor.imported": "Načtena šablona „{label}\".",
   "editor.readFailed": "Soubor se nepodařilo přečíst.",
 

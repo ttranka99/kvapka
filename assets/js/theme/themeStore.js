@@ -99,8 +99,10 @@ export function themeExists(id) {
 
 // Ids are generated from the label so an exported file is recognisable, with
 // a numeric suffix when that collides — a user may well want "Dashboard" and
-// "Dashboard 2" side by side.
-export function makeThemeId(label) {
+// "Dashboard 2" side by side. `reserved` holds ids that are taken although no
+// stored theme has them: a deleted theme still in use by a page must not
+// hand its id to a new one, or saving that one would retarget those pages.
+export function makeThemeId(label, reserved = []) {
   const slug = String(label)
     .normalize("NFD").replace(/[̀-ͯ]/g, "")   // strip Czech diacritics
     .toUpperCase()
@@ -110,7 +112,7 @@ export function makeThemeId(label) {
 
   let id = `CUSTOM_${slug}`;
   let n = 2;
-  while (themeExists(id)) id = `CUSTOM_${slug}_${n++}`;
+  while (themeExists(id) || reserved.includes(id)) id = `CUSTOM_${slug}_${n++}`;
   return id;
 }
 
@@ -222,15 +224,16 @@ export function parseThemeFile(text) {
 /**
  * Imports parsed themes, giving each a fresh id when its own already exists,
  * so an import never silently overwrites a theme the user still relies on.
+ * `reserved` is passed on to makeThemeId().
  * @returns {{ ok: boolean, imported: object[], error?: string }}
  */
-export function importThemes(themes) {
+export function importThemes(themes, reserved = []) {
   const imported = [];
 
   for (const theme of themes) {
     const candidate = { ...theme, builtin: false };
-    if (themeExists(candidate.id)) {
-      candidate.id = makeThemeId(candidate.label);
+    if (themeExists(candidate.id) || reserved.includes(candidate.id)) {
+      candidate.id = makeThemeId(candidate.label, reserved);
     }
     const result = saveTheme(candidate);
     if (!result.ok) return { ok: false, imported, error: result.error };

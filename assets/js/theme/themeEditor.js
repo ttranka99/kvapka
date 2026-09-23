@@ -46,6 +46,7 @@ import { walkSections } from "../layout/sectionWalker.js";
 import { computeChartGroups } from "../layout/chartGroups.js";
 import { icon } from "../ui/icon.js";
 import { leave, durationMs } from "../ui/motion.js";
+import { themeIdsInUse } from "../state/tabs.js";
 import { t, onLocaleChange } from "../i18n/i18n.js";
 
 // renderPreview() and renderReadout() name the draft theme `t`; they reach
@@ -108,7 +109,7 @@ export function openThemeEditor(options) {
     draft.builtin = false;
     draft.derivedFrom = source.builtin ? source.id : source.derivedFrom;
     draft.label = t("editor.copyName", { label: source.label });
-    draft.id = makeThemeId(draft.label);
+    draft.id = makeThemeId(draft.label, themeIdsInUse());
   } else {
     editingExistingId = source.id;
     draft = cloneTheme(source);
@@ -1651,7 +1652,7 @@ function handleSave() {
   // A theme created from a built-in gets its id at save time, from the name
   // the user settled on — an id minted at open time would carry the throwaway
   // "FULL HD – vlastní" wording forever.
-  if (editingExistingId === null) theme.id = makeThemeId(label);
+  if (editingExistingId === null) theme.id = makeThemeId(label, themeIdsInUse());
   else theme.id = editingExistingId;
 
   const result = saveTheme(theme);
@@ -1714,7 +1715,7 @@ function handleImportFile(event) {
       return;
     }
 
-    const result = importThemes(parsed.themes);
+    const result = importThemes(parsed.themes, themeIdsInUse());
     if (!result.ok) {
       flash(result.error, "error");
       return;

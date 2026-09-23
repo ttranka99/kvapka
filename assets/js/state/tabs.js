@@ -1,7 +1,7 @@
 import * as state from "./state.js";
 import { initState } from "./initState.js";
 import { getTheme, getDefaultThemeId } from "../theme/themeStore.js";
-import { normalizeTheme } from "../theme/themeModel.js";
+import { normalizeTheme, BUILTIN_THEMES, isVerticalPlacement } from "../theme/themeModel.js";
 import { t, onLocaleChange } from "../i18n/i18n.js";
 
 export const MAX_TABS = 12;
@@ -95,20 +95,46 @@ onLocaleChange(convert => {
   });
 });
 
+// The top built-in (FULL HD / HD) whose canvas is closest to `theme`'s.
+function nearestTopBuiltin(theme) {
+  const distance = b => Math.abs(b.canvasWidth - theme.canvasWidth) + Math.abs(b.canvasHeight - theme.canvasHeight);
+  return BUILTIN_THEMES
+    .filter(b => b.placement === "horizontal")
+    .reduce((best, b) => (distance(b) < distance(best) ? b : best));
+}
+
+/**
+ * The layout a new page starts on, given the one it is created from. A custom
+ * layout is the user's own and is kept exactly, side column and all. A
+ * built-in keeps only its resolution: new pages start with slicers on top, so
+ * FULL HD / HD on the left or right comes back as the top FULL HD / HD.
+ *
+ * A custom layout that has since been deleted is not passed on. The page it
+ * lives on keeps it by value, but a new page falls back to the top built-in
+ * nearest its canvas size.
+ */
+export function newPageTheme(base) {
+  if (!base.builtin) return getTheme(base.id) ?? getTheme(nearestTopBuiltin(base).id);
+  if (!isVerticalPlacement(base.placement)) return getTheme(base.id) ?? base;
+  return getTheme(nearestTopBuiltin(base).id);
+}
+
 // Seeds live state with fresh-page defaults (reuses initState — no duplicated defaults)
-function loadDefaults() {
-  // A new page starts on the *global* default theme, which the user picks in
-  // the sidebar. Individual pages then override it as they like — that split
-  // is the whole point of having a global default at all.
-  const theme = getTheme(getDefaultThemeId());
-  state.applyTheme(theme ?? normalizeTheme({}));
+function loadDefaults(theme) {
+  // The live KPI bands still belong to the page just left, and applyTheme()
+  // carries bands across a theme switch — so they are dropped first, leaving
+  // it nothing to reuse but the theme's own seed counts.
+  state.setKpiBands({});
+  state.applyTheme(theme);
   initState();
 }
 
 export function initTabs() {
   tabs = [newTab()];
   activeTabIndex = 0;
-  loadDefaults();               // replaces initState() in app.js start()
+  // The first page starts from the stored global default (FULL HD until the
+  // user picks another with the "All" scope).
+  loadDefaults(newPageTheme(getTheme(getDefaultThemeId()) ?? normalizeTheme({})));
 }
 
 // All mutators return true when live state was swapped (caller must refreshUI)
@@ -122,10 +148,13 @@ export function switchTab(index) {
 
 export function addTab() {
   if (tabs.length >= MAX_TABS) return false;
+  // A new page follows the layout of the page it was created from — the one
+  // the user just picked or applied — but none of that page's elements.
+  const theme = newPageTheme(state.activeTheme);
   tabs[activeTabIndex].snapshot = captureSnapshot();
   tabs.push(newTab());
   activeTabIndex = tabs.length - 1;
-  loadDefaults();               // new tab is immediately active with fresh defaults
+  loadDefaults(theme);          // new tab is immediately active with fresh defaults
   return true;
 }
 

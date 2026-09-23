@@ -79,6 +79,8 @@ export default {
   // Template chips.
   "template.chipTitle": "{label} - canvas {width} × {height}",
   "template.chipEdit": "Edit template {label}",
+  // A deleted template a page still uses, kept on that page by value.
+  "template.chipDeleted": "{label} (deleted)",
   // Shown when no default template can be found.
   "template.noDefault": "—",
 
@@ -289,7 +291,7 @@ export default {
   // --- Template editor: messages ----------------------------------------
   "editor.ok": "Template is valid.",
   "editor.nameRequired": "Enter a template name.",
-  "editor.confirmDelete": "Delete template “{label}”? Pages that use it will keep its current settings.",
+  "editor.confirmDelete": "Delete template “{label}”? Pages that use it will keep its current settings; new pages will start on FULL HD or HD.",
   "editor.imported": "Template “{label}” loaded.",
   "editor.readFailed": "Failed to read file.",
 
