@@ -15,7 +15,7 @@ import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
 import { stackMinHeight } from "../layout/computeStackHeights.js";
 import { renderLayout } from "../ui/renderLayout.js";
-import { flash } from "../ui/motion.js";
+import { flash, flashAll } from "../ui/motion.js";
 import { renderWarnings } from "../ui/warnings.js";
 
 // Computes row heights against a simulated set of chartRows rather than live
@@ -85,6 +85,7 @@ export function handleAddStackChart(rowIndex, itemIndex, stackIndex) {
   const currentRowHeight = computeChartRowHeights(v)[rowIndex];
 
   const allExistingLocked = stack.length > 0 && stack.every(s => s.locked);
+  const existingIds = stack.map((_, s) => `chart-${rowIndex}-${itemIndex}-${s}`);
 
   stack.splice(stackIndex + 1, 0, { height: null, locked: false });
   stack.forEach(s => {
@@ -112,6 +113,7 @@ export function handleAddStackChart(rowIndex, itemIndex, stackIndex) {
       "error"
     );
     renderWarnings();
+    if (allExistingLocked) flashAll(existingIds);
     return;
   }
 
@@ -131,6 +133,7 @@ export function handleRemoveStackChart(rowIndex, itemIndex, stackIndex) {
   if (target.locked) {
     addWarning("Nelze odebrat zamčený graf, nejprve jej odemkněte.", "error");
     renderWarnings();
+    flash(`chart-${rowIndex}-${itemIndex}-${stackIndex}`);
     return;
   }
 
@@ -138,6 +141,7 @@ export function handleRemoveStackChart(rowIndex, itemIndex, stackIndex) {
   if (!remaining.some(s => !s.locked)) {
     addWarning("Nelze odebrat graf, nejprve odemkněte alespoň jeden graf ve sloupci.", "error");
     renderWarnings();
+    flashAll(stack.map((_, s) => `chart-${rowIndex}-${itemIndex}-${s}`).filter((_, s) => s !== stackIndex));
     return;
   }
 

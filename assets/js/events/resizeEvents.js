@@ -1,6 +1,6 @@
 import * as state from "../state/state.js";
 import { renderLayout } from "../ui/renderLayout.js";
-import { flash } from "../ui/motion.js";
+import { flash, flashAll } from "../ui/motion.js";
 import { renderWarnings, addWarning } from "../ui/warnings.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
@@ -10,7 +10,7 @@ import { snapToStep } from "../layout/sizeStep.js";
 import { slicerColumnFits } from "../layout/computeSlicerColumnHeights.js";
 import { setSelected, getPendingWidth, getPendingHeight } from "../ui/selection.js";
 import { initState } from "../state/initState.js";
-import { refreshSelectedChartAfterResize } from "./chartEvents.js";
+import { refreshSelectedChartAfterResize, lockedChartCardIds } from "./chartEvents.js";
 import { refreshSelectedSlicerAfterEdit } from "./slicerEvents.js";
 import { refreshSelectedKpiAfterEdit } from "./kpiEvents.js";
 import { refreshSelectedStackChartAfterEdit } from "./stackEvents.js";
@@ -81,6 +81,7 @@ function applyWidthValue(info, val) {
     if (otherItems.length > 0 && !otherItems.some(item => !item.locked)) {
       addWarning("Nelze upravit šířku grafu, nejprve odemkněte alespoň jeden další graf v řadě.", "error");
       renderWarnings();
+      flashAll(lockedChartCardIds(rowIndex, row.items.map((_, i) => i).filter(i => i !== itemIndex)));
       return;
     }
 
@@ -165,6 +166,7 @@ function applyHeightValue(info, val) {
     if (!otherEntries.some(s => !s.locked)) {
       addWarning("Nelze upravit výšku grafu, nejprve odemkněte alespoň jeden další graf ve sloupci.", "error");
       renderWarnings();
+      flashAll(stack.map((_, s) => `chart-${rowIndex}-${itemIndex}-${s}`).filter((_, s) => s !== stackIndex));
       return;
     }
 
@@ -216,6 +218,9 @@ function applyHeightValue(info, val) {
     if (!otherRows.some(r => !r.locked)) {
       addWarning("Nelze upravit výšku řady, nejprve odemkněte alespoň jednu další řadu grafů.", "error");
       renderWarnings();
+      state.chartRows.forEach((r, ri) => {
+        if (ri !== info.rowIndex) flashAll(lockedChartCardIds(ri, r.items.map((_, i) => i)));
+      });
       return;
     }
 

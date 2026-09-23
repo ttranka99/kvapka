@@ -6,8 +6,36 @@ import { computeChartsLayout } from "../layout/computeChartsLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
 import { canAddChart } from "../layout/canAddChart.js";
 import { renderLayout } from "../ui/renderLayout.js";
-import { flash } from "../ui/motion.js";
+import { flash, flashAll } from "../ui/motion.js";
 import { renderWarnings } from "../ui/warnings.js";
+
+// DOM ids of the locked cards among `itemIndexes` of a row, for pointing at
+// what blocked a refused action. A row height lock (from Apply) locks every
+// card in it, same as the card's lock mark reads. A stacked cell's plain
+// chart-r-i id is an invisible anchor (renderLayout.js), so its sub-charts
+// are what get pointed at — the locked ones, or all of them when the whole
+// row is locked.
+export function lockedChartCardIds(rowIndex, itemIndexes) {
+  const row = state.chartRows[rowIndex];
+  if (!row) return [];
+  const ids = [];
+  itemIndexes.forEach(i => {
+    const item = row.items[i];
+    if (!item) return;
+    if (item.stack && item.stack.length >= 2) {
+      item.stack.forEach((s, si) => {
+        if (row.locked || s.locked) ids.push(`chart-${rowIndex}-${i}-${si}`);
+      });
+    } else if (row.locked || item.locked) {
+      ids.push(`chart-${rowIndex}-${i}`);
+    }
+  });
+  return ids;
+}
+
+function allItemIndexes(rowIndex) {
+  return state.chartRows[rowIndex]?.items.map((_, i) => i) ?? [];
+}
 
 // Builds the "row is fully locked" warning shown when every item in a row
 // blocks a new chart from being added. A stack item's width lock is derived
@@ -41,6 +69,7 @@ export function handleAddChartLeft(rowIndex, itemIndex) {
   // user to unlock something instead of claiming charts would be too small.
   if (simulatedRow.items.length > 0 && simulatedRow.items.every(item => item.locked)) {
     addWarning(buildAllLockedRowWarning(simulatedRow.items), "error");
+    flashAll(lockedChartCardIds(rowIndex, allItemIndexes(rowIndex)));
     return;
   }
 
@@ -80,6 +109,7 @@ export function handleAddChartRight(rowIndex, itemIndex) {
   // user to unlock something instead of claiming charts would be too small.
   if (simulatedRow.items.length > 0 && simulatedRow.items.every(item => item.locked)) {
     addWarning(buildAllLockedRowWarning(simulatedRow.items), "error");
+    flashAll(lockedChartCardIds(rowIndex, allItemIndexes(rowIndex)));
     return;
   }
 
@@ -150,6 +180,7 @@ export function handleRemoveChart(rowIndex, itemIndex) {
     // rather than silently leaving that gap.
     if (!anyUnlockedRemaining) {
       addWarning("Nelze odebrat graf, nejprve odemkněte alespoň jeden graf v řadě.", "error");
+      flashAll(lockedChartCardIds(rowIndex, allItemIndexes(rowIndex).filter(i => i !== itemIndex)));
       return;
     }
 

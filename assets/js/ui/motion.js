@@ -26,7 +26,9 @@
 //   R6 One vocabulary — every duration comes from the tokens, JS included.
 //   R7 Flash   — a state that was *set* on a thing that stays put (a lock,
 //                a rename, an applied value) gets a soft halo so the eye can
-//                find it. Releasing a state (unlocking) is quiet.
+//                find it. Releasing a state (unlocking) is quiet. An action
+//                refused because of locks flashes the locked things that
+//                blocked it, alongside its toast.
 //
 // Nothing here is per element. A new surface picks a rule, not an animation.
 
@@ -71,6 +73,11 @@ export function flash(id) {
   const done = () => el.classList.remove("m-flash");
   el.addEventListener("animationend", e => { if (e.target === el) done(); });
   setTimeout(done, durationMs("--slower") * 4);   // the halo runs 4× --slower (style.css)
+}
+
+/* R7, for a refusal: point at every locked card that blocked it. */
+export function flashAll(ids) {
+  ids.forEach(id => id && flash(id));
 }
 
 /* ----------------------------------------------------
