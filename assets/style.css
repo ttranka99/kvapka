@@ -792,8 +792,12 @@ body.section-prvky .main {
   overflow-y: auto;
   /* Scrolls on short viewports (a selected element makes the column ~1050px
      tall). A slim, muted bar appears only then — without it the "Přidat"
-     section below the fold had nothing hinting it was there. */
+     section below the fold had nothing hinting it was there. The gutter is
+     reserved even while the bar is hidden: otherwise its arrival narrowed the
+     panels, text rewrapped, the height changed again and the bar could toggle
+     back — a placement switch near the threshold flickered. */
   scrollbar-width: thin;
+  scrollbar-gutter: stable;
   scrollbar-color: var(--line-strong) transparent;
   background: var(--surface);
   border-radius: var(--r-lg);
@@ -806,6 +810,13 @@ body.section-prvky .main {
 
 .panel + .panel {
   padding-top: 2px;
+}
+
+/* The reserved scrollbar gutter (~8–11px) stands in for the rest of the
+   right padding, so the content keeps its width — the 260px tier has none to
+   spare for the three-way placement switch. */
+.sidebar-panels > .panel {
+  padding-right: 10px;
 }
 
 .panel h2 {
@@ -989,8 +1000,7 @@ select {
    ADD ELEMENTS
 -----------------------------------------------------*/
 /* Three across in the full-width column; two plus one when the column is
-   narrower (the 260px tier, or a scrollbar taking its share) rather than
-   clipping "Graf" off the end. */
+   narrower (the 260px tier) rather than clipping "Graf" off the end. */
 .add-elements .button-group {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
@@ -2061,6 +2071,11 @@ body.is-resizing-chart .element-controls {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto 1fr auto;
     overflow: visible;
+  }
+
+  /* Nothing scrolls here, so no gutter: the full right padding comes back. */
+  .sidebar-panels > .panel {
+    padding-right: 20px;
   }
 
   .sidebar-panels > .panel:first-child {
