@@ -1402,7 +1402,9 @@ select {
 #canvas {
   position: relative;
   border-radius: 6px;
-  background: var(--surface);
+  /* The dot grid marks the sheet as an artboard, not another white panel
+     beside the sidebar's card. The cards keep a solid surface over it. */
+  background: var(--sheet-dots), var(--surface);
   box-shadow: 0 0 0 1px var(--line), var(--shadow-sheet);
   overflow: visible;
   /* No width/height transition: the scale is measured from this box on every
@@ -1416,6 +1418,7 @@ select {
    the kind, pink only on hover / selection.
 -----------------------------------------------------*/
 :root {
+  --sheet-dots: radial-gradient(circle, var(--line-strong) 0.8px, transparent 1px) 0 0 / 6px 6px;
   --glyph-slicer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M4 5h16l-6 7v6l-4 2v-8L4 5z'/%3E%3C/svg%3E");
   --glyph-kpi: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 17l5-6 4 4 7-8M15 7h5v5'/%3E%3C/svg%3E");
   --glyph-lock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-0.5 0 25 25' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='9.3' width='18' height='13' rx='4'/%3E%3Cpath d='M17 9.3V7.3a5 5 0 0 0-10 0v2'/%3E%3C/svg%3E");
