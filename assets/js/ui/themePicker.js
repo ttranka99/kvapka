@@ -32,6 +32,7 @@ import { icon } from "./icon.js";
 import { applyThemeToAllTabs, retargetTabsToTheme } from "../state/tabs.js";
 import { addWarning } from "./warnings.js";
 import { PLACEMENTS, placementLabel } from "../theme/themeModel.js";
+import { syncTemplateSummary } from "./templatePanel.js";
 
 
 let selectorEl;
@@ -84,6 +85,7 @@ function syncScopeButtons() {
   scopeButtons.forEach(button => {
     button.classList.toggle("active", button.dataset.scope === scope);
   });
+  syncTemplateSummary();
 }
 
 /**

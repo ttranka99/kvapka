@@ -826,30 +826,192 @@ body.section-prvky .main {
   letter-spacing: -0.01em;
 }
 
-/* Icon + title + one-line subtitle, on the first panel only. */
-.panel-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 16px;
+/* Icon + title, on the first panel only. The whole head is the toggle that
+   folds the panel away (ui/templatePanel.js); the h2 around it only carries
+   the heading role. */
+.panel .panel-head-title {
+  margin: 0;
+  font: inherit;
+  letter-spacing: normal;
 }
 
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border-radius: var(--r-sm);
+}
+
+.panel-head:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--line);
+}
+
+/* The icons overhang the title's 18px line by a pixel each way rather than
+   make the head taller — the stacked layout's columns are tuned to it. */
 .panel-head svg {
   width: 20px;
   height: 20px;
-  margin-top: 1px;
+  margin: -1px 0;
   flex-shrink: 0;
   color: var(--ink-2);
 }
 
-.panel-head h2 {
-  margin: 0 0 2px;
+.panel-head-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-lg);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-.panel-head p {
+/* The subtitle opens the body, lined up under the title, so it folds away
+   with the controls it introduces. Its 2px + the 16px under it are the gap
+   the head used to carry. */
+.panel-sub {
+  margin: 2px 0 0 32px;
   font-size: var(--fs-xs);
   letter-spacing: 0.01em;
   color: var(--ink-3);
+}
+
+.panel-sub + .panel-field,
+#reset-layout {
+  margin-top: 16px;
+}
+
+/* The sprite's chevron points left: turned down while open, right while
+   folded. */
+.panel-head .panel-head-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--ink-3);
+  transform: rotate(-90deg);
+  transition: transform var(--slower) var(--ease-panel), color var(--fast) ease;
+}
+
+.panel-head:hover .panel-head-chevron {
+  color: var(--pink);
+}
+
+.panel-template.is-collapsed .panel-head-chevron {
+  transform: rotate(-180deg);
+}
+
+/* The folded panel's spec sheet — what the controls inside are set to, as a
+   quiet inset card. It is part of the toggle's target: clicking it opens the
+   panel. */
+.spec-sheet {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 16px;
+  row-gap: 6px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px transparent;
+  cursor: pointer;
+  transition: box-shadow var(--fast) ease;
+}
+
+.spec-sheet:hover {
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.spec-row {
+  display: contents;
+}
+
+.spec-sheet dt {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
+  line-height: 20px;
+  color: var(--ink-3);
+}
+
+.spec-sheet dd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A long custom theme name gives way before the canvas size does. */
+#sum-res {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.spec-muted {
+  flex-shrink: 0;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+/* Where the slicers sit, drawn: the sheet with its slicer strip filled. */
+.spec-glyph {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--ink-2);
+}
+
+.spec-glyph svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---- The fold. The controls and the spec sheet are two layers in one
+   place: the one that is in sits in the flow and sets the height; the one
+   going out lies over it and fades. Both start fading together — the
+   outgoing side quicker (R2) — so the panel never passes through empty, and
+   neither pushes the other: they swap in place. The height between them is
+   eased by ui/templatePanel.js, from where it really is, so a toggle caught
+   mid-way turns around smoothly. */
+.template-fold {
+  position: relative;
+}
+
+/* Only while the height moves: at rest nothing clips the focus rings. */
+.template-fold.is-animating {
+  overflow: hidden;
+}
+
+/* flow-root keeps each layer's first margin inside it, so the height the
+   fold measures is the height it shows. */
+.fold-layer {
+  display: flow-root;
+}
+
+.fold-layer.is-in {
+  opacity: 1;
+  transition: opacity var(--base) var(--ease-out);
+}
+
+.fold-layer.is-out {
+  position: absolute;
+  inset: 0 0 auto 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--fast) var(--ease-out),
+    visibility 0s linear var(--fast);
+}
+
+/* The state a page loads with is not a change — it just is. */
+.panel-template.is-instant,
+.panel-template.is-instant * {
+  transition: none !important;
 }
 
 .field-label {
@@ -989,6 +1151,13 @@ select {
 
 .collapsible.expanded {
   grid-template-rows: 1fr;
+}
+
+/* Every reveal in the sidebar moves on the fold's timing: a canvas click
+   folds Šablona and opens the selection details at once, and on two curves
+   the panels under both would lurch up and then back down. */
+.sidebar .collapsible {
+  transition: grid-template-rows var(--slower) var(--ease-panel);
 }
 
 .collapsible-inner {
@@ -1933,6 +2102,11 @@ body.is-resizing-chart .element-controls {
      computeFitScale()'s stacked branch measures against. */
   html {
     scrollbar-gutter: stable;
+    /* The browser's scroll anchoring picks its own anchor — often a panel in
+       the pinned sidebar, which the Šablona fold moves to another grid cell
+       — and then scrolls to follow it, jolting the sheet. ui/stackedCover.js
+       keeps the sheet steady itself instead. */
+    overflow-anchor: none;
   }
 
   html,
@@ -2063,13 +2237,14 @@ body.is-resizing-chart .element-controls {
     }
   }
 
-  /* Two columns: Šablona takes the whole left one, the selection and add
-     panels auto-place into the right one, and the reset button stretches
-     under both. Never a horizontal scroll. */
+  /* Two columns: Šablona takes the whole left one and the selection and add
+     panels auto-place into the right one. Folded, Šablona is a slim bar
+     across both and the other two sit side by side under it. Never a
+     horizontal scroll. */
   .sidebar-panels {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto 1fr;
     overflow: visible;
   }
 
@@ -2078,12 +2253,12 @@ body.is-resizing-chart .element-controls {
     padding-right: 20px;
   }
 
-  .sidebar-panels > .panel:first-child {
+  .sidebar-panels > .panel-template {
     grid-row: 1 / 3;
   }
 
-  .panel-reset {
-    grid-row: 3;
+  .sidebar-panels > .panel-template.is-collapsed {
+    grid-row: auto;
     grid-column: 1 / -1;
   }
 
@@ -2098,6 +2273,25 @@ body.is-resizing-chart .element-controls {
      column wraps text, i.e. down to 600px with a one-line scope note. */
   .sidebar-panels .panel + .add-elements {
     padding-top: 14px;
+  }
+
+  /* Side by side under the folded bar there is no left column to line up
+     with — both panels just start level. */
+  .sidebar-panels .panel-template.is-collapsed ~ .add-elements {
+    padding-top: 18px;
+  }
+
+  .sidebar-panels .add-elements {
+    transition: padding-top var(--slower) var(--ease-panel);
+  }
+
+  /* Folded, the bar spans the full width: the spec sheet lays its four
+     entries side by side, label over value, so the bar stays short. */
+  .spec-sheet {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-flow: column;
+    grid-template-rows: auto auto;
+    row-gap: 0;
   }
 
   /* The unselected state needs 14px more; the hint carries them and takes
@@ -2145,5 +2339,16 @@ body.is-resizing-chart .element-controls {
 @media (max-width: 600px) {
   .sidebar-panels {
     grid-template-columns: 1fr;
+  }
+
+  /* Four across doesn't fit a phone: two by two, still label over value. */
+  .spec-sheet {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(4, auto);
+  }
+
+  /* Air between the two pairs stacked in each column. */
+  .spec-row:nth-child(odd) dd {
+    margin-bottom: 6px;
   }
 }

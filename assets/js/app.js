@@ -20,6 +20,7 @@ import {
 } from "./ui/themePicker.js";
 import { initRail } from "./ui/rail.js";
 import { initStackedCover } from "./ui/stackedCover.js";
+import { initTemplatePanel, syncTemplateSummary, syncTemplateFoldForPage } from "./ui/templatePanel.js";
 
 const addKpiBtn = document.getElementById("add-kpi");
 const addKpiBandsContainer = document.getElementById("add-kpi-bands");
@@ -82,6 +83,7 @@ function syncTemplateControls() {
   // brand-new page would start on.
   scopeNote.textContent =
     `Tato stránka: ${state.activeTheme.label} · nové stránky: ${defaultThemeLabel()}`;
+  syncTemplateSummary();
 }
 
 // The placement switch itself lives in themePicker.js (it picks a layout, so
@@ -120,6 +122,7 @@ function syncKpiBandControls() {
 
 function syncRowLimitControls() {
   syncRowLimitOptions();
+  syncTemplateSummary();
 }
 
 function initRowLimitControls() {
@@ -154,6 +157,8 @@ function initRowLimitControls() {
 
 function refreshUIFromState() {
   setSelected(null);
+  // A new page opens the Šablona panel; one already worked on stays folded.
+  syncTemplateFoldForPage();
   syncTemplateControls();
   syncPlacementControls();
   syncSlicerRowVisibility();
@@ -184,6 +189,8 @@ function start() {
   syncKpiBandControls();
   syncRowLimitControls();
   renderLayout();
+  // After the first render, so it can tell whether the sidebar fits.
+  initTemplatePanel();
   initStackedCover();
   initResizeEvents();
   initExportEvents();

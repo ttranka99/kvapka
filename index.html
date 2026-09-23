@@ -122,81 +122,113 @@
 
         <aside class="sidebar m-reveal">
             <div class="sidebar-panels">
-                <section class="panel">
-                    <div class="panel-head">
-                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
-                        <div>
-                            <h2>Šablona</h2>
-                            <p>Nastavte rozložení a vzhled reportu</p>
-                        </div>
-                    </div>
-                    <div class="panel-field">
-                        <h3 class="field-label" id="label-resolution">Rozlišení</h3>
-                        <!-- Chips are built by ui/themePicker.js: the two built-in
-                             presets first, then every saved custom theme. -->
-                        <div class="theme-selector" id="theme-selector" role="group" aria-labelledby="label-resolution"></div>
-                    </div>
-
-                    <div class="panel-field">
-                        <h3 class="field-label">Vlastní šablona</h3>
-                        <button type="button" class="btn btn-secondary full-btn" id="new-theme">
-                            <svg aria-hidden="true"><use href="#i-plus"/></svg>
-                            <span>Vlastní šablona…</span>
+                <!-- Folds down to its head once the canvas is set up, so the
+                     panels used all the time sit higher (ui/templatePanel.js). -->
+                <section class="panel panel-template">
+                    <!-- The accordion pattern: the heading holds the toggle, so
+                         the panel stays a landmark for screen readers. -->
+                    <h2 class="panel-head-title">
+                        <button type="button" class="panel-head" id="template-toggle" aria-expanded="true" aria-controls="template-body">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
+                            <span class="panel-head-name">Šablona</span>
+                            <svg class="panel-head-chevron" aria-hidden="true"><use href="#i-chevron"/></svg>
                         </button>
-                    </div>
+                    </h2>
 
-                    <div class="panel-field">
-                        <h3 class="field-label" id="label-theme-scope">Platnost šablony</h3>
-                        <div class="template-selector segmented" role="group" aria-labelledby="label-theme-scope">
-                            <button type="button" class="template-option theme-scope-option active" data-scope="page">Tato stránka</button>
-                            <button type="button" class="template-option theme-scope-option" data-scope="global">Všechny</button>
+                    <!-- Two layers in one place: the controls, and the folded panel's
+                         stand-in — a spec sheet of what they are set to, filled by
+                         ui/templatePanel.js. One is in, the other fades out on top
+                         of it while the fold's height eases between them. -->
+                    <div class="template-fold">
+                        <div class="fold-layer is-out" id="template-summary">
+                            <dl class="spec-sheet">
+                                <div class="spec-row">
+                                    <dt>Rozlišení</dt>
+                                    <dd><span id="sum-res"></span> <span class="spec-muted" id="sum-size"></span></dd>
+                                </div>
+                                <div class="spec-row">
+                                    <dt>Platnost</dt>
+                                    <dd id="sum-scope"></dd>
+                                </div>
+                                <div class="spec-row">
+                                    <dt>Slicery</dt>
+                                    <dd><span class="spec-glyph" id="sum-placement-glyph" aria-hidden="true"></span><span id="sum-placement"></span></dd>
+                                </div>
+                                <div class="spec-row">
+                                    <dt>KPI</dt>
+                                    <dd id="sum-kpi"></dd>
+                                </div>
+                            </dl>
                         </div>
-                        <p class="field-note m-reveal" id="theme-scope-note"></p>
-                    </div>
 
-                    <div class="panel-field">
-                        <h3 class="field-label" id="label-slicer-placement">Slicery</h3>
-                        <!-- Each option is a whole layout, not a view of one:
-                             picking it switches to a template built for that
-                             shape (ui/themePicker.js). An option with no
-                             template of its own is disabled rather than
-                             conjuring one. -->
-                        <div class="template-selector segmented segmented--3" role="group" aria-labelledby="label-slicer-placement">
-                            <button type="button" class="template-option active" data-placement="horizontal">Nahoře</button>
-                            <button type="button" class="template-option" data-placement="vertical-left">Vlevo</button>
-                            <button type="button" class="template-option" data-placement="vertical-right">Vpravo</button>
-                        </div>
-                        <p class="field-note m-reveal" id="placement-note"></p>
-                    </div>
+                        <div class="fold-layer is-in" id="template-body">
+                            <p class="panel-sub">Nastavte rozložení a vzhled reportu</p>
 
-                    <div class="panel-section panel-rows">
-                        <!-- Collapses away in vertical mode: a single slicer column
-                             has no per-row limit to set. -->
-                        <div class="collapsible expanded" id="slicers-per-row-field">
-                            <div class="collapsible-inner">
+                            <div class="panel-field">
+                                <h3 class="field-label" id="label-resolution">Rozlišení</h3>
+                                <!-- Chips are built by ui/themePicker.js: the two built-in
+                                     presets first, then every saved custom theme. -->
+                                <div class="theme-selector" id="theme-selector" role="group" aria-labelledby="label-resolution"></div>
+                            </div>
+
+                            <div class="panel-field">
+                                <h3 class="field-label">Vlastní šablona</h3>
+                                <button type="button" class="btn btn-secondary full-btn" id="new-theme">
+                                    <svg aria-hidden="true"><use href="#i-plus"/></svg>
+                                    <span>Vlastní šablona…</span>
+                                </button>
+                            </div>
+
+                            <div class="panel-field">
+                                <h3 class="field-label" id="label-theme-scope">Platnost šablony</h3>
+                                <div class="template-selector segmented" role="group" aria-labelledby="label-theme-scope">
+                                    <button type="button" class="template-option theme-scope-option active" data-scope="page">Tato stránka</button>
+                                    <button type="button" class="template-option theme-scope-option" data-scope="global">Všechny</button>
+                                </div>
+                                <p class="field-note m-reveal" id="theme-scope-note"></p>
+                            </div>
+
+                            <div class="panel-field">
+                                <h3 class="field-label" id="label-slicer-placement">Slicery</h3>
+                                <!-- Each option is a whole layout, not a view of one:
+                                     picking it switches to a template built for that
+                                     shape (ui/themePicker.js). An option with no
+                                     template of its own is disabled rather than
+                                     conjuring one. -->
+                                <div class="template-selector segmented segmented--3" role="group" aria-labelledby="label-slicer-placement">
+                                    <button type="button" class="template-option active" data-placement="horizontal">Nahoře</button>
+                                    <button type="button" class="template-option" data-placement="vertical-left">Vlevo</button>
+                                    <button type="button" class="template-option" data-placement="vertical-right">Vpravo</button>
+                                </div>
+                                <p class="field-note m-reveal" id="placement-note"></p>
+                            </div>
+
+                            <div class="panel-section panel-rows">
+                                <!-- Collapses away in vertical mode: a single slicer column
+                                     has no per-row limit to set. -->
+                                <div class="collapsible expanded" id="slicers-per-row-field">
+                                    <div class="collapsible-inner">
+                                        <div class="panel-row">
+                                            <label for="slicers-per-row">Slicery na řádek</label>
+                                            <!-- Options come from the active theme's
+                                                 min/max per-row bounds (themePicker.js). -->
+                                            <select id="slicers-per-row"></select>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="panel-row">
-                                    <label for="slicers-per-row">Slicery na řádek</label>
-                                    <!-- Options come from the active theme's
-                                         min/max per-row bounds (themePicker.js). -->
-                                    <select id="slicers-per-row"></select>
+                                    <label for="kpis-per-row">KPI na řádek</label>
+                                    <select id="kpis-per-row"></select>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="panel-row">
-                            <label for="kpis-per-row">KPI na řádek</label>
-                            <select id="kpis-per-row"></select>
+                            <button id="reset-layout" class="btn btn-ghost full-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <span>Reset layoutu</span>
+                            </button>
                         </div>
                     </div>
-                </section>
-
-                <!-- Its own panel so the stacked layout can stretch it under
-                     both columns (see the grid in style.css). -->
-                <section class="panel panel-reset">
-                    <button id="reset-layout" class="btn btn-ghost full-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        <span>Reset layoutu</span>
-                    </button>
                 </section>
 
                 <section class="panel">
