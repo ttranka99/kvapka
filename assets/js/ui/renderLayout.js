@@ -33,6 +33,7 @@ import { attachSlicerColumnResizeHandle } from "../events/slicerColumnResizeEven
 import { setSelected, syncSelectionLockState } from "../ui/selection.js";
 import { renderWarnings } from "../ui/warnings.js";
 import { icon } from "../ui/icon.js";
+import { t } from "../i18n/i18n.js";
 
 const canvas = document.getElementById("canvas");
 
@@ -255,7 +256,7 @@ export function renderLayout(opts) {
 
   const titleLabel = document.createElement("div");
   titleLabel.className = "canvas-element-label";
-  titleLabel.textContent = `Hlavička (${state.USABLE_WIDTH} × ${state.TITLE_HEIGHT})`;
+  titleLabel.textContent = t("canvas.header", { width: state.USABLE_WIDTH, height: state.TITLE_HEIGHT });
   // Scale like every other element label, but also cap by the title box's own
   // height (which shrinks with the template, e.g. HD) so at extreme zoom-out
   // the text never grows taller than the box and spills outside it.
@@ -267,7 +268,7 @@ export function renderLayout(opts) {
     e.stopPropagation();
     setSelected({
       kind: "title",
-      labelType: "Hlavička",
+      labelType: t("selection.kind.header"),
       x: state.MARGIN,
       y: v.TITLE_Y,
       width: state.USABLE_WIDTH,
@@ -295,7 +296,7 @@ export function renderLayout(opts) {
 
       const label = document.createElement("div");
       label.className = "canvas-element-label";
-      label.textContent = `Slicer ${item.globalIndex}`;
+      label.textContent = t("canvas.slicer", { n: item.globalIndex });
       el.appendChild(label);
 
       const controls = document.createElement("div");
@@ -307,15 +308,15 @@ export function renderLayout(opts) {
       const slicerLockBtn = buildLockButton(
         item.stateRef.locked,
         () => handleToggleSlicerLock(item.globalIndex),
-        verticalSlicers ? "Odemknout výšku sliceru" : "Odemknout šířku sliceru",
-        verticalSlicers ? "Zamknout výšku sliceru" : "Zamknout šířku sliceru"
+        verticalSlicers ? t("canvas.unlockSlicerHeight") : t("canvas.unlockSlicerWidth"),
+        verticalSlicers ? t("canvas.lockSlicerHeight") : t("canvas.lockSlicerWidth")
       );
       controls.appendChild(slicerLockBtn);
 
       const removeBtn = document.createElement("button");
       removeBtn.className = "icon-btn";
       removeBtn.innerHTML = icon("close");
-      removeBtn.title = "Odebrat slicer";
+      removeBtn.title = t("canvas.removeSlicer");
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         handleRemoveSlicer(item.globalIndex);
@@ -361,7 +362,7 @@ export function renderLayout(opts) {
           edge: verticalSlicers ? "bottom" : "right"
         },
         onClick: () => handleAddSlicer(item.globalIndex),
-        title: "Přidat slicer"
+        title: t("canvas.addSlicer")
       });
     });
   });
@@ -389,7 +390,7 @@ export function renderLayout(opts) {
       label.className = "canvas-element-label";
       // Band 2 numbering restarts at 1 — it is its own row of cards, not a
       // continuation of the header band's.
-      label.textContent = `KPI ${item.index + 1}`;
+      label.textContent = t("canvas.kpi", { n: item.index + 1 });
       el.appendChild(label);
       // One flag covers both values; which one it holds says what is locked.
       markLocked(el, item.stateRef.locked && item.stateRef.width != null, item.stateRef.locked && item.stateRef.height != null);
@@ -401,15 +402,15 @@ export function renderLayout(opts) {
       const kpiLockBtn = buildLockButton(
         item.stateRef.locked,
         () => handleToggleKpiLock(item.index, item.bandId),
-        "Odemknout šířku KPI",
-        "Zamknout šířku KPI"
+        t("canvas.unlockKpiWidth"),
+        t("canvas.lockKpiWidth")
       );
       controls.appendChild(kpiLockBtn);
 
       const removeBtn = document.createElement("button");
       removeBtn.className = "icon-btn";
       removeBtn.innerHTML = icon("close");
-      removeBtn.title = "Odebrat KPI";
+      removeBtn.title = t("canvas.removeKpi");
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         handleRemoveKpi(item.index, item.bandId);
@@ -442,7 +443,7 @@ export function renderLayout(opts) {
           edge: "right"
         },
         onClick: () => handleAddKpi(item.index, item.bandId),
-        title: "Přidat KPI"
+        title: t("canvas.addKpi")
       });
     });
   });
@@ -511,7 +512,7 @@ export function renderLayout(opts) {
 
           const label = document.createElement("div");
           label.className = "canvas-element-label";
-          label.textContent = `Graf ${rowIndex + 1}.${i + 1}.${s + 1}`;
+          label.textContent = t("canvas.stackChart", { row: rowIndex + 1, col: i + 1, stack: s + 1 });
           el.appendChild(label);
 
           const controls = document.createElement("div");
@@ -524,8 +525,8 @@ export function renderLayout(opts) {
           const stackLockBtn = buildLockButton(
             stackEntry.locked,
             () => handleToggleStackLock(rowIndex, i, s),
-            "Odemknout výšku grafu",
-            "Zamknout výšku grafu"
+            t("canvas.unlockChartHeight"),
+            t("canvas.lockChartHeight")
           );
           controls.appendChild(stackLockBtn);
 
@@ -533,7 +534,7 @@ export function renderLayout(opts) {
           const stackRemoveBtn = document.createElement("button");
           stackRemoveBtn.className = "icon-btn";
           stackRemoveBtn.innerHTML = icon("close");
-          stackRemoveBtn.title = "Odebrat graf";
+          stackRemoveBtn.title = t("canvas.removeChart");
           stackRemoveBtn.addEventListener("click", (e) => {
             e.stopPropagation();
             handleRemoveStackChart(rowIndex, i, s);
@@ -581,7 +582,7 @@ export function renderLayout(opts) {
             edge: "bottom"
           },
           onClick: () => handleAddStackChart(rowIndex, i, item.subCharts.length - 1),
-          title: "Přidat graf pod"
+          title: t("canvas.addChartBelow")
         });
 
         return;
@@ -600,7 +601,7 @@ export function renderLayout(opts) {
 
       const label = document.createElement("div");
       label.className = "canvas-element-label";
-      label.textContent = `Graf ${rowIndex + 1}.${i + 1}`;
+      label.textContent = t("canvas.chart", { row: rowIndex + 1, col: i + 1 });
       el.appendChild(label);
 
       const controls = document.createElement("div");
@@ -625,15 +626,15 @@ export function renderLayout(opts) {
       const lockBtn = buildLockButton(
         chartStateItem.locked || rowLocked,
         () => handleToggleChartLock(rowIndex, i),
-        rowLocked ? (chartStateItem.locked ? "Odemknout šířku grafu i výšku řady" : "Odemknout výšku řady") : "Odemknout šířku grafu",
-        "Zamknout šířku grafu"
+        rowLocked ? (chartStateItem.locked ? t("canvas.unlockChartWidthAndRow") : t("canvas.unlockRowHeight")) : t("canvas.unlockChartWidth"),
+        t("canvas.lockChartWidth")
       );
       controls.appendChild(lockBtn);
 
       const removeBtn = document.createElement("button");
       removeBtn.className = "icon-btn";
       removeBtn.innerHTML = icon("close");
-      removeBtn.title = "Odebrat graf";
+      removeBtn.title = t("canvas.removeChart");
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         handleRemoveChart(rowIndex, i);
@@ -722,7 +723,7 @@ export function renderLayout(opts) {
             edge: "bottom"
           },
           onClick: () => handleAddStackChart(rowIndex, i, s),
-          title: "Přidat graf pod"
+          title: t("canvas.addChartBelow")
         });
       }
     });
@@ -776,7 +777,7 @@ export function renderLayout(opts) {
             btnPos: { x: left, y: top + rect.height / 2 },
             scope: { left, top, width: rect.width, height: rect.height, edge: "left" },
             onClick: () => handleAddChartLeft(rowIndex, 0),
-            title: "Přidat graf vlevo"
+            title: t("canvas.addChartLeft")
           });
         }
       }
@@ -801,7 +802,7 @@ export function renderLayout(opts) {
               edge: "right"
             },
             onClick: () => handleAddChartRight(rowIndex, i),
-            title: "Přidat graf vpravo"
+            title: t("canvas.addChartRight")
           });
         }
       }
@@ -843,7 +844,7 @@ export function renderLayout(opts) {
           edge: "right"
         },
         onClick: () => handleAddChartRight(rowIndex, i),
-        title: "Přidat graf vpravo"
+        title: t("canvas.addChartRight")
       });
     });
   });
@@ -909,7 +910,7 @@ export function renderLayout(opts) {
         edge: "bottom"
       },
       onClick: () => handleAddChartRow(rowIndex),
-      title: "Přidat řadu grafů pod"
+      title: t("canvas.addChartRowBelow")
     });
   }
 
@@ -934,7 +935,7 @@ export function renderLayout(opts) {
           edge: "bottom"
         },
         onClick: () => handleAddChartRow(lastRowIndex),
-        title: "Přidat řadu grafů pod"
+        title: t("canvas.addChartRowBelow")
       });
     }
   }

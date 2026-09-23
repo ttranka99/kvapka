@@ -5,6 +5,7 @@ import { renderLayout } from "../ui/renderLayout.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeKpiLayoutForBand } from "../layout/computeKpiLayout.js";
 import { flash } from "../ui/motion.js";
+import { t, isFrom } from "../i18n/i18n.js";
 
 // Every KPI band is edited through the same handlers, addressed by the id
 // of its `kpi` section — however many a theme defines, each behaves the
@@ -29,8 +30,8 @@ export function canAddKpi(bandId) {
 export function kpiLimitMessage(bandId) {
   const section = sectionFor(bandId);
   return section && !section.allowSecondRow
-    ? `Pás KPI „${bandId}“ je plný — zvyšte limit na řádek nebo odeberte KPI.`
-    : "Bylo dosaženo maximálního počtu KPI.";
+    ? t("warnings.kpi.bandFull", { band: bandId })
+    : t("warnings.kpi.limit");
 }
 
 // Add KPI at index within its band
@@ -64,7 +65,7 @@ export function handleRemoveKpi(index, bandId) {
   next.splice(index, 1);
 
   if (next.length < state.MAX_KPIS) {
-    state.setWarnings(state.warnings.filter(w => !w.includes("KPI")));
+    state.setWarnings(state.warnings.filter(w => !isFrom(w, "warnings.kpi.")));
   }
 
   state.setKpiBand(bandId, next);
@@ -108,7 +109,7 @@ export function handleSelectKpi(item, domId, opts = {}) {
   setSelected({
     kind: "kpi",
     band,
-    labelType: band === 0 ? "KPI" : `KPI (pás ${band + 1})`,
+    labelType: band === 0 ? t("selection.kind.kpi") : t("selection.kind.kpiBand", { n: band + 1 }),
     labelIndex: item.index + 1,
     x: item.x,
     y: item.y,

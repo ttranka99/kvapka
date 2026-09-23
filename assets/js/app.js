@@ -6,7 +6,7 @@ import { handleSplitChart } from "./events/stackEvents.js";
 import { initExportEvents } from "./export/exportPowerBI.js";
 import { renderLayout } from "./ui/renderLayout.js";
 import { initTabs } from "./state/tabs.js";
-import { initTabsUI } from "./ui/tabs.js";
+import { initTabsUI, renderTabBar } from "./ui/tabs.js";
 import * as state from "./state/state.js";
 import { canAddSlicer, slicerLimitMessage } from "./events/slicerEvents.js";
 import { handleAppendKpi } from "./events/kpiEvents.js";
@@ -21,6 +21,10 @@ import {
 import { initRail } from "./ui/rail.js";
 import { initStackedCover } from "./ui/stackedCover.js";
 import { initTemplatePanel, syncTemplateSummary, syncTemplateFoldForPage } from "./ui/templatePanel.js";
+import { t, applyStaticText, getLocale, setLocale, onLocaleChange } from "./i18n/i18n.js";
+
+// The static text in index.html, filled before anything reads or measures it.
+applyStaticText();
 
 const addKpiBtn = document.getElementById("add-kpi");
 const addKpiBandsContainer = document.getElementById("add-kpi-bands");
@@ -78,11 +82,11 @@ addChartSplitBtn.addEventListener("mouseleave", () => {
 
 function syncTemplateControls() {
   renderThemeSelector();
-  canvasSizeLabel.textContent = `Power BI plátno ${state.CANVAS_WIDTH} × ${state.CANVAS_HEIGHT}`;
+  canvasSizeLabel.textContent = t("canvas.sizeLabel", { width: state.CANVAS_WIDTH, height: state.CANVAS_HEIGHT });
   // Spelling out both halves of the split: what this page uses, and what a
   // brand-new page would start on.
   scopeNote.textContent =
-    `Tato stránka: ${state.activeTheme.label} · nové stránky: ${defaultThemeLabel()}`;
+    t("template.scopeNote", { page: state.activeTheme.label, default: defaultThemeLabel() });
   syncTemplateSummary();
 }
 
@@ -114,7 +118,7 @@ function syncKpiBandControls() {
     const btn = document.createElement("button");
     btn.className = "full-btn band2-btn";
     if (i === 0) btn.id = "add-kpi-band2";
-    btn.textContent = extraIds.length > 1 ? `KPI – pás ${i + 2}` : "KPI – prostřední pás";
+    btn.textContent = extraIds.length > 1 ? t("add.kpiBand", { n: i + 2 }) : t("add.kpiBandMiddle");
     btn.addEventListener("click", () => handleAppendKpi(id));
     addKpiBandsContainer.appendChild(btn);
   });
@@ -170,6 +174,48 @@ function refreshUIFromState() {
   renderWarnings();
 }
 
+// The CS / EN switch in the top bar. The language changes in place: i18n.js
+// refills the static markup and each module carries over the text it holds;
+// what is left here is re-rendering the text-bearing parts of the sidebar and
+// canvas. Unlike refreshUIFromState it keeps the selection and the Šablona
+// fold, and the canvas relabels without replaying any motion.
+const localeSwitch = document.querySelector(".lang-switch");
+const localeButtons = localeSwitch.querySelectorAll("[data-locale]");
+
+// data-active places the sliding thumb (style.css). The thumb only transitions
+// once data-ready is set, a frame after it first lands, so a page that loads
+// in English shows it already on EN instead of sliding over from CS.
+function syncLocaleButtons() {
+  localeSwitch.dataset.active = getLocale();
+  localeButtons.forEach(button => {
+    const active = button.dataset.locale === getLocale();
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
+
+function initLocaleSwitch() {
+  localeButtons.forEach(button => {
+    button.addEventListener("click", () => setLocale(button.dataset.locale));
+  });
+  syncLocaleButtons();
+  requestAnimationFrame(() => requestAnimationFrame(() => { localeSwitch.dataset.ready = ""; }));
+
+  onLocaleChange(() => {
+    syncLocaleButtons();
+    syncTemplateControls();
+    syncKpiBandControls();
+    syncRowLimitControls();
+    renderTabBar();
+    renderLayout({ motion: false });
+    // The rebuilt canvas carries no selection mark; the selection itself
+    // survived (ui/selection.js relabelled it), so put the mark back.
+    const domId = state.selectedElement?.domId;
+    if (domId) document.getElementById(domId)?.classList.add("selected");
+    renderWarnings();
+  });
+}
+
 function debounce(fn, waitMs) {
   let timer;
   return (...args) => {
@@ -183,6 +229,7 @@ function start() {
   initTabsUI({ refreshUI: refreshUIFromState });
   initThemePicker({ refreshUI: refreshUIFromState });
   initRail({ openEditor: openActiveThemeEditor });
+  initLocaleSwitch();
   initRowLimitControls();
   syncTemplateControls();
   syncSlicerRowVisibility();

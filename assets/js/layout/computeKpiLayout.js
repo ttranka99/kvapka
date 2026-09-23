@@ -1,14 +1,15 @@
 import * as state from "../state/state.js";
 import { addWarning } from "../ui/warnings.js";
 import { distributeInSteps } from "./sizeStep.js";
+import { t } from "../i18n/i18n.js";
 
-const MAX_PER_ROW_INFO = "Dosažen maximální počet KPI. Další KPI budou umístěny na další řádek.";
-const HARD_LIMIT_ERROR = "Dosaženo maximálního počtu KPI. Odeberte KPI.";
-const SECOND_ROW_LIMIT_WARNING = "Druhý řádek KPI překračuje vybraný limit.";
-const ROW1_MANUAL_WIDTH_SUM_ERROR = "The sum of manually set KPI widths exceeds the available width.";
-const ROW1_OVERFLOW_ERROR = "KPI se nevejdou do dostupné šířky – uprav šířky nebo odeber KPI.";
-const ROW2_MANUAL_WIDTH_SUM_ERROR = "The sum of manually set KPI widths on the second row exceeds the available width.";
-const ROW2_OVERFLOW_ERROR = "KPI se nevejdou do dostupné šířky – upravte šířku nebo odeberte KPI.";
+const MAX_PER_ROW_INFO = () => t("warnings.kpi.maxPerRow");
+const HARD_LIMIT_ERROR = () => t("warnings.kpi.hardLimit");
+const SECOND_ROW_LIMIT_WARNING = () => t("warnings.kpi.secondRowLimit");
+const ROW1_MANUAL_WIDTH_SUM_ERROR = () => t("warnings.kpi.row1ManualWidthSum");
+const ROW1_OVERFLOW_ERROR = () => t("warnings.kpi.row1Overflow");
+const ROW2_MANUAL_WIDTH_SUM_ERROR = () => t("warnings.kpi.row2ManualWidthSum");
+const ROW2_OVERFLOW_ERROR = () => t("warnings.kpi.row2Overflow");
 
 // Messages for a band that never grows a second row (any `kpi` section past
 // the first, unless a later stage opts more of them into allowSecondRow).
@@ -16,8 +17,8 @@ const ROW2_OVERFLOW_ERROR = "KPI se nevejdou do dostupné šířky – upravte �
 // therefore never fight over, one warning slot.
 function singleRowMessages(bandId) {
   return {
-    overflow: `KPI v pásu „${bandId}“ se nevejdou do dostupné šířky – upravte šířku nebo odeberte KPI.`,
-    limit: `KPI v pásu „${bandId}“ překračují vybraný limit na řádek.`
+    overflow: t("warnings.kpi.bandOverflow", { band: bandId }),
+    limit: t("warnings.kpi.bandLimit", { band: bandId })
   };
 }
 
@@ -108,27 +109,27 @@ function rowFits(widths, count, availableWidth) {
 
 // Header-style layout: up to two rows, capped at MAX_KPIS / SECOND_ROW_MAX_ITEMS.
 function computeTwoRowLayout(v, bandId, top, cards) {
-  syncWarning(cards.length === state.MAX_KPIS, MAX_PER_ROW_INFO, "info");
+  syncWarning(cards.length === state.MAX_KPIS, MAX_PER_ROW_INFO(), "info");
   syncWarning(
     cards.length > state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS,
-    HARD_LIMIT_ERROR,
+    HARD_LIMIT_ERROR(),
     "error"
   );
 
   const n = cards.length;
   if (n === 0) {
-    syncWarning(false, SECOND_ROW_LIMIT_WARNING, "warning");
-    syncWarning(false, ROW1_MANUAL_WIDTH_SUM_ERROR, "error");
-    syncWarning(false, ROW1_OVERFLOW_ERROR, "error");
-    syncWarning(false, ROW2_MANUAL_WIDTH_SUM_ERROR, "error");
-    syncWarning(false, ROW2_OVERFLOW_ERROR, "error");
+    syncWarning(false, SECOND_ROW_LIMIT_WARNING(), "warning");
+    syncWarning(false, ROW1_MANUAL_WIDTH_SUM_ERROR(), "error");
+    syncWarning(false, ROW1_OVERFLOW_ERROR(), "error");
+    syncWarning(false, ROW2_MANUAL_WIDTH_SUM_ERROR(), "error");
+    syncWarning(false, ROW2_OVERFLOW_ERROR(), "error");
     return [];
   }
 
   const row1 = cards.slice(0, state.MAX_KPIS);
   const row2 = cards.slice(state.MAX_KPIS, state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS);
 
-  syncWarning(row2.length > state.MAX_KPIS, SECOND_ROW_LIMIT_WARNING, "warning");
+  syncWarning(row2.length > state.MAX_KPIS, SECOND_ROW_LIMIT_WARNING(), "warning");
 
   const totalGaps1 = (row1.length - 1) * state.GAP_SMALL;
   const totalGaps2 = (row2.length - 1) * state.GAP_SMALL;
@@ -136,20 +137,20 @@ function computeTwoRowLayout(v, bandId, top, cards) {
   const solved1 = kpiRowWidths(row1, v.contentWidth);
   const widths1 = solved1.widths;
 
-  syncWarning(solved1.manualSumExceeded, ROW1_MANUAL_WIDTH_SUM_ERROR, "error");
+  syncWarning(solved1.manualSumExceeded, ROW1_MANUAL_WIDTH_SUM_ERROR(), "error");
   if (solved1.manualSumExceeded) {
-    syncWarning(false, ROW1_OVERFLOW_ERROR, "error");
-    syncWarning(false, ROW2_MANUAL_WIDTH_SUM_ERROR, "error");
-    syncWarning(false, ROW2_OVERFLOW_ERROR, "error");
+    syncWarning(false, ROW1_OVERFLOW_ERROR(), "error");
+    syncWarning(false, ROW2_MANUAL_WIDTH_SUM_ERROR(), "error");
+    syncWarning(false, ROW2_OVERFLOW_ERROR(), "error");
     return [];
   }
 
   const totalWidthRow1 = widths1.reduce((s, w) => s + w, 0) + totalGaps1;
   const row1Overflows = totalWidthRow1 > v.contentWidth;
-  syncWarning(row1Overflows, ROW1_OVERFLOW_ERROR, "error");
+  syncWarning(row1Overflows, ROW1_OVERFLOW_ERROR(), "error");
   if (row1Overflows) {
-    syncWarning(false, ROW2_MANUAL_WIDTH_SUM_ERROR, "error");
-    syncWarning(false, ROW2_OVERFLOW_ERROR, "error");
+    syncWarning(false, ROW2_MANUAL_WIDTH_SUM_ERROR(), "error");
+    syncWarning(false, ROW2_OVERFLOW_ERROR(), "error");
     return [];
   }
 
@@ -196,11 +197,11 @@ function computeTwoRowLayout(v, bandId, top, cards) {
     }
   }
 
-  syncWarning(row2ManualWidthSumExceeded, ROW2_MANUAL_WIDTH_SUM_ERROR, "error");
+  syncWarning(row2ManualWidthSumExceeded, ROW2_MANUAL_WIDTH_SUM_ERROR(), "error");
 
   const totalWidthRow2 = widths2.reduce((s, w) => s + w, 0) + totalGaps2;
   const row2Overflows = totalWidthRow2 > v.contentWidth;
-  syncWarning(row2Overflows, ROW2_OVERFLOW_ERROR, "error");
+  syncWarning(row2Overflows, ROW2_OVERFLOW_ERROR(), "error");
   if (row2Overflows) return [];
 
   const ordinal = state.kpiBandIds().indexOf(bandId);

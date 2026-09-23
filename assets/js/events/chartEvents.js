@@ -8,6 +8,7 @@ import { canAddChart } from "../layout/canAddChart.js";
 import { renderLayout } from "../ui/renderLayout.js";
 import { flash, flashAll } from "../ui/motion.js";
 import { renderWarnings } from "../ui/warnings.js";
+import { t } from "../i18n/i18n.js";
 
 // DOM ids of the locked cards among `itemIndexes` of a row, for pointing at
 // what blocked a refused action. A row height lock (from Apply) locks every
@@ -46,10 +47,10 @@ function allItemIndexes(rowIndex) {
 // stack is among the locked items, so the user doesn't unlock one sub-chart
 // and get confused when the row is still blocked.
 function buildAllLockedRowWarning(items) {
-  const base = "Nelze přidat graf, všechny grafy v řadě jsou uzamčené. Nejprve odemkněte alespoň jeden graf.";
+  const base = t("warnings.chart.allLocked");
   const hasLockedStack = items.some(item => item.locked && item.stack);
   return hasLockedStack
-    ? `${base} (U sloupce s více grafy je nutné odemknout všechny grafy v tomto sloupci.)`
+    ? t("warnings.chart.allLockedStackNote", { message: base })
     : base;
 }
 
@@ -81,7 +82,7 @@ export function handleAddChartLeft(rowIndex, itemIndex) {
   simulatedRow.items.splice(itemIndex, 0, { width: null, locked: false });
 
   if (!canAddChart(simulated)) {
-    addWarning("Nedostatek prostoru pro přidání grafu", "error");
+    addWarning(t("warnings.chart.noSpace"), "error");
     return;
   }
 
@@ -121,7 +122,7 @@ export function handleAddChartRight(rowIndex, itemIndex) {
   simulatedRow.items.splice(itemIndex + 1, 0, { width: null, locked: false });
 
   if (!canAddChart(simulated)) {
-    addWarning("Nelze přidat graf, ostatní grafy by byly příliš malé.", "error");
+    addWarning(t("warnings.chart.tooSmall"), "error");
     return;
   }
 
@@ -153,7 +154,7 @@ export function handleAddChartRow(rowIndex) {
   simulated.splice(rowIndex + 1, 0, { height: null, locked: false, items: [{}] });
 
   if (!canAddChart(simulated)) {
-    addWarning("Nelze přidat další graf, upravte výšky řad grafů.", "error");
+    addWarning(t("warnings.chart.adjustRowHeights"), "error");
     return;
   }
 
@@ -179,7 +180,7 @@ export function handleRemoveChart(rowIndex, itemIndex) {
     // up. Block the removal and ask the user to unlock something first,
     // rather than silently leaving that gap.
     if (!anyUnlockedRemaining) {
-      addWarning("Nelze odebrat graf, nejprve odemkněte alespoň jeden graf v řadě.", "error");
+      addWarning(t("warnings.chart.removeUnlockRow"), "error");
       flashAll(lockedChartCardIds(rowIndex, allItemIndexes(rowIndex).filter(i => i !== itemIndex)));
       return;
     }
@@ -264,7 +265,7 @@ export function handleToggleChartLock(rowIndex, itemIndex) {
 export function handleSelectChart(item, rowIndex, domId, heights, opts = {}) {
   setSelected({
     kind: "chartRow",
-    labelType: "Řada grafů",
+    labelType: t("selection.kind.chartRow"),
     labelIndex: rowIndex + 1,
     x: item.x,
     y: item.y,

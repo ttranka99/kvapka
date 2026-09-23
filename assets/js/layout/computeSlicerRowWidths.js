@@ -1,9 +1,10 @@
 import * as state from "../state/state.js";
 import { addWarning } from "../ui/warnings.js";
 import { distributeInSteps } from "./sizeStep.js";
+import { t } from "../i18n/i18n.js";
 
-const MANUAL_WIDTH_SUM_ERROR = "Součet ručně nastavených šířek slicerů přesahuje dostupnou šířku.";
-const TIGHT_FIT_WARNING = "Nedostatek místa – některé slicery mohou být příliš úzké.";
+const MANUAL_WIDTH_SUM_ERROR = () => t("warnings.slicer.manualWidthSum");
+const TIGHT_FIT_WARNING = () => t("warnings.slicer.tightFit");
 
 // Tracks which conditions this module has already surfaced a notification
 // for, independent of the toast's own 5s panel-timeout — see the identical
@@ -38,7 +39,7 @@ export function computeSlicerRowWidths(rowSlicers) {
   let remaining = state.USABLE_WIDTH - totalGaps - lockedSum;
 
   const manualWidthSumExceeded = remaining < 0;
-  syncWarning(manualWidthSumExceeded, MANUAL_WIDTH_SUM_ERROR, "error");
+  syncWarning(manualWidthSumExceeded, MANUAL_WIDTH_SUM_ERROR(), "error");
   if (manualWidthSumExceeded) {
     remaining = 0;
   }
@@ -47,11 +48,11 @@ export function computeSlicerRowWidths(rowSlicers) {
   const m = unlocked.length;
 
   if (m === 0) {
-    syncWarning(false, TIGHT_FIT_WARNING, "warning");
+    syncWarning(false, TIGHT_FIT_WARNING(), "warning");
     return rowSlicers.map(s => s.width);
   }
 
-  syncWarning(remaining < m * state.MIN_SLICER_WIDTH, TIGHT_FIT_WARNING, "warning");
+  syncWarning(remaining < m * state.MIN_SLICER_WIDTH, TIGHT_FIT_WARNING(), "warning");
 
   // Symmetric distribution when nothing is locked — same rule as KPI rows
   // (computeKpiLayout.js) and chart rows, so a slicer row and a KPI row with

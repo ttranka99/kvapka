@@ -1,6 +1,7 @@
 import * as state from "../state/state.js";
 import { addWarning, renderWarnings } from "./warnings.js";
 import { icon } from "./icon.js";
+import { t, onLocaleChange } from "../i18n/i18n.js";
 
 // Unsaved width/height edits, typed into the panel but not yet applied to
 // app state. Seeded from the selected element's confirmed values on every
@@ -91,7 +92,7 @@ export function initSelectionCopyButtons() {
           btn.classList.remove("copy-btn-success");
         }, COPY_SUCCESS_MS);
       } catch {
-        addWarning("Kopírování se nezdařilo.", "error");
+        addWarning(t("warnings.copyFailed"), "error");
         renderWarnings();
       }
     });
@@ -145,7 +146,7 @@ export function initSelectionInlineEditing() {
       const val = parseInt(raw, 10);
 
       if (raw === "" || isNaN(val)) {
-        addWarning("Zadejte platné číslo.", "error");
+        addWarning(t("warnings.size.invalidNumber"), "error");
         renderWarnings();
         // Revert just this one field back to the element's actual current
         // (last-applied) size — not the whole selection/panel, and not
@@ -280,6 +281,15 @@ export function setSelected(info, opts = {}) {
   updateSplitChartButtonVisibility(info);
   syncSelectionLockState();
 }
+
+// A language switch keeps the selection; only its type label, stored as
+// finished text, is carried over.
+onLocaleChange(convert => {
+  const info = state.selectedElement;
+  if (!info) return;
+  info.labelType = convert(info.labelType);
+  document.getElementById("sel-type").textContent = info.labelType;
+});
 
 /* Marks the width/height rows of the inspector with the selected card's
    lock. The card is the source of truth (renderLayout's markLocked writes

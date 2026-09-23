@@ -22,6 +22,8 @@
 // applies it, the editor renders its controls from it, and validation clamps
 // against it. Adding a tunable means adding one entry here, nothing else.
 
+import { t } from "../i18n/i18n.js";
+
 export const THEME_SCHEMA = "kb-layout-theme@3";
 
 // The three shapes a layout can have, in the order the UI offers them. A
@@ -32,9 +34,9 @@ export const THEME_SCHEMA = "kb-layout-theme@3";
 export const PLACEMENTS = ["horizontal", "vertical-left", "vertical-right"];
 
 const PLACEMENT_LABELS = {
-  "horizontal": "Nahoře",
-  "vertical-left": "Vlevo",
-  "vertical-right": "Vpravo"
+  get "horizontal"() { return t("placement.horizontal"); },
+  get "vertical-left"() { return t("placement.verticalLeft"); },
+  get "vertical-right"() { return t("placement.verticalRight"); }
 };
 
 export const isVerticalPlacement = p => p === "vertical-left" || p === "vertical-right";
@@ -48,7 +50,7 @@ export const placementLabel = p => PLACEMENT_LABELS[p] || PLACEMENT_LABELS.horiz
 // Every editable numeric constant, in the order the editor shows it.
 //   key    — property name on the theme object
 //   group  — editor section it belongs to
-//   label  — Czech UI label (the whole app is Czech)
+//   label  — UI label, from the locale file (i18n/locales/)
 //   min/max/step — the input's own bounds
 //   region — the preview region this control highlights, so hovering either
 //            side of the editor lights up the other
@@ -65,54 +67,54 @@ export const placementLabel = p => PLACEMENT_LABELS[p] || PLACEMENT_LABELS.horiz
 //            is drawn as a different part of the preview.
 export const FIELDS = [
   // --- Plátno ---
-  { key: "canvasWidth", group: "canvas", label: "Šířka plátna", unit: "px", min: 480, max: 7680, step: 10, region: "canvas" },
-  { key: "canvasHeight", group: "canvas", label: "Výška plátna", unit: "px", min: 320, max: 4320, step: 10, region: "canvas" },
+  { key: "canvasWidth", group: "canvas", get label() { return t("themeField.canvasWidth.label"); }, unit: "px", min: 480, max: 7680, step: 10, region: "canvas" },
+  { key: "canvasHeight", group: "canvas", get label() { return t("themeField.canvasHeight.label"); }, unit: "px", min: 320, max: 4320, step: 10, region: "canvas" },
 
   // --- Okraje a mezery ---
-  { key: "margin", group: "spacing", label: "Okraj plátna", unit: "px", min: 0, max: 200, step: 1, region: "margin",
-    hint: "Volný pás mezi okrajem plátna a použitelnou plochou — nahoře, dole i po stranách." },
-  { key: "gapSmall", group: "spacing", label: "Mezera mezi prvky", unit: "px", min: 0, max: 100, step: 1, region: "gap-small",
-    hint: "Základní rozestup mezi sousedními prvky v řádku i mezi řadami grafů." },
-  { key: "gapKpiToCharts", group: "spacing", label: "Mezera mezi bloky", unit: "px", min: 0, max: 200, step: 1, region: "gap-block",
-    hint: "Širší mezera oddělující bloky: slicery od obsahu, KPI od grafů." },
+  { key: "margin", group: "spacing", get label() { return t("themeField.margin.label"); }, unit: "px", min: 0, max: 200, step: 1, region: "margin",
+    get hint() { return t("themeField.margin.hint"); } },
+  { key: "gapSmall", group: "spacing", get label() { return t("themeField.gapSmall.label"); }, unit: "px", min: 0, max: 100, step: 1, region: "gap-small",
+    get hint() { return t("themeField.gapSmall.hint"); } },
+  { key: "gapKpiToCharts", group: "spacing", get label() { return t("themeField.gapKpiToCharts.label"); }, unit: "px", min: 0, max: 200, step: 1, region: "gap-block",
+    get hint() { return t("themeField.gapKpiToCharts.hint"); } },
 
   // --- Hlavička ---
-  { key: "titleHeight", group: "header", label: "Výška hlavičky", unit: "px", min: 0, max: 400, step: 1, region: "title" },
+  { key: "titleHeight", group: "header", get label() { return t("themeField.titleHeight.label"); }, unit: "px", min: 0, max: 400, step: 1, region: "title" },
 
   // --- Slicery ---
   //
   // slicerHeight is the one field both placements keep, and it means a
   // different thing in each: the band's fixed height in a row, the per-slicer
   // floor the stack grows from in a column.
-  { key: "slicerHeight", group: "slicers", label: "Výška sliceru", unit: "px", min: 20, max: 400, step: 1, region: "slicer",
-    hint: "Pevná výška slicerů ve vodorovném pásu.",
-    verticalLabel: "Min. výška sliceru",
-    verticalHint: "Minimální (a výchozí) výška jednoho sliceru ve sloupci — od ní se odvíjí, kolik se jich do sloupce vejde.",
+  { key: "slicerHeight", group: "slicers", get label() { return t("themeField.slicerHeight.label"); }, unit: "px", min: 20, max: 400, step: 1, region: "slicer",
+    get hint() { return t("themeField.slicerHeight.hint"); },
+    get verticalLabel() { return t("themeField.slicerHeight.verticalLabel"); },
+    get verticalHint() { return t("themeField.slicerHeight.verticalHint"); },
     // The horizontal band is drawn as "slicer"; the column as "slicer-column".
     // Same field, two different things on screen to point at.
     verticalRegion: "slicer-column" },
-  { key: "minSlicerWidth", group: "slicers", label: "Min. šířka sliceru", unit: "px", min: 20, max: 600, step: 5, region: "slicer",
+  { key: "minSlicerWidth", group: "slicers", get label() { return t("themeField.minSlicerWidth.label"); }, unit: "px", min: 20, max: 600, step: 5, region: "slicer",
     scope: "horizontal" },
-  { key: "slicerColumnWidth", group: "slicers", label: "Šířka sloupce", unit: "px", min: 60, max: 900, step: 5, region: "slicer-column",
+  { key: "slicerColumnWidth", group: "slicers", get label() { return t("themeField.slicerColumnWidth.label"); }, unit: "px", min: 60, max: 900, step: 5, region: "slicer-column",
     scope: "vertical",
-    hint: "Výchozí šířka svislého sloupce slicerů." },
-  { key: "minSlicerColumnWidth", group: "slicers", label: "Min. šířka sloupce", unit: "px", min: 40, max: 900, step: 5, region: "slicer-column",
+    get hint() { return t("themeField.slicerColumnWidth.hint"); } },
+  { key: "minSlicerColumnWidth", group: "slicers", get label() { return t("themeField.minSlicerColumnWidth.label"); }, unit: "px", min: 40, max: 900, step: 5, region: "slicer-column",
     scope: "vertical" },
-  { key: "maxSlicerColumnWidth", group: "slicers", label: "Max. šířka sloupce", unit: "px", min: 60, max: 1200, step: 5, region: "slicer-column",
+  { key: "maxSlicerColumnWidth", group: "slicers", get label() { return t("themeField.maxSlicerColumnWidth.label"); }, unit: "px", min: 60, max: 1200, step: 5, region: "slicer-column",
     scope: "vertical" },
-  { key: "slicerFillThreshold", group: "slicers", label: "Práh dopnění sloupce", unit: "%", min: 0, max: 100, step: 5, region: "slicer-column",
+  { key: "slicerFillThreshold", group: "slicers", get label() { return t("themeField.slicerFillThreshold.label"); }, unit: "%", min: 0, max: 100, step: 5, region: "slicer-column",
     percent: true,
     scope: "vertical",
-    hint: "Jakmile slicery při minimální výšce zaplní alespoň tuto část sloupce, roztáhnou se přesně na jeho výšku." },
+    get hint() { return t("themeField.slicerFillThreshold.hint"); } },
 
   // --- KPI ---
-  { key: "kpiMinHeight", group: "kpis", label: "Výška KPI", unit: "px", min: 20, max: 500, step: 1, region: "kpi" },
+  { key: "kpiMinHeight", group: "kpis", get label() { return t("themeField.kpiMinHeight.label"); }, unit: "px", min: 20, max: 500, step: 1, region: "kpi" },
 
   // --- Grafy ---
-  { key: "minChartRowHeight", group: "charts", label: "Min. výška řady", unit: "px", min: 30, max: 800, step: 5, region: "charts" },
-  { key: "minChartWidth", group: "charts", label: "Min. šířka grafu", unit: "px", min: 30, max: 900, step: 5, region: "charts" },
-  { key: "hardMinChartHeight", group: "charts", label: "Absolutní min. výška", unit: "px", min: 10, max: 400, step: 5, region: "charts",
-    hint: "Tvrdé dno, na které smí graf zmenšit, když se řady jinak na plátno nevejdou." },
+  { key: "minChartRowHeight", group: "charts", get label() { return t("themeField.minChartRowHeight.label"); }, unit: "px", min: 30, max: 800, step: 5, region: "charts" },
+  { key: "minChartWidth", group: "charts", get label() { return t("themeField.minChartWidth.label"); }, unit: "px", min: 30, max: 900, step: 5, region: "charts" },
+  { key: "hardMinChartHeight", group: "charts", get label() { return t("themeField.hardMinChartHeight.label"); }, unit: "px", min: 10, max: 400, step: 5, region: "charts",
+    get hint() { return t("themeField.hardMinChartHeight.hint"); } },
 
   // --- Počty slicerů a KPI ---
   //
@@ -123,44 +125,44 @@ export const FIELDS = [
   // In a vertical layout the slicers stand in a single column, so these bound
   // KPI cards alone — hence the vertical wording, which drops the half of the
   // label that no longer applies.
-  { key: "minPerRow", group: "limits", label: "Min. slicerů / KPI na řádek", min: 1, max: 12, step: 1, region: null,
-    verticalLabel: "Min. KPI na řádek" },
-  { key: "maxPerRow", group: "limits", label: "Max. slicerů / KPI na řádek", min: 1, max: 12, step: 1, region: null,
-    verticalLabel: "Max. KPI na řádek" },
-  { key: "secondRowMaxItems", group: "limits", label: "Max. slicerů / KPI na 2. řádku", min: 0, max: 12, step: 1, region: null,
-    hint: "Kolik se jich vejde na druhý řádek, když je první plný. Součet s limitem na řádek je absolutní strop, 0 druhý řádek úplně vypne. Prostředního pásu KPI se to netýká — ten je vždy jednořádkový.",
-    verticalLabel: "Max. KPI na 2. řádku",
-    verticalHint: "Kolik KPI se vejde na druhý řádek, když je první plný. Součet s limitem na řádek je absolutní strop, 0 druhý řádek úplně vypne. Prostředního pásu KPI se to netýká — ten je vždy jednořádkový." },
-  { key: "defaultSlicersPerRow", group: "limits", label: "Výchozí slicery na řádek", min: 1, max: 12, step: 1, region: "slicer",
+  { key: "minPerRow", group: "limits", get label() { return t("themeField.minPerRow.label"); }, min: 1, max: 12, step: 1, region: null,
+    get verticalLabel() { return t("themeField.minPerRow.verticalLabel"); } },
+  { key: "maxPerRow", group: "limits", get label() { return t("themeField.maxPerRow.label"); }, min: 1, max: 12, step: 1, region: null,
+    get verticalLabel() { return t("themeField.maxPerRow.verticalLabel"); } },
+  { key: "secondRowMaxItems", group: "limits", get label() { return t("themeField.secondRowMaxItems.label"); }, min: 0, max: 12, step: 1, region: null,
+    get hint() { return t("themeField.secondRowMaxItems.hint"); },
+    get verticalLabel() { return t("themeField.secondRowMaxItems.verticalLabel"); },
+    get verticalHint() { return t("themeField.secondRowMaxItems.verticalHint"); } },
+  { key: "defaultSlicersPerRow", group: "limits", get label() { return t("themeField.defaultSlicersPerRow.label"); }, min: 1, max: 12, step: 1, region: "slicer",
     scope: "horizontal",
-    hint: "Hodnota, na které stránka s touto šablonou začíná. V postranním panelu ji lze kdykoli změnit." },
-  { key: "defaultKpisPerRow", group: "limits", label: "Výchozí KPI na řádek", min: 1, max: 12, step: 1, region: "kpi" },
+    get hint() { return t("themeField.defaultSlicersPerRow.hint"); } },
+  { key: "defaultKpisPerRow", group: "limits", get label() { return t("themeField.defaultKpisPerRow.label"); }, min: 1, max: 12, step: 1, region: "kpi" },
 
   // --- Mřížka ---
-  { key: "step", group: "grid", label: "Krok mřížky", unit: "px", min: 1, max: 50, step: 1, region: null,
-    hint: "Všechny dopočítané i ručně zadané rozměry přiléhají na násobek této hodnoty." }
+  { key: "step", group: "grid", get label() { return t("themeField.step.label"); }, unit: "px", min: 1, max: 50, step: 1, region: null,
+    get hint() { return t("themeField.step.hint"); } }
 ];
 
 export const GROUPS = [
-  { id: "canvas", label: "Plátno" },
-  { id: "spacing", label: "Okraje a mezery" },
-  { id: "header", label: "Hlavička" },
-  { id: "slicers", label: "Slicery" },
-  { id: "kpis", label: "KPI" },
-  { id: "charts", label: "Grafy" },
+  { id: "canvas", get label() { return t("themeGroup.canvas"); } },
+  { id: "spacing", get label() { return t("themeGroup.spacing"); } },
+  { id: "header", get label() { return t("themeGroup.header"); } },
+  { id: "slicers", get label() { return t("themeGroup.slicers"); } },
+  { id: "kpis", get label() { return t("themeGroup.kpis"); } },
+  { id: "charts", get label() { return t("themeGroup.charts"); } },
   {
     id: "limits",
-    label: "Počty slicerů a KPI",
+    get label() { return t("themeGroup.limits"); },
     // These two settings only ever fill a dropdown — they read like layout
     // constraints, so the group says outright what they do and what they
     // deliberately leave alone. The vertical wording points at the one
     // dropdown that still exists there: the sidebar collapses "Slicery na
     // řádek" entirely for a column (see app.js), so naming it would send the
     // user looking for a control that isn't on screen.
-    note: "První dvě hodnoty určují rozsah, který nabídnou pole „Slicery na řádek“ a „KPI na řádek“ v postranním panelu. Počet grafů v řadě tím omezen není — ten vychází z minimální šířky grafu.",
-    verticalNote: "První dvě hodnoty určují rozsah, který nabídne pole „KPI na řádek“ v postranním panelu. Slicery stojí ve sloupci, takže se jich netýkají. Počet grafů v řadě tím omezen není — ten vychází z minimální šířky grafu."
+    get note() { return t("themeGroup.limits.note"); },
+    get verticalNote() { return t("themeGroup.limits.verticalNote"); }
   },
-  { id: "grid", label: "Mřížka" }
+  { id: "grid", get label() { return t("themeGroup.grid"); } }
 ];
 
 export const FIELD_BY_KEY = Object.fromEntries(FIELDS.map(f => [f.key, f]));
@@ -524,24 +526,24 @@ export function validateTheme(theme) {
   const uh = usableHeight(theme);
   const vertical = isVerticalPlacement(theme.placement);
 
-  if (uw < 200) issues.push({ severity: "error", text: "Použitelná šířka je menší než 200 px — zmenšete okraj nebo zvětšete plátno." });
-  if (uh < 200) issues.push({ severity: "error", text: "Použitelná výška je menší než 200 px — zmenšete okraj nebo zvětšete plátno." });
+  if (uw < 200) issues.push({ severity: "error", text: t("editor.issue.usableWidth") });
+  if (uh < 200) issues.push({ severity: "error", text: t("editor.issue.usableHeight") });
 
   // Both of the next two warn about a field the *other* placement doesn't
   // show. Reporting them anyway would point the user at a control that isn't
   // on screen, so each is asked only of the layout it applies to.
   if (vertical && theme.minSlicerColumnWidth > uw - theme.minChartWidth - theme.gapKpiToCharts) {
-    issues.push({ severity: "warning", text: "Sloupec slicerů zabere skoro celou šířku — pro graf vedle něj nezbude minimální šířka." });
+    issues.push({ severity: "warning", text: t("editor.issue.columnTooWide") });
   }
 
   const perRowMin = theme.maxPerRow * theme.minSlicerWidth + (theme.maxPerRow - 1) * theme.gapSmall;
   if (!vertical && perRowMin > uw) {
-    issues.push({ severity: "warning", text: `Řádek ${theme.maxPerRow} slicerů potřebuje při minimální šířce ${perRowMin} px, k dispozici je ${uw} px.` });
+    issues.push({ severity: "warning", text: t("editor.issue.slicerRow", { count: theme.maxPerRow, need: perRowMin, available: uw }) });
   }
 
   const chartRowMin = theme.maxPerRow * theme.minChartWidth + (theme.maxPerRow - 1) * theme.gapSmall;
   if (chartRowMin > uw) {
-    issues.push({ severity: "warning", text: `Řada ${theme.maxPerRow} grafů se při minimální šířce do plátna nevejde.` });
+    issues.push({ severity: "warning", text: t("editor.issue.chartRow", { count: theme.maxPerRow }) });
   }
 
   // Vertical budget: header + slicer band + KPI band(s) + one chart row.
@@ -557,15 +559,15 @@ export function validateTheme(theme) {
     bandCount * (theme.kpiMinHeight + theme.gapKpiToCharts) +
     theme.minChartRowHeight;
   if (need > uh) {
-    issues.push({ severity: "warning", text: `Hlavička, slicery a KPI potřebují ${need} px výšky, plátno jich nabízí ${uh} — grafy se zmáčknou pod minimum.` });
+    issues.push({ severity: "warning", text: t("editor.issue.height", { need, available: uh }) });
   }
 
   if (theme.gapSmall > 0 && theme.step > theme.gapSmall) {
-    issues.push({ severity: "warning", text: "Krok mřížky je větší než mezera mezi prvky — rozměry mohou vycházet hrubě." });
+    issues.push({ severity: "warning", text: t("editor.issue.step") });
   }
 
   if (kpiSections.length > 4) {
-    issues.push({ severity: "warning", text: `Rozvržení má ${kpiSections.length} pásů KPI — tolik bandů ztěžuje orientaci.` });
+    issues.push({ severity: "warning", text: t("editor.issue.manyBands", { count: kpiSections.length }) });
   }
 
   return issues;

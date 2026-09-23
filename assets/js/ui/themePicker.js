@@ -33,6 +33,7 @@ import { applyThemeToAllTabs, retargetTabsToTheme } from "../state/tabs.js";
 import { addWarning } from "./warnings.js";
 import { PLACEMENTS, placementLabel } from "../theme/themeModel.js";
 import { syncTemplateSummary } from "./templatePanel.js";
+import { t, onLocaleChange } from "../i18n/i18n.js";
 
 
 let selectorEl;
@@ -112,7 +113,7 @@ export function syncPlacementControls() {
     button.disabled = !usable;
     if (!usable) {
       missing.push(placementLabel(placement));
-      button.title = `Zatím neexistuje žádná šablona s tímto umístěním slicerů — vytvořte ji přes „Vlastní šablona…“.`;
+      button.title = t("template.placementMissingTitle");
     } else {
       button.removeAttribute("title");
     }
@@ -120,7 +121,7 @@ export function syncPlacementControls() {
 
   if (placementNote) {
     placementNote.textContent = missing.length
-      ? `Bez šablony: ${missing.join(", ")}. Novou vytvoříte přes „Vlastní šablona…“.`
+      ? t("template.placementMissingNote", { list: missing.join(", ") })
       : "";
   }
 }
@@ -188,7 +189,7 @@ export function renderThemeSelector() {
     pick.type = "button";
     pick.className = "theme-chip__label";
     pick.textContent = theme.label;
-    pick.title = `${theme.label} — plátno ${theme.canvasWidth} × ${theme.canvasHeight}`;
+    pick.title = t("template.chipTitle", { label: theme.label, width: theme.canvasWidth, height: theme.canvasHeight });
     pick.addEventListener("click", () => selectTheme(theme.id));
     chip.appendChild(pick);
 
@@ -199,8 +200,8 @@ export function renderThemeSelector() {
       edit.type = "button";
       edit.className = "theme-chip__edit";
       edit.innerHTML = icon("pencil");
-      edit.title = `Upravit šablonu ${theme.label}`;
-      edit.setAttribute("aria-label", `Upravit šablonu ${theme.label}`);
+      edit.title = t("template.chipEdit", { label: theme.label });
+      edit.setAttribute("aria-label", edit.title);
       edit.addEventListener("click", event => {
         event.stopPropagation();
         openEditorFor(getTheme(theme.id));
@@ -264,7 +265,7 @@ function openEditorFor(theme, mode) {
         // been the last one of its shape, which disables that placement.
         syncPlacementControls();
         renderThemeSelector();
-        addWarning("Šablona byla smazána.", "info");
+        addWarning(t("warnings.theme.deleted"), "info");
         return;
       }
 
@@ -273,7 +274,7 @@ function openEditorFor(theme, mode) {
       // not the same act as choosing one.
       retargetTabsToTheme(saved.id, saved);
       applyThemeEverywhereScopeSays(saved);
-      addWarning(`Šablona „${saved.label}" byla uložena a použita.`, "info");
+      addWarning(t("warnings.theme.saved", { label: saved.label }), "info");
     }
   });
 }
@@ -310,8 +311,16 @@ export function syncRowLimitOptions() {
   });
 }
 
+// The chips are cached by their theme list, which a language switch leaves
+// unchanged; forget it so their tooltips are rebuilt in the new language.
+onLocaleChange(() => {
+  builtSignature = null;
+  renderThemeSelector();
+  syncPlacementControls();
+});
+
 /** The theme id new pages start on, for the sidebar's "global default" hint. */
 export function defaultThemeLabel() {
   const theme = getTheme(getDefaultThemeId());
-  return theme ? theme.label : "—";
+  return theme ? theme.label : t("template.noDefault");
 }

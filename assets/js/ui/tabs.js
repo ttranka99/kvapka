@@ -1,6 +1,7 @@
 import { getTabs, getActiveTabIndex, switchTab, addTab, removeTab, renameTab, MAX_TABS } from "../state/tabs.js";
 import { icon } from "./icon.js";
 import { reducedMotion, leave } from "./motion.js";
+import { t } from "../i18n/i18n.js";
 
 let tabBarEl;
 let viewportEl;
@@ -120,7 +121,7 @@ export function renderTabBar(animate) {
       closeBtn.type = "button";
       closeBtn.className = "icon-circle tab-close";
       closeBtn.innerHTML = icon("close");
-      closeBtn.title = "Zavřít stránku";
+      closeBtn.title = t("tabs.close");
       closeBtn.tabIndex = -1;
       closeBtn.addEventListener("click", e => {
         e.stopPropagation();

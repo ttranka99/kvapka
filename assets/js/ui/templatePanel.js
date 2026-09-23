@@ -29,6 +29,7 @@ import * as state from "../state/state.js";
 import { placementLabel } from "../theme/themeModel.js";
 import { reducedMotion } from "./motion.js";
 import { getTabs, getActiveTabIndex } from "../state/tabs.js";
+import { t } from "../i18n/i18n.js";
 
 // The sheet with its slicer strip filled, per placement.
 const PLACEMENT_GLYPHS = {
@@ -238,11 +239,11 @@ export function syncTemplateSummary() {
 
   const placement = state.activeTheme.placement;
   const where = placementLabel(placement);
-  set("sum-placement", state.isVerticalSlicers() ? where : `${where} · ${state.MAX_SLICERS} na řádek`);
+  set("sum-placement", state.isVerticalSlicers() ? where : t("template.summary.placementPerRow", { placement: where, count: state.MAX_SLICERS }));
   const glyph = document.getElementById("sum-placement-glyph");
   if (glyph) {
     glyph.innerHTML = `<svg viewBox="0 0 16 16" fill="none"><rect x="1.25" y="3.25" width="13.5" height="10.5" rx="1.75" stroke="currentColor" stroke-width="1.5"/>${PLACEMENT_GLYPHS[placement] || PLACEMENT_GLYPHS.horizontal}</svg>`;
   }
 
-  set("sum-kpi", `${state.MAX_KPIS} na řádek`);
+  set("sum-kpi", t("template.summary.perRow", { count: state.MAX_KPIS }));
 }

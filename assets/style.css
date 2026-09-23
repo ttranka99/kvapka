@@ -434,6 +434,86 @@ button:active:not(:disabled),
   gap: 8px;
 }
 
+/* Labels that hold every translation at once (data-i18n-stable, filled by
+   i18n.js): all of them share one grid cell, so the box is as wide as the
+   longest language and a switch only changes which one shows. Nothing next
+   to the label moves. The hidden ones still take up their space. */
+[data-i18n-stable] {
+  display: inline-grid;
+}
+
+[data-i18n-stable] > span {
+  grid-area: 1 / 1;
+}
+
+[data-i18n-stable] > span[aria-hidden="true"] {
+  visibility: hidden;
+}
+
+/* The shorter language sits centred in the button's reserved width, not
+   pushed to one side of it. The subtitle keeps its left edge. */
+.btn [data-i18n-stable] {
+  justify-items: center;
+}
+
+.topbar-subtitle[data-i18n-stable] {
+  justify-items: start;
+}
+
+/* The CS / EN switch: the sidebar's segmented pill, sized down so it reads
+   as a setting beside the export button rather than as a second action. */
+.lang-switch {
+  --thumb-gap: 2px;   /* = .segmented's gap: the thumb travels one column + it */
+  position: relative;
+  flex-shrink: 0;
+  isolation: isolate;
+}
+
+/* The slate pill is one element that slides between the two options, rather
+   than each option lighting up its own background — the same object moving
+   from CS to EN is what makes it read as a switch. The columns are equal
+   (1fr 1fr), so one column plus the gap is exactly the distance to travel. */
+.lang-switch::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px - var(--thumb-gap)) / 2);
+  border-radius: var(--r-pill);
+  background: var(--slate);
+}
+
+.lang-switch[data-ready]::before {
+  transition: transform var(--slow) var(--ease-out);
+}
+
+.lang-switch[data-active="en"]::before {
+  transform: translateX(calc(100% + var(--thumb-gap)));
+}
+
+.lang-switch .template-option {
+  height: 26px;
+  min-width: 34px;
+  padding: 0 8px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* The thumb is the background; the option only changes its ink, easing in
+   step with the thumb arriving under it. */
+.lang-switch .template-option.active {
+  background: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lang-switch::before {
+    transition: none;
+  }
+}
+
 /* ----------------------------------------------------
    PAGE TABS — centred in the top bar.
 

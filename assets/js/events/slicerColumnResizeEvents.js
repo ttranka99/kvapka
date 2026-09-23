@@ -3,6 +3,7 @@ import { computeVerticalLayout, contentBoxFor } from "../layout/computeVerticalL
 import { snapToStep } from "../layout/sizeStep.js";
 import { addWarning } from "../ui/warnings.js";
 import { refreshSelectedSlicerAfterEdit } from "./slicerEvents.js";
+import { t } from "../i18n/i18n.js";
 
 // Dragging the vertical slicer column's right edge resizes the whole column
 // at once — every slicer in it shares that one width. Widening it takes the
@@ -73,7 +74,7 @@ function finishResize() {
 
   if (activeResize.blocked) {
     addWarning(
-      "Šířku sloupce nelze dále zvětšit – odemkněte některé grafy nebo KPI.",
+      t("warnings.slicer.columnWidthMax"),
       "warning"
     );
   }

@@ -2,6 +2,7 @@ import * as state from "./state.js";
 import { initState } from "./initState.js";
 import { getTheme, getDefaultThemeId } from "../theme/themeStore.js";
 import { normalizeTheme } from "../theme/themeModel.js";
+import { t, onLocaleChange } from "../i18n/i18n.js";
 
 export const MAX_TABS = 12;
 
@@ -77,6 +78,23 @@ export function themeIdsInUse() {
   return [...new Set(ids)];
 }
 
+// A fresh page. Its number is kept so the generated name ("Page N") can be
+// re-rendered in another language until the user names the page themselves.
+function newTab() {
+  const number = nextPageNumber++;
+  return { id: nextTabId++, number, name: t("tabs.defaultName", { n: number }), named: false, snapshot: null };
+}
+
+// On a language switch: unnamed pages take the new language's generated name,
+// and every other page's stored warnings are carried over the same way the
+// live ones are (ui/warnings.js), so they read right when that page opens.
+onLocaleChange(convert => {
+  tabs.forEach(tab => {
+    if (!tab.named) tab.name = t("tabs.defaultName", { n: tab.number });
+    if (tab.snapshot) tab.snapshot.warnings = tab.snapshot.warnings.map(convert);
+  });
+});
+
 // Seeds live state with fresh-page defaults (reuses initState — no duplicated defaults)
 function loadDefaults() {
   // A new page starts on the *global* default theme, which the user picks in
@@ -88,7 +106,7 @@ function loadDefaults() {
 }
 
 export function initTabs() {
-  tabs = [{ id: nextTabId++, name: `Page ${nextPageNumber++}`, named: false, snapshot: null }];
+  tabs = [newTab()];
   activeTabIndex = 0;
   loadDefaults();               // replaces initState() in app.js start()
 }
@@ -105,7 +123,7 @@ export function switchTab(index) {
 export function addTab() {
   if (tabs.length >= MAX_TABS) return false;
   tabs[activeTabIndex].snapshot = captureSnapshot();
-  tabs.push({ id: nextTabId++, name: `Page ${nextPageNumber++}`, named: false, snapshot: null });
+  tabs.push(newTab());
   activeTabIndex = tabs.length - 1;
   loadDefaults();               // new tab is immediately active with fresh defaults
   return true;

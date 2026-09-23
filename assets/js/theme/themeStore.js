@@ -19,6 +19,7 @@ import {
   THEME_SCHEMA,
   PLACEMENTS
 } from "./themeModel.js";
+import { t } from "../i18n/i18n.js";
 
 const STORAGE_KEY = "kb-layout-themes-v1";
 const DEFAULT_KEY = "kb-layout-default-theme-v1";
@@ -123,7 +124,7 @@ export function saveTheme(theme) {
   const normalized = { ...normalizeTheme(theme), builtin: false };
 
   if (getBuiltinTheme(normalized.id)) {
-    return { ok: false, error: "Vestavěnou šablonu nelze přepsat — uložte ji jako novou." };
+    return { ok: false, error: t("themeStore.builtinOverwrite") };
   }
 
   const list = customThemes();
@@ -136,23 +137,23 @@ export function saveTheme(theme) {
     // a reload — a theme that silently vanishes on refresh is worse than one
     // that visibly failed to save.
     cache = null;
-    return { ok: false, error: "Šablonu se nepodařilo uložit do prohlížeče (úložiště je nedostupné nebo plné)." };
+    return { ok: false, error: t("themeStore.saveFailed") };
   }
 
   return { ok: true, theme: cloneTheme(normalized) };
 }
 
 export function deleteTheme(id) {
-  if (getBuiltinTheme(id)) return { ok: false, error: "Vestavěnou šablonu nelze smazat." };
+  if (getBuiltinTheme(id)) return { ok: false, error: t("themeStore.builtinDelete") };
 
   const list = customThemes();
   const index = list.findIndex(t => t.id === id);
-  if (index < 0) return { ok: false, error: "Šablona neexistuje." };
+  if (index < 0) return { ok: false, error: t("themeStore.notFound") };
 
   list.splice(index, 1);
   if (!persist()) {
     cache = null;
-    return { ok: false, error: "Změnu se nepodařilo uložit." };
+    return { ok: false, error: t("themeStore.changeFailed") };
   }
   return { ok: true };
 }
@@ -201,7 +202,7 @@ export function parseThemeFile(text) {
   try {
     parsed = JSON.parse(text);
   } catch {
-    return { ok: false, error: "Soubor není platný JSON." };
+    return { ok: false, error: t("themeStore.invalidJson") };
   }
 
   const raw = Array.isArray(parsed)
@@ -214,7 +215,7 @@ export function parseThemeFile(text) {
     .filter(t => t && typeof t === "object")
     .map(t => normalizeTheme(t));
 
-  if (!themes.length) return { ok: false, error: "Soubor neobsahuje žádnou šablonu." };
+  if (!themes.length) return { ok: false, error: t("themeStore.noThemes") };
   return { ok: true, themes };
 }
 

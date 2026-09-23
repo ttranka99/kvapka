@@ -14,6 +14,7 @@ import { refreshSelectedChartAfterResize, lockedChartCardIds } from "./chartEven
 import { refreshSelectedSlicerAfterEdit } from "./slicerEvents.js";
 import { refreshSelectedKpiAfterEdit } from "./kpiEvents.js";
 import { refreshSelectedStackChartAfterEdit } from "./stackEvents.js";
+import { t } from "../i18n/i18n.js";
 
 const resetBtn = document.getElementById("reset-layout");
 const applySelectionBtn = document.getElementById("apply-selection");
@@ -37,7 +38,7 @@ function applyWidthValue(info, val) {
   if (!isNaN(val)) val = snapToStep(val);
 
   if (isNaN(val) || val < 50) {
-    addWarning("Minimální šířka je 50px.", "error");
+    addWarning(t("warnings.size.minWidth"), "error");
     renderWarnings();
     return;
   }
@@ -64,7 +65,7 @@ function applyWidthValue(info, val) {
 
   if (info.kind === "chartRow") {
     if (val < state.MIN_CHART_WIDTH) {
-      addWarning(`Minimální šířka grafu je ${state.MIN_CHART_WIDTH}px.`, "error");
+      addWarning(t("warnings.chart.minWidth", { min: state.MIN_CHART_WIDTH }), "error");
       renderWarnings();
       return;
     }
@@ -79,7 +80,7 @@ function applyWidthValue(info, val) {
     const otherItems = row.items.filter((_, i) => i !== itemIndex);
 
     if (otherItems.length > 0 && !otherItems.some(item => !item.locked)) {
-      addWarning("Nelze upravit šířku grafu, nejprve odemkněte alespoň jeden další graf v řadě.", "error");
+      addWarning(t("warnings.chart.widthUnlockRow"), "error");
       renderWarnings();
       flashAll(lockedChartCardIds(rowIndex, row.items.map((_, i) => i).filter(i => i !== itemIndex)));
       return;
@@ -91,7 +92,7 @@ function applyWidthValue(info, val) {
     });
 
     if (!canAddChart(rowsCopy)) {
-      addWarning("Zadaná šířka se nevejde, upravte hodnotu.", "error");
+      addWarning(t("warnings.size.widthNoFit"), "error");
       renderWarnings();
       return;
     }
@@ -109,7 +110,7 @@ function applyHeightValue(info, val) {
 
   if (info.kind === "slicer") {
     if (isNaN(val) || val < state.SLICER_HEIGHT) {
-      addWarning(`Minimální výška sliceru je ${state.SLICER_HEIGHT}px.`, "error");
+      addWarning(t("warnings.slicer.minHeight", { min: state.SLICER_HEIGHT }), "error");
       renderWarnings();
       return;
     }
@@ -126,7 +127,7 @@ function applyHeightValue(info, val) {
     if (!slicerColumnFits(state.slicers, v.slicerColumnHeight)) {
       s.height = originalHeight;
       s.locked = originalLocked;
-      addWarning("Zadaná výška se do sloupce nevejde, upravte hodnotu.", "error");
+      addWarning(t("warnings.slicer.heightNoFit"), "error");
       renderWarnings();
       return;
     }
@@ -137,7 +138,7 @@ function applyHeightValue(info, val) {
 
   if (info.kind === "kpi") {
     if (isNaN(val) || val < state.KPI_MIN_HEIGHT) {
-      addWarning(`Minimální výška KPI je ${state.KPI_MIN_HEIGHT}px.`, "error");
+      addWarning(t("warnings.kpi.minHeight", { min: state.KPI_MIN_HEIGHT }), "error");
       renderWarnings();
       return;
     }
@@ -152,7 +153,7 @@ function applyHeightValue(info, val) {
 
   if (info.kind === "stackChart") {
     if (isNaN(val) || val < state.MIN_CHART_ROW_HEIGHT) {
-      addWarning(`Minimální výška grafu ve sloupci je ${state.MIN_CHART_ROW_HEIGHT}px.`, "error");
+      addWarning(t("warnings.chart.stackMinHeight", { min: state.MIN_CHART_ROW_HEIGHT }), "error");
       renderWarnings();
       return;
     }
@@ -164,7 +165,7 @@ function applyHeightValue(info, val) {
 
     const otherEntries = stack.filter((_, i) => i !== stackIndex);
     if (!otherEntries.some(s => !s.locked)) {
-      addWarning("Nelze upravit výšku grafu, nejprve odemkněte alespoň jeden další graf ve sloupci.", "error");
+      addWarning(t("warnings.chart.heightUnlockStack"), "error");
       renderWarnings();
       flashAll(stack.map((_, s) => `chart-${rowIndex}-${itemIndex}-${s}`).filter((_, s) => s !== stackIndex));
       return;
@@ -185,7 +186,7 @@ function applyHeightValue(info, val) {
     const needed = lockedSum + unlockedCount * state.MIN_CHART_ROW_HEIGHT + gaps;
 
     if (needed > rowHeight) {
-      addWarning("Zadaná výška se nevejde do řady, upravte hodnotu.", "error");
+      addWarning(t("warnings.chart.heightNoFitRow"), "error");
       renderWarnings();
       return;
     }
@@ -200,8 +201,8 @@ function applyHeightValue(info, val) {
     const rowMin = rowEffectiveMinHeight(state.chartRows[info.rowIndex]);
     if (isNaN(val) || val < rowMin) {
       const msg = rowMin > state.MIN_CHART_ROW_HEIGHT
-        ? `Minimální výška řady je ${rowMin}px (obsahuje sloupec grafů).`
-        : `Minimální výška řady grafů je ${rowMin}px.`;
+        ? t("warnings.chart.rowMinHeightStack", { min: rowMin })
+        : t("warnings.chart.rowMinHeight", { min: rowMin });
       addWarning(msg, "error");
       renderWarnings();
       return;
@@ -210,13 +211,13 @@ function applyHeightValue(info, val) {
     const otherRows = state.chartRows.filter((_, i) => i !== info.rowIndex);
 
     if (otherRows.length === 0) {
-      addWarning("Nelze upravit výšku, jediná řada grafů vždy vyplňuje celý dostupný prostor.", "error");
+      addWarning(t("warnings.chart.singleRow"), "error");
       renderWarnings();
       return;
     }
 
     if (!otherRows.some(r => !r.locked)) {
-      addWarning("Nelze upravit výšku řady, nejprve odemkněte alespoň jednu další řadu grafů.", "error");
+      addWarning(t("warnings.chart.rowUnlockOther"), "error");
       renderWarnings();
       state.chartRows.forEach((r, ri) => {
         if (ri !== info.rowIndex) flashAll(lockedChartCardIds(ri, r.items.map((_, i) => i)));
@@ -247,7 +248,7 @@ function applyHeightValue(info, val) {
     if (overflow) {
       row.height = originalHeight;
       row.locked = originalLocked;
-      addWarning("Zadaná výška se nevejde, upravte hodnotu.", "error");
+      addWarning(t("warnings.size.heightNoFit"), "error");
       renderWarnings();
       return;
     }

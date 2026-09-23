@@ -1,6 +1,7 @@
 import * as state from "../state/state.js";
 import { icon } from "./icon.js";
 import { leave } from "./motion.js";
+import { t, onLocaleChange } from "../i18n/i18n.js";
 
 
 // Sprite icon per notification type (see the <defs> block in index.html).
@@ -75,6 +76,32 @@ export function addWarning(msg, type = "warning") {
     renderWarnings();
   }
 }
+
+// A language switch re-keys every warning under its translated wording. Each
+// keeps its type and whether it is still a toast or already in the panel; a
+// toast keeps the rest of its countdown, and its element on screen is
+// retitled in place rather than faded out and rebuilt.
+onLocaleChange(convert => {
+  const now = Date.now();
+  const next = new Map();
+  meta.forEach((m, msg) => {
+    const text = convert(msg);
+    clearTimeout(m.timerId);
+    const toast = document.getElementById(toastId(msg));
+    if (toast) {
+      toast.id = toastId(text);
+      toast.querySelector(".toast-message").textContent = text;
+    }
+    const timerId = m.movedToPanel
+      ? null
+      : setTimeout(() => { moveToPanel(text); renderWarnings(); }, Math.max(0, TIMEOUT_MS - (now - m.addedAt)));
+    next.set(text, { ...m, timerId });
+  });
+  meta.clear();
+  next.forEach((m, text) => meta.set(text, m));
+  state.setWarnings(state.warnings.map(convert));
+  renderWarnings();
+});
 
 // Keeps `meta` in sync with `state.warnings`, which is the single source of
 // truth for which warnings currently exist (mutated directly in some places
@@ -199,7 +226,7 @@ function renderPanel() {
   if (state.warnings.length === 0) {
     const empty = document.createElement("div");
     empty.className = "notification-empty";
-    empty.textContent = "Žádná oznámení.";
+    empty.textContent = t("notifications.empty");
     list.appendChild(empty);
     return;
   }

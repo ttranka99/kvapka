@@ -5,12 +5,13 @@ import {
     computeSlicerColumnHeights,
     slicerColumnOverflows
 } from "./computeSlicerColumnHeights.js";
+import { t } from "../i18n/i18n.js";
 
-const SECOND_ROW_LIMIT_WARNING = "Druhý řádek slicerů překračuje vybraný limit.";
-const MAX_PER_ROW_INFO = "Dosaženo maximálního počtu slicerů na řádek. Další slicery budou umístěny na další řádek.";
-const HARD_LIMIT_ERROR = "Bylo dosaženo maximálního počtu slicerů.";
-const SECOND_ROW_OVERFLOW_ERROR = "Slicery na druhém řádku se nevejdou – uprav šířky nebo odeber slicer.";
-const COLUMN_OVERFLOW_ERROR = "Slicery se nevejdou do sloupce – snižte zamčené výšky nebo odeberte slicer.";
+const SECOND_ROW_LIMIT_WARNING = () => t("warnings.slicer.secondRowLimit");
+const MAX_PER_ROW_INFO = () => t("warnings.slicer.maxPerRow");
+const HARD_LIMIT_ERROR = () => t("warnings.slicer.limit");
+const SECOND_ROW_OVERFLOW_ERROR = () => t("warnings.slicer.secondRowOverflow");
+const COLUMN_OVERFLOW_ERROR = () => t("warnings.slicer.columnOverflow");
 
 // Tracks which conditions this module has already surfaced a notification
 // for, independent of whether that notification has since timed out into the
@@ -39,11 +40,11 @@ function syncWarning(condition, msg, type) {
 export function computeSlicersLayout(v) {
     if (state.isVerticalSlicers()) return computeSlicerColumn(v);
 
-    syncWarning(false, COLUMN_OVERFLOW_ERROR, "error");
-    syncWarning(state.slicers.length === state.MAX_SLICERS, MAX_PER_ROW_INFO, "info");
+    syncWarning(false, COLUMN_OVERFLOW_ERROR(), "error");
+    syncWarning(state.slicers.length === state.MAX_SLICERS, MAX_PER_ROW_INFO(), "info");
     syncWarning(
         state.slicers.length > state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS,
-        HARD_LIMIT_ERROR,
+        HARD_LIMIT_ERROR(),
         "error"
     );
 
@@ -53,7 +54,7 @@ export function computeSlicersLayout(v) {
         state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS
     );
 
-    syncWarning(row2.length > state.MAX_SLICERS, SECOND_ROW_LIMIT_WARNING, "warning");
+    syncWarning(row2.length > state.MAX_SLICERS, SECOND_ROW_LIMIT_WARNING(), "warning");
 
     const row1Widths = computeSlicerRowWidths(row1);
 
@@ -67,7 +68,7 @@ export function computeSlicersLayout(v) {
         row2Overflows = totalWidth2 > state.USABLE_WIDTH;
     }
 
-    syncWarning(row2Overflows, SECOND_ROW_OVERFLOW_ERROR, "error");
+    syncWarning(row2Overflows, SECOND_ROW_OVERFLOW_ERROR(), "error");
     if (row2Overflows) return [];
 
     const rows = [];
@@ -122,13 +123,13 @@ export function computeSlicersLayout(v) {
 function computeSlicerColumn(v) {
     // None of the horizontal row conditions can hold in this mode; clear any
     // that were raised before the switch so they don't linger in the panel.
-    syncWarning(false, MAX_PER_ROW_INFO, "info");
-    syncWarning(false, HARD_LIMIT_ERROR, "error");
-    syncWarning(false, SECOND_ROW_LIMIT_WARNING, "warning");
-    syncWarning(false, SECOND_ROW_OVERFLOW_ERROR, "error");
+    syncWarning(false, MAX_PER_ROW_INFO(), "info");
+    syncWarning(false, HARD_LIMIT_ERROR(), "error");
+    syncWarning(false, SECOND_ROW_LIMIT_WARNING(), "warning");
+    syncWarning(false, SECOND_ROW_OVERFLOW_ERROR(), "error");
 
     if (state.slicers.length === 0) {
-        syncWarning(false, COLUMN_OVERFLOW_ERROR, "error");
+        syncWarning(false, COLUMN_OVERFLOW_ERROR(), "error");
         return [];
     }
 
@@ -138,7 +139,7 @@ function computeSlicerColumn(v) {
     // than invalidating the whole layout the way a row overflow does.
     syncWarning(
         slicerColumnOverflows(state.slicers, v.slicerColumnHeight),
-        COLUMN_OVERFLOW_ERROR,
+        COLUMN_OVERFLOW_ERROR(),
         "error"
     );
 

@@ -28,6 +28,7 @@ import {
   CHART_TEMPLATE
 } from "./visualTemplates.js";
 import { createZip } from "./zip.js";
+import { t } from "../i18n/i18n.js";
 
 // 20-char lowercase hex, same format as PBIR object names.
 // (crypto.getRandomValues also works on file://, unlike crypto.randomUUID.)
@@ -110,13 +111,13 @@ export function exportPowerBILayout() {
 
     if (visuals === null) {
       loadSnapshot(liveSnap);
-      alert(`Rozložení na stránce "${tabs[i].name}" obsahuje chyby (prvky se nevejdou na plátno), před exportem je opravte.`);
+      alert(t("export.pageInvalid", { page: tabs[i].name }));
       return;
     }
 
     if (visuals.length === 0) {
       loadSnapshot(liveSnap);
-      alert(`Stránka "${tabs[i].name}" je prázdná, přidejte alespoň jeden prvek.`);
+      alert(t("export.pageEmpty", { page: tabs[i].name }));
       return;
     }
 

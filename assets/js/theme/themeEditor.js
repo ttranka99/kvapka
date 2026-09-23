@@ -46,6 +46,11 @@ import { walkSections } from "../layout/sectionWalker.js";
 import { computeChartGroups } from "../layout/chartGroups.js";
 import { icon } from "../ui/icon.js";
 import { leave, durationMs } from "../ui/motion.js";
+import { t, onLocaleChange } from "../i18n/i18n.js";
+
+// renderPreview() and renderReadout() name the draft theme `t`; they reach
+// the translator by this second name.
+const tr = t;
 
 // --- Dialog state ------------------------------------------------------
 
@@ -102,7 +107,7 @@ export function openThemeEditor(options) {
     draft = cloneTheme(source);
     draft.builtin = false;
     draft.derivedFrom = source.builtin ? source.id : source.derivedFrom;
-    draft.label = `${source.label} – kopie`;
+    draft.label = t("editor.copyName", { label: source.label });
     draft.id = makeThemeId(draft.label);
   } else {
     editingExistingId = source.id;
@@ -143,6 +148,25 @@ export function closeThemeEditor() {
   if (onClose) onClose();
 }
 
+// A language switch rebuilds the dialog: nearly all of its text is set once,
+// when it is built. An open editor comes back at once around the same draft,
+// so nothing typed is lost. The old overlay is hidden before it goes, which
+// also retires its document-level Escape handler (that returns early on a
+// hidden overlay).
+onLocaleChange(() => {
+  if (!root) return;
+  const wasOpen = !root.hidden;
+  root.hidden = true;
+  root.remove();
+  root = null;
+  controlsPlacement = null;
+  placementIsEditable = null;
+  if (!wasOpen) return;
+  root = buildDialog();
+  root.hidden = false;
+  render();
+});
+
 // --- Dialog construction ------------------------------------------------
 
 function buildDialog() {
@@ -154,7 +178,7 @@ function buildDialog() {
   // rail (like #section-prvky), so the rail stays reachable at every width.
   const dialog = el("div", "theme-editor__dialog");
   dialog.setAttribute("role", "region");
-  dialog.setAttribute("aria-label", "Editor vlastní šablony");
+  dialog.setAttribute("aria-label", t("editor.region"));
 
   dialog.appendChild(buildHead());
 
@@ -199,7 +223,7 @@ function buildHead() {
   name.id = "theme-name";
   name.className = "theme-editor__name";
   name.maxLength = 40;
-  name.setAttribute("aria-label", "Název šablony");
+  name.setAttribute("aria-label", t("editor.name"));
   name.addEventListener("input", () => {
     draft.label = name.value;
     renderMeta();
@@ -218,17 +242,17 @@ function buildHead() {
   file.addEventListener("change", handleImportFile);
   actions.appendChild(file);
 
-  actions.appendChild(button("Importovat", "secondary", () => file.click(),
-    "Načíst šablonu ze souboru JSON"));
-  actions.appendChild(button("Exportovat", "secondary", handleExport,
-    "Uložit tuto šablonu jako soubor JSON"));
-  actions.appendChild(button("Zrušit", "secondary", requestClose));
+  actions.appendChild(button(t("editor.import"), "secondary", () => file.click(),
+    t("editor.importTitle")));
+  actions.appendChild(button(t("editor.export"), "secondary", handleExport,
+    t("editor.exportTitle")));
+  actions.appendChild(button(t("editor.cancel"), "secondary", requestClose));
 
-  const del = button("Smazat", "danger", handleDelete, "Smazat tuto šablonu");
+  const del = button(t("editor.delete"), "danger", handleDelete, t("editor.deleteTitle"));
   del.classList.add("theme-editor__delete");
   actions.appendChild(del);
 
-  actions.appendChild(button("Uložit a použít", "primary", handleSave));
+  actions.appendChild(button(t("editor.save"), "primary", handleSave));
 
   head.appendChild(actions);
   return head;
@@ -295,7 +319,7 @@ function buildControlsPane() {
     pane.appendChild(section);
   });
 
-  const reset = button("Vrátit na výchozí předlohu", "ghost", () => {
+  const reset = button(t("editor.resetToBase"), "ghost", () => {
     draft = { ...cloneTheme(baseTheme), id: draft.id, label: draft.label, builtin: false };
     render();
   });
@@ -378,11 +402,11 @@ function buildField(field) {
 function buildPlacementControl() {
   const locked = editingExistingId !== null;
   const row = el("div", "theme-field theme-editor__placement");
-  row.appendChild(el("span", "theme-field__label", "Umístění slicerů"));
+  row.appendChild(el("span", "theme-field__label", t("editor.placement")));
 
   const group = el("div", "segmented segmented--3");
   group.setAttribute("role", "group");
-  group.setAttribute("aria-label", "Umístění slicerů");
+  group.setAttribute("aria-label", t("editor.placement"));
   PLACEMENTS.forEach(placement => {
     const b = document.createElement("button");
     b.type = "button";
@@ -409,7 +433,7 @@ function buildPlacementControl() {
 
   if (locked) {
     row.appendChild(el("p", "theme-field__hint",
-      "Umístění slicerů je součástí šablony a po uložení se už nemění. Jinou variantu vytvoříte jako novou šablonu."));
+      t("editor.placementLocked")));
   }
 
   return row;
@@ -419,8 +443,8 @@ function buildPlacementControl() {
 // other one names the chart row it follows.
 function bandTitle(section, index, g) {
   return index === 0
-    ? "Pás KPI (hlavička)"
-    : `Pás KPI ${index + 1} · pod ${afterRowLabel(draft, section, g && g.chartGroups)}. řadou`;
+    ? t("editor.band.header")
+    : t("editor.band.afterRow", { n: index + 1, row: afterRowLabel(draft, section, g && g.chartGroups) });
 }
 
 // The 1-based chart row a KPI band visually follows, for its preview label.
@@ -471,7 +495,11 @@ function appendKpiBand(sections) {
   return list;
 }
 
-const GAP_BEFORE_LABELS = { auto: "Auto", small: "Malá", block: "Velká" };
+const GAP_BEFORE_LABELS = {
+  get auto() { return t("editor.band.gapAuto"); },
+  get small() { return t("editor.band.gapSmall"); },
+  get block() { return t("editor.band.gapBlock"); }
+};
 
 // One row per `kpi` section — replaces the old fixed "header band + one
 // optional second band" checkbox with a list that scales to however many a
@@ -576,8 +604,8 @@ function renderKpiBandsList(g) {
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.className = "icon-circle theme-kpi-band__remove";
-    removeBtn.title = "Odstranit tento pás KPI";
-    removeBtn.setAttribute("aria-label", "Odstranit tento pás KPI");
+    removeBtn.title = t("editor.band.remove");
+    removeBtn.setAttribute("aria-label", t("editor.band.remove"));
     removeBtn.innerHTML = icon("close");
     removeBtn.addEventListener("click", () => removeSection(bandId));
     head.appendChild(removeBtn);
@@ -590,19 +618,19 @@ function renderKpiBandsList(g) {
     count.max = "12";
     count.step = "1";
     count.value = String(section.defaultCount);
-    count.setAttribute("aria-label", "Počet KPI");
+    count.setAttribute("aria-label", t("editor.band.count"));
     count.addEventListener("input", () => {
       const v = Number(count.value);
       if (!Number.isFinite(v)) return;
       updateSection(bandId, { defaultCount: Math.max(0, Math.round(v)) });
     });
-    row.appendChild(bandRow("Počet KPI", count));
+    row.appendChild(bandRow(t("editor.band.count"), count));
 
-    const secondRow = toggle("theme-kpi-band__second-row", [["1", "Ano"], ["0", "Ne"]], value => {
+    const secondRow = toggle("theme-kpi-band__second-row", [["1", t("editor.band.yes")], ["0", t("editor.band.no")]], value => {
       updateSection(bandId, { allowSecondRow: value === "1" });
     });
     setToggleValue(secondRow, section.allowSecondRow ? 1 : 0);
-    row.appendChild(bandRow("Druhý řádek", secondRow));
+    row.appendChild(bandRow(t("editor.band.secondRow"), secondRow));
 
     // The gap immediately above this band. "Auto" derives it from the
     // layout's usual rule (a wide block gap once charts are involved
@@ -612,8 +640,8 @@ function renderKpiBandsList(g) {
       ["auto", "small", "block"].map(value => [value, GAP_BEFORE_LABELS[value]]),
       value => updateSection(bandId, { gapBefore: value }));
     setToggleValue(gap, section.gapBefore);
-    row.appendChild(bandRow("Mezera před", gap,
-      "Auto: mezera se odvozuje z rozvržení. Malá/velká: mezera je pevně daná bez ohledu na okolí.", true));
+    row.appendChild(bandRow(t("editor.band.gapBefore"), gap,
+      t("editor.band.gapBeforeHint"), true));
 
     row.addEventListener("mouseenter", () => setHighlight("kpi-band2"));
     row.addEventListener("mouseleave", () => setHighlight(null));
@@ -630,9 +658,9 @@ function buildKpiBandsControl() {
   wrap.appendChild(list);
 
   wrap.appendChild(el("p", "theme-field__hint",
-    "Každý pás KPI je vlastní úsek v rozvržení — první pod hlavičkou, každý další uvnitř plochy grafů."));
+    t("editor.band.hint")));
 
-  const addBtn = button("Přidat pás KPI", "secondary", () => {
+  const addBtn = button(t("editor.band.add"), "secondary", () => {
     draft = normalizeTheme({ ...draft, sections: appendKpiBand(draft.sections) });
     render();
   }, undefined, "plus");
@@ -646,10 +674,10 @@ function buildStagePane() {
   const stage = el("section", "theme-editor__stage");
 
   const toolbar = el("div", "theme-stage__toolbar");
-  toolbar.appendChild(el("span", "theme-stage__toolbar-label", "Náhled pravidel"));
+  toolbar.appendChild(el("span", "theme-stage__toolbar-label", t("editor.preview.title")));
 
   const rows = el("label", "theme-stage__rows");
-  rows.appendChild(el("span", null, "Ukázkové řady grafů"));
+  rows.appendChild(el("span", null, t("editor.preview.rows")));
   const rowsInput = document.createElement("input");
   rowsInput.type = "number";
   rowsInput.min = "1";
@@ -951,8 +979,8 @@ function grip(sectionType, sectionId, text, extra) {
   handle.dataset.sectionId = sectionId;
   handle.tabIndex = 0;
   handle.setAttribute("role", "button");
-  handle.setAttribute("aria-label", `Přesunout pás: ${text}`);
-  handle.title = "Táhnutím, nebo Ctrl+šipkou nahoru/dolů, přesunete tento pás.";
+  handle.setAttribute("aria-label", t("editor.preview.moveBand", { label: text }));
+  handle.title = t("editor.preview.moveBandHint");
 
   const dots = el("span", "theme-grip__dots");
   dots.setAttribute("aria-hidden", "true");
@@ -1269,7 +1297,7 @@ function renderPreview(g) {
   usable.style.top = px(t.margin);
   usable.style.width = px(usableWidth(t));
   usable.style.height = px(usableHeight(t));
-  usable.appendChild(tag(`Použitelná plocha ${usableWidth(t)} × ${usableHeight(t)}`, "theme-tag--usable"));
+  usable.appendChild(tag(tr("editor.preview.usable", { width: usableWidth(t), height: usableHeight(t) }), "theme-tag--usable"));
   stage.appendChild(usable);
 
   // The margin itself, drawn as the four bands of outer space it actually is.
@@ -1290,7 +1318,7 @@ function renderPreview(g) {
     // it would spill over the header. The drag handle stays either way, so a
     // margin dragged down to 0 can always be dragged back out.
     if (band.side === "top" && t.margin * scale >= 11) {
-      node.appendChild(el("span", "theme-margin__value", `Okraj plátna · ${t.margin} px`));
+      node.appendChild(el("span", "theme-margin__value", tr("editor.preview.margin", { value: t.margin })));
     }
     node.appendChild(dragHandle("margin", band.axis, band.sign, scale, band.edge));
     stage.appendChild(node);
@@ -1300,7 +1328,7 @@ function renderPreview(g) {
   const title = region("title", "theme-region theme-region--title", {
     left: t.margin, top: g.TITLE_Y, width: usableWidth(t), height: t.titleHeight
   }, px);
-  title.appendChild(tag(`Hlavička · ${t.titleHeight} px`));
+  title.appendChild(tag(tr("editor.preview.header", { height: t.titleHeight })));
   title.appendChild(dragHandle("titleHeight", "y", 1, scale));
   stage.appendChild(title);
 
@@ -1321,7 +1349,7 @@ function renderPreview(g) {
     // longer permits.
     // A tall narrow column has no room for a one-line chip, so this one wraps.
     column.appendChild(tag(
-      `Sloupec slicerů · ${t.slicerColumnWidth} px (${t.minSlicerColumnWidth}–${t.maxSlicerColumnWidth})`,
+      tr("editor.preview.slicerColumn", { width: t.slicerColumnWidth, min: t.minSlicerColumnWidth, max: t.maxSlicerColumnWidth }),
       "theme-tag--wrap"));
     stage.appendChild(column);
   } else {
@@ -1331,8 +1359,12 @@ function renderPreview(g) {
     stackCells(stripe, t.defaultSlicersPerRow, t.gapSmall * scale, "row");
     stripe.appendChild(dragHandle("slicerHeight", "y", 1, scale));
     stripe.appendChild(grip("slicers", slicersSectionId(t),
-      `Slicery · ${t.defaultSlicersPerRow}× ${cellWidth(usableWidth(t), t.defaultSlicersPerRow, t.gapSmall)} px` +
-      ` · min ${t.minSlicerWidth} px · výška ${t.slicerHeight} px`));
+      tr("editor.preview.slicers", {
+        count: t.defaultSlicersPerRow,
+        width: cellWidth(usableWidth(t), t.defaultSlicersPerRow, t.gapSmall),
+        min: t.minSlicerWidth,
+        height: t.slicerHeight
+      })));
     stage.appendChild(stripe);
   }
 
@@ -1355,7 +1387,11 @@ function renderPreview(g) {
     stackCells(kpi, t.defaultKpisPerRow, t.gapSmall * scale, "row");
     kpi.appendChild(dragHandle("kpiMinHeight", "y", 1, scale));
     kpi.appendChild(grip("kpi", headerKpi.id,
-      `KPI · ${t.defaultKpisPerRow}× ${cellWidth(g.contentWidth, t.defaultKpisPerRow, t.gapSmall)} px · výška ${t.kpiMinHeight} px`));
+      tr("editor.preview.kpi", {
+        count: t.defaultKpisPerRow,
+        width: cellWidth(g.contentWidth, t.defaultKpisPerRow, t.gapSmall),
+        height: t.kpiMinHeight
+      })));
     stage.appendChild(kpi);
   }
 
@@ -1369,7 +1405,7 @@ function renderPreview(g) {
     }, px);
     if (i === 0) {
       row.appendChild(tag(
-        `Grafy · řada ${Math.round(height)} px (min ${t.minChartRowHeight}) · min šířka ${t.minChartWidth} px`
+        tr("editor.preview.charts", { height: Math.round(height), min: t.minChartRowHeight, width: t.minChartWidth })
       ));
     }
     if (g.tooSmall) row.classList.add("is-too-small");
@@ -1386,7 +1422,11 @@ function renderPreview(g) {
     band.dataset.sectionId = entry.id;
     stackCells(band, entry.defaultCount, t.gapSmall * scale, "row");
     band.appendChild(grip("kpi", entry.id,
-      `Pás KPI · ${entry.defaultCount}× ${cellWidth(g.contentWidth, entry.defaultCount, t.gapSmall)} px · pod ${rowLabel}. řadou`));
+      tr("editor.preview.band", {
+        count: entry.defaultCount,
+        width: cellWidth(g.contentWidth, entry.defaultCount, t.gapSmall),
+        row: rowLabel
+      })));
     stage.appendChild(band);
   });
 
@@ -1489,7 +1529,7 @@ function gapRuler(regionName, fieldKey, value, box, px, scale, handle = { axis: 
   // Same guard as the margin label: below a few real pixels the pill would
   // only spill over the neighbours it is meant to sit between.
   if (!upright || value * scale >= 11) {
-    node.appendChild(el("span", "theme-gap__value", `${value} px`));
+    node.appendChild(el("span", "theme-gap__value", t("editor.preview.gap", { value })));
   }
   node.appendChild(dragHandle(fieldKey, handle.axis, handle.sign, scale, handle.side));
   return node;
@@ -1502,7 +1542,7 @@ function gapRuler(regionName, fieldKey, value, box, px, scale, handle = { axis: 
 function dragHandle(fieldKey, axis, sign, scale, side) {
   const field = FIELD_BY_KEY[fieldKey];
   const handle = el("div", `theme-handle theme-handle--${axis}${side ? " theme-handle--" + side : ""}`);
-  handle.title = `Táhnutím upravíte: ${field.label}`;
+  handle.title = t("editor.dragToAdjust", { field: field.label });
 
   handle.addEventListener("pointerdown", event => {
     if (event.button !== undefined && event.button !== 0) return;
@@ -1557,11 +1597,11 @@ function renderReadout(g) {
   readout.innerHTML = "";
 
   const stats = [
-    ["Plátno", `${t.canvasWidth} × ${t.canvasHeight}`],
-    ["Použitelná plocha", `${usableWidth(t)} × ${usableHeight(t)}`],
-    ["Výška řady grafů", `${Math.max(0, Math.round(g.rowHeights[0] ?? 0))} px`],
-    ["Šířka obsahu", `${g.contentWidth} px`],
-    ["Krok mřížky", `${t.step} px`]
+    [tr("editor.stat.canvas"), tr("editor.stat.size", { width: t.canvasWidth, height: t.canvasHeight })],
+    [tr("editor.stat.usable"), tr("editor.stat.size", { width: usableWidth(t), height: usableHeight(t) })],
+    [tr("editor.stat.rowHeight"), tr("editor.stat.px", { value: Math.max(0, Math.round(g.rowHeights[0] ?? 0)) })],
+    [tr("editor.stat.contentWidth"), tr("editor.stat.px", { value: g.contentWidth })],
+    [tr("editor.stat.step"), tr("editor.stat.px", { value: t.step })]
   ];
 
   stats.forEach(([label, value]) => {
@@ -1575,14 +1615,14 @@ function renderReadout(g) {
   if (g.tooSmall) {
     issues.push({
       severity: "warning",
-      text: `Při ${g.rowCount} řadách vychází výška řady pod absolutní minimum ${t.hardMinChartHeight} px.`
+      text: tr("editor.issue.rowsTooSmall", { rows: g.rowCount, min: t.hardMinChartHeight })
     });
   }
 
   const list = root.querySelector(".theme-stage__issues");
   list.innerHTML = "";
   if (issues.length === 0) {
-    const ok = el("li", "theme-issue theme-issue--ok", "Šablona je v pořádku.");
+    const ok = el("li", "theme-issue theme-issue--ok", tr("editor.ok"));
     list.appendChild(ok);
   } else {
     issues.forEach(issue => {
@@ -1602,7 +1642,7 @@ function requestClose() {
 function handleSave() {
   const label = String(draft.label || "").trim();
   if (!label) {
-    flash("Zadejte název šablony.", "error");
+    flash(t("editor.nameRequired"), "error");
     root.querySelector("#theme-name").focus();
     return;
   }
@@ -1633,7 +1673,7 @@ function handleDelete() {
   const inUse = getAllThemes().find(t => t.id === editingExistingId);
   if (!inUse) return;
 
-  if (!window.confirm(`Smazat šablonu „${draft.label}"? Stránky, které ji používají, si ponechají její současné nastavení.`)) return;
+  if (!window.confirm(t("editor.confirmDelete", { label: draft.label }))) return;
 
   const result = deleteTheme(editingExistingId);
   if (!result.ok) {
@@ -1647,8 +1687,8 @@ function handleDelete() {
 
 function handleExport() {
   const label = String(draft.label || "theme").trim();
-  const safe = label.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").toLowerCase() || "sablona";
-  downloadJson(`kb-sablona-${safe}.json`, exportThemeJson(draft));
+  const safe = label.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").toLowerCase() || t("editor.exportFallbackName");
+  downloadJson(t("editor.exportFileName", { name: safe }), exportThemeJson(draft));
 }
 
 function handleImportFile(event) {
@@ -1671,7 +1711,7 @@ function handleImportFile(event) {
       draft = { ...parsed.themes[0], builtin: false, id: draft.id, label: parsed.themes[0].label };
       editingExistingId = null;
       render();
-      flash(`Načtena šablona „${draft.label}".`, "ok");
+      flash(t("editor.imported", { label: draft.label }), "ok");
       return;
     }
 
@@ -1683,7 +1723,7 @@ function handleImportFile(event) {
     closeThemeEditor();
     if (onApply) onApply(result.imported[result.imported.length - 1]);
   };
-  reader.onerror = () => flash("Soubor se nepodařilo přečíst.", "error");
+  reader.onerror = () => flash(t("editor.readFailed"), "error");
   reader.readAsText(file);
 }
 

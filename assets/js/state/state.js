@@ -23,6 +23,7 @@ import {
 import { getTheme } from "../theme/themeStore.js";
 import { setStep } from "../layout/sizeStep.js";
 import { addWarning } from "../ui/warnings.js";
+import { t } from "../i18n/i18n.js";
 
 export let activeTheme = normalizeTheme(BUILTIN_THEMES[0]);
 export let activeTemplate = activeTheme.id;
@@ -250,7 +251,7 @@ function reconcileKpiBands(oldSections, newSections, oldBands) {
 
       if (newKpiSections.length === 0) {
         addWarning(
-          `Šablona bez pásu KPI — ${cards.length} KPI karet z odstraněného pásu bylo zahozeno.`,
+          t("warnings.kpi.cardsDropped", { count: cards.length }),
           "warning"
         );
         return;

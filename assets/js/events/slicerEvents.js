@@ -9,6 +9,7 @@ import {
   computeSlicerColumnHeights,
   slicerColumnFits
 } from "../layout/computeSlicerColumnHeights.js";
+import { t, isFrom } from "../i18n/i18n.js";
 
 // Whether one more slicer can be added. In vertical mode the cap isn't a
 // count at all — it's whether the column still has room for every slicer at
@@ -27,8 +28,8 @@ export function canAddSlicer() {
 
 export function slicerLimitMessage() {
   return state.isVerticalSlicers()
-    ? "Další slicer se do sloupce nevejde – odemkněte výšky nebo odeberte slicer."
-    : "Bylo dosaženo maximálního počtu slicerů.";
+    ? t("warnings.slicer.columnFull")
+    : t("warnings.slicer.limit");
 }
 
 // Handle adding a slicer at a specific index
@@ -80,7 +81,7 @@ export function handleRemoveSlicer(globalIndex) {
   newSlicers.splice(globalIndex - 1, 1);
 
   if (newSlicers.length < state.MAX_SLICERS) {
-    state.setWarnings(state.warnings.filter(w => !w.includes("slicer")));
+    state.setWarnings(state.warnings.filter(w => !isFrom(w, "warnings.slicer.")));
   }
 
   state.setSlicers(newSlicers);
@@ -91,7 +92,7 @@ export function handleRemoveSlicer(globalIndex) {
 export function handleSelectSlicer(item, domId, opts = {}) {
   setSelected({
     kind: "slicer",
-    labelType: "Slicer",
+    labelType: t("selection.kind.slicer"),
     labelIndex: item.globalIndex,
     x: item.x,
     y: item.y,

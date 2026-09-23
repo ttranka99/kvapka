@@ -17,6 +17,7 @@ import { stackMinHeight } from "../layout/computeStackHeights.js";
 import { renderLayout } from "../ui/renderLayout.js";
 import { flash, flashAll } from "../ui/motion.js";
 import { renderWarnings } from "../ui/warnings.js";
+import { t } from "../i18n/i18n.js";
 
 // Computes row heights against a simulated set of chartRows rather than live
 // state, mirroring the same swap-in/swap-out trick canAddChart.js uses —
@@ -52,7 +53,7 @@ export function handleSplitChart(rowIndex, itemIndex) {
   const minNeeded = stackMinHeight(2);
 
   if (rowHeight < minNeeded) {
-    addWarning(`Nelze rozdělit graf, řada je příliš nízká (min. ${minNeeded}px).`, "error");
+    addWarning(t("warnings.chart.splitTooLow", { min: minNeeded }), "error");
     renderWarnings();
     return;
   }
@@ -108,8 +109,8 @@ export function handleAddStackChart(rowIndex, itemIndex, stackIndex) {
     // claiming the charts would be too small.
     addWarning(
       allExistingLocked
-        ? "Nelze přidat graf, všechny grafy ve sloupci jsou uzamčené. Nejprve odemkněte alespoň jeden graf."
-        : "Nelze přidat graf, grafy ve sloupci by byly příliš malé.",
+        ? t("warnings.chart.stackAllLocked")
+        : t("warnings.chart.stackTooSmall"),
       "error"
     );
     renderWarnings();
@@ -131,7 +132,7 @@ export function handleRemoveStackChart(rowIndex, itemIndex, stackIndex) {
   if (!target) return;
 
   if (target.locked) {
-    addWarning("Nelze odebrat zamčený graf, nejprve jej odemkněte.", "error");
+    addWarning(t("warnings.chart.removeLocked"), "error");
     renderWarnings();
     flash(`chart-${rowIndex}-${itemIndex}-${stackIndex}`);
     return;
@@ -139,7 +140,7 @@ export function handleRemoveStackChart(rowIndex, itemIndex, stackIndex) {
 
   const remaining = stack.filter((_, i) => i !== stackIndex);
   if (!remaining.some(s => !s.locked)) {
-    addWarning("Nelze odebrat graf, nejprve odemkněte alespoň jeden graf ve sloupci.", "error");
+    addWarning(t("warnings.chart.removeUnlockStack"), "error");
     renderWarnings();
     flashAll(stack.map((_, s) => `chart-${rowIndex}-${itemIndex}-${s}`).filter((_, s) => s !== stackIndex));
     return;
@@ -227,7 +228,7 @@ export function handleSelectStackChart(rowIndex, itemIndex, stackIndex, domId, o
 
   setSelected({
     kind: "stackChart",
-    labelType: "Graf (sloupec)",
+    labelType: t("selection.kind.stackChart"),
     labelIndex: `${rowIndex + 1}.${itemIndex + 1}.${stackIndex + 1}`,
     x: sub.x,
     y: sub.y,

@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>kvapka</title>
-    <meta name="description" content="kvapka — návrhář rozložení Power BI reportů." />
+    <title data-i18n="app.title"></title>
+    <meta name="description" data-i18n-content="app.description" />
     <meta name="theme-color" content="#2b3038" />
 
     <link rel="icon" type="image/svg+xml" href="assets/img/favicon/favicon.svg" />
@@ -48,53 +48,60 @@
     </svg>
 
     <header class="topbar">
-        <a class="brand" href="./" aria-label="kvapka">
+        <a class="brand" href="./" data-i18n-aria-label="topbar.brand">
             <!-- assets/img/logo.svg, inlined so it takes currentColor. -->
             <svg class="brand-mark" viewBox="0 0 1024 1024" fill="currentColor" aria-hidden="true">
                 <path d="M512.155 226.004C516.011 231.756 519.167 238.789 523.115 244.793C554.794 292.971 592.947 336.254 629.214 380.983C657.706 416.122 687.616 451.624 707.702 492.489C710.777 498.745 714.936 506.954 716.922 513.573C719.911 518.525 724.337 525.165 722.552 531.299C720.619 537.942 714.728 544.187 709.475 549.005C704 554.027 691.489 565.582 683.014 563.11C678.743 561.865 673.565 556.72 669.223 555.096C649.333 545.557 630.745 545.461 609.584 550.015C624.043 552.902 646.901 560.852 656.693 573.177C663.812 582.138 646.19 587.111 640.433 587.874C620.252 592.438 596.012 593.533 576.046 587.851C573.826 587.239 571.651 586.477 569.535 585.568C552.494 607.801 537.22 620.163 509.388 627.427C516.785 612.419 523.193 591.066 512.967 575.876C505.297 571.716 498.11 571.527 489.896 574.039C454.127 584.979 422.809 619.841 434.009 659.163C439.701 679.147 459.703 695.263 477.159 705.239C515.048 725.179 560.422 727.565 601.168 715.281C640.946 703.289 668.376 679.818 695.055 648.945C701.388 641.616 712.459 626.814 717.044 618.233C717.349 617.664 717.64 617.087 717.918 616.504C714.731 628.732 711.904 639.829 707.258 651.612C690.548 693.849 660.29 729.344 621.232 752.531C572.186 781.802 513.398 790.025 458.203 775.335C438.912 770.311 420.771 762.033 403.559 752.046C401 750.561 393.978 746.195 391.983 744.331C384.662 739.787 377.259 733.136 370.714 727.53C357.305 716.042 347.587 701.281 338.551 686.304C334.742 679.99 330.874 673.973 327.587 667.347C319.644 655.111 313.387 637.024 309.192 623.441C294.674 576.443 300.712 523.453 323.962 480.097C344.418 441.953 375.809 404.182 403.555 370.759C419.738 351.271 435.695 331.598 451.425 311.743C473.78 283.747 494.641 257.369 512.155 226.004Z"/>
                 <path d="M512.155 226.004C516.011 231.756 519.167 238.789 523.115 244.793C554.794 292.971 592.947 336.254 629.214 380.983C657.706 416.122 687.616 451.624 707.702 492.489C710.777 498.745 714.936 506.954 716.922 513.573C712.111 509.973 707.598 503.819 702.714 499.687C677.552 478.398 647.533 462.222 615.436 454.39C609.308 452.945 603.128 451.73 596.91 450.747C589.014 449.573 578.903 448.865 571.829 445.24C559.533 438.939 547.349 429.254 536.098 421.089C506.29 399.456 465.905 380.031 428.097 384.568C427.445 384.647 426.794 384.729 426.143 384.815C429.691 390.976 437.272 398.337 441.974 404.045C455.128 420.011 469.983 458.9 445.59 471.86C393.996 499.273 345.267 546.284 330.684 604.773C326.752 620.498 325.183 636.721 326.029 652.908C326.225 657.474 327.735 663.577 327.587 667.347C319.644 655.111 313.387 637.024 309.192 623.441C294.674 576.443 300.712 523.453 323.962 480.097C344.418 441.953 375.809 404.182 403.555 370.759C419.738 351.271 435.695 331.598 451.425 311.743C473.78 283.747 494.641 257.369 512.155 226.004Z"/>
                 <path d="M391.983 744.331C392.812 742.04 389.849 739.85 388.204 738.116C359.601 707.965 354.233 662.105 370.578 624.893C382.873 596.78 405.797 574.676 434.339 563.412C454.088 555.797 477.179 553.768 497.046 562.514C501.43 564.444 511.326 571.24 512.967 575.876C505.297 571.716 498.11 571.527 489.896 574.039C454.127 584.979 422.809 619.841 434.009 659.163C439.701 679.147 459.703 695.263 477.159 705.239C515.048 725.179 560.422 727.565 601.168 715.281C640.946 703.289 668.376 679.818 695.055 648.945C701.388 641.616 712.459 626.814 717.044 618.233C717.349 617.664 717.64 617.087 717.918 616.504C714.731 628.732 711.904 639.829 707.258 651.612C690.548 693.849 660.29 729.344 621.232 752.531C572.186 781.802 513.398 790.025 458.203 775.335C438.912 770.311 420.771 762.033 403.559 752.046C401 750.561 393.978 746.195 391.983 744.331Z"/>
             </svg>
-            <span class="brand-name">kvapka</span>
+            <span class="brand-name" data-i18n="topbar.brand"></span>
         </a>
-        <span class="topbar-subtitle">Návrh rozložení reportu</span>
+        <span class="topbar-subtitle" data-i18n="topbar.subtitle" data-i18n-stable></span>
 
         <!-- The strip is an in-flow flex child that centres its own content: the
              tabs scroll inside .tab-viewport while the arrows and the + stay
              pinned outside it, so neither can be squashed or scrolled away. -->
         <div class="tab-strip">
-            <button type="button" class="icon-circle tab-scroll" data-dir="prev" aria-label="Předchozí stránky" hidden>
+            <button type="button" class="icon-circle tab-scroll" data-dir="prev" data-i18n-aria-label="tabs.prev" hidden>
                 <svg aria-hidden="true"><use href="#i-chevron"/></svg>
             </button>
             <div class="tab-viewport">
-                <div id="tab-bar" class="tab-bar" role="tablist" aria-label="Stránky reportu"></div>
+                <div id="tab-bar" class="tab-bar" role="tablist" data-i18n-aria-label="tabs.list"></div>
             </div>
-            <button type="button" class="icon-circle tab-scroll tab-scroll--next" data-dir="next" aria-label="Další stránky" hidden>
+            <button type="button" class="icon-circle tab-scroll tab-scroll--next" data-dir="next" data-i18n-aria-label="tabs.next" hidden>
                 <svg aria-hidden="true"><use href="#i-chevron"/></svg>
             </button>
-            <button type="button" id="tab-add" class="icon-circle tab-add" title="Přidat stránku" aria-label="Přidat stránku">
+            <button type="button" id="tab-add" class="icon-circle tab-add" data-i18n-title="tabs.add" data-i18n-aria-label="tabs.add">
                 <svg aria-hidden="true"><use href="#i-plus"/></svg>
             </button>
         </div>
 
         <div class="topbar-actions">
+            <!-- Language codes, the same in every language; the group's name
+                 comes from the locale file. Wired in app.js. -->
+            <div class="segmented lang-switch" role="group" data-i18n-aria-label="topbar.language">
+                <button type="button" class="template-option" data-locale="cs" lang="cs">CS</button>
+                <button type="button" class="template-option" data-locale="en" lang="en">EN</button>
+            </div>
+
             <button id="export-layout" class="btn btn-primary">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <span>Exportovat rozložení</span>
+                <span data-i18n="topbar.export" data-i18n-stable></span>
             </button>
 
             <!-- Panel and toasts are positioned against .bell-wrap, so they follow
                  the bell at any bar height instead of hanging off a hard-coded
                  --topbar offset that the wrapped narrow bar invalidates. -->
             <div class="bell-wrap">
-                <button id="notification-bell" class="icon-circle notification-bell" aria-label="Oznámení" type="button">
+                <button id="notification-bell" class="icon-circle notification-bell" data-i18n-aria-label="topbar.notifications" type="button">
                     <svg aria-hidden="true"><use href="#i-bell"/></svg>
                     <span class="notification-dot" aria-hidden="true"></span>
                 </button>
 
                 <div id="notification-panel" class="notification-panel">
                     <div class="notification-panel-header">
-                        <h3>Oznámení</h3>
+                        <h3 data-i18n="notifications.title"></h3>
                     </div>
                     <div id="notification-list" class="notification-list"></div>
                 </div>
@@ -105,18 +112,18 @@
     </header>
 
     <div class="app">
-        <nav class="rail" aria-label="Sekce">
+        <nav class="rail" data-i18n-aria-label="rail.label">
             <button type="button" class="rail-btn" data-section="sablona">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
-                <span>Šablona</span>
+                <span data-i18n="rail.template"></span>
             </button>
             <button type="button" class="rail-btn" data-section="layout">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="2" fill="#fff" stroke="currentColor" stroke-width="1.8"/><circle cx="15" cy="12" r="2" fill="#fff" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="17" r="2" fill="#fff" stroke="currentColor" stroke-width="1.8"/></svg>
-                <span>Vlastní layout</span>
+                <span data-i18n="rail.layout"></span>
             </button>
             <button type="button" class="rail-btn" data-section="prvky">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 4a2 2 0 1 1 4 0v1h4v4h1a2 2 0 1 1 0 4h-1v4h-4v-1a2 2 0 1 0-4 0v1H6v-4H5a2 2 0 1 1 0-4h1V5h4V4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-                <span>Vlastní prvky</span>
+                <span data-i18n="rail.elements"></span>
             </button>
         </nav>
 
@@ -130,7 +137,7 @@
                     <h2 class="panel-head-title">
                         <button type="button" class="panel-head" id="template-toggle" aria-expanded="true" aria-controls="template-body">
                             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
-                            <span class="panel-head-name">Šablona</span>
+                            <span class="panel-head-name" data-i18n="template.title"></span>
                             <svg class="panel-head-chevron" aria-hidden="true"><use href="#i-chevron"/></svg>
                         </button>
                     </h2>
@@ -143,62 +150,62 @@
                         <div class="fold-layer is-out" id="template-summary">
                             <dl class="spec-sheet">
                                 <div class="spec-row">
-                                    <dt>Rozlišení</dt>
+                                    <dt data-i18n="template.summary.resolution"></dt>
                                     <dd><span id="sum-res"></span> <span class="spec-muted" id="sum-size"></span></dd>
                                 </div>
                                 <div class="spec-row">
-                                    <dt>Platnost</dt>
+                                    <dt data-i18n="template.summary.scope"></dt>
                                     <dd id="sum-scope"></dd>
                                 </div>
                                 <div class="spec-row">
-                                    <dt>Slicery</dt>
+                                    <dt data-i18n="template.summary.slicers"></dt>
                                     <dd><span class="spec-glyph" id="sum-placement-glyph" aria-hidden="true"></span><span id="sum-placement"></span></dd>
                                 </div>
                                 <div class="spec-row">
-                                    <dt>KPI</dt>
+                                    <dt data-i18n="template.summary.kpi"></dt>
                                     <dd id="sum-kpi"></dd>
                                 </div>
                             </dl>
                         </div>
 
                         <div class="fold-layer is-in" id="template-body">
-                            <p class="panel-sub">Nastavte rozložení a vzhled reportu</p>
+                            <p class="panel-sub" data-i18n="template.intro"></p>
 
                             <div class="panel-field">
-                                <h3 class="field-label" id="label-resolution">Rozlišení</h3>
+                                <h3 class="field-label" id="label-resolution" data-i18n="template.resolution"></h3>
                                 <!-- Chips are built by ui/themePicker.js: the two built-in
                                      presets first, then every saved custom theme. -->
                                 <div class="theme-selector" id="theme-selector" role="group" aria-labelledby="label-resolution"></div>
                             </div>
 
                             <div class="panel-field">
-                                <h3 class="field-label">Vlastní šablona</h3>
+                                <h3 class="field-label" data-i18n="template.custom"></h3>
                                 <button type="button" class="btn btn-secondary full-btn" id="new-theme">
                                     <svg aria-hidden="true"><use href="#i-plus"/></svg>
-                                    <span>Vlastní šablona…</span>
+                                    <span data-i18n="template.customButton"></span>
                                 </button>
                             </div>
 
                             <div class="panel-field">
-                                <h3 class="field-label" id="label-theme-scope">Platnost šablony</h3>
+                                <h3 class="field-label" id="label-theme-scope" data-i18n="template.scope"></h3>
                                 <div class="template-selector segmented" role="group" aria-labelledby="label-theme-scope">
-                                    <button type="button" class="template-option theme-scope-option active" data-scope="page">Tato stránka</button>
-                                    <button type="button" class="template-option theme-scope-option" data-scope="global">Všechny</button>
+                                    <button type="button" class="template-option theme-scope-option active" data-scope="page" data-i18n="template.scopePage"></button>
+                                    <button type="button" class="template-option theme-scope-option" data-scope="global" data-i18n="template.scopeAll"></button>
                                 </div>
                                 <p class="field-note m-reveal" id="theme-scope-note"></p>
                             </div>
 
                             <div class="panel-field">
-                                <h3 class="field-label" id="label-slicer-placement">Slicery</h3>
+                                <h3 class="field-label" id="label-slicer-placement" data-i18n="template.slicers"></h3>
                                 <!-- Each option is a whole layout, not a view of one:
                                      picking it switches to a template built for that
                                      shape (ui/themePicker.js). An option with no
                                      template of its own is disabled rather than
                                      conjuring one. -->
                                 <div class="template-selector segmented segmented--3" role="group" aria-labelledby="label-slicer-placement">
-                                    <button type="button" class="template-option active" data-placement="horizontal">Nahoře</button>
-                                    <button type="button" class="template-option" data-placement="vertical-left">Vlevo</button>
-                                    <button type="button" class="template-option" data-placement="vertical-right">Vpravo</button>
+                                    <button type="button" class="template-option active" data-placement="horizontal" data-i18n="placement.horizontal"></button>
+                                    <button type="button" class="template-option" data-placement="vertical-left" data-i18n="placement.verticalLeft"></button>
+                                    <button type="button" class="template-option" data-placement="vertical-right" data-i18n="placement.verticalRight"></button>
                                 </div>
                                 <p class="field-note m-reveal" id="placement-note"></p>
                             </div>
@@ -209,7 +216,7 @@
                                 <div class="collapsible expanded" id="slicers-per-row-field">
                                     <div class="collapsible-inner">
                                         <div class="panel-row">
-                                            <label for="slicers-per-row">Slicery na řádek</label>
+                                            <label for="slicers-per-row" data-i18n="template.slicersPerRow"></label>
                                             <!-- Options come from the active theme's
                                                  min/max per-row bounds (themePicker.js). -->
                                             <select id="slicers-per-row"></select>
@@ -218,65 +225,65 @@
                                 </div>
 
                                 <div class="panel-row">
-                                    <label for="kpis-per-row">KPI na řádek</label>
+                                    <label for="kpis-per-row" data-i18n="template.kpisPerRow"></label>
                                     <select id="kpis-per-row"></select>
                                 </div>
                             </div>
 
                             <button id="reset-layout" class="btn btn-ghost full-btn">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                <span>Reset layoutu</span>
+                                <span data-i18n="template.reset"></span>
                             </button>
                         </div>
                     </div>
                 </section>
 
                 <section class="panel">
-                    <h2>Vybraný element</h2>
+                    <h2 data-i18n="selection.title"></h2>
                     <div id="no-selection" class="collapsible expanded">
-                        <div class="collapsible-inner"><p class="empty-hint">Klikněte na element v náhledu. Najetím na něj se zobrazí jeho ovládání.</p></div>
+                        <div class="collapsible-inner"><p class="empty-hint" data-i18n="selection.empty"></p></div>
                     </div>
 
                     <div id="selection-details" class="collapsible">
                         <div class="collapsible-inner">
-                            <div class="sel-row"><strong>Typ</strong> <span id="sel-type" class="sel-value"></span></div>
-                            <div class="sel-row"><strong>Index</strong> <span id="sel-index" class="sel-value"></span></div>
+                            <div class="sel-row"><strong data-i18n="selection.type"></strong> <span id="sel-type" class="sel-value"></span></div>
+                            <div class="sel-row"><strong data-i18n="selection.index"></strong> <span id="sel-index" class="sel-value"></span></div>
                             <div class="sel-row" id="sel-row-width">
-                                <strong>Šířka</strong>
-                                <span class="editable-value" id="edit-width-wrapper" tabindex="0" title="Dvojklikem upravit hodnotu">
+                                <strong data-i18n="selection.width"></strong>
+                                <span class="editable-value" id="edit-width-wrapper" tabindex="0" data-i18n-title="selection.editHint">
                                     <span id="sel-width"></span><span class="unit">px</span>
                                 </span>
                                 <input id="input-width" type="number" class="inline-edit-input m-reveal hidden" />
-                                <button class="icon-swap copy-btn edit-pencil-btn push-right" type="button" id="edit-width-pencil" title="Upravit hodnotu" aria-label="Upravit šířku"><svg aria-hidden="true"><use href="#i-pencil"/></svg></button>
-                                <button class="icon-swap copy-btn" type="button" data-copy-target="sel-width" title="Kopírovat hodnotu" aria-label="Kopírovat šířku"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
+                                <button class="icon-swap copy-btn edit-pencil-btn push-right" type="button" id="edit-width-pencil" data-i18n-title="selection.editValue" data-i18n-aria-label="selection.editWidth"><svg aria-hidden="true"><use href="#i-pencil"/></svg></button>
+                                <button class="icon-swap copy-btn" type="button" data-copy-target="sel-width" data-i18n-title="selection.copyValue" data-i18n-aria-label="selection.copyWidth"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
                             </div>
                             <div class="sel-row" id="sel-row-height">
-                                <strong>Výška</strong>
-                                <span class="editable-value" id="edit-height-wrapper" tabindex="0" title="Dvojklikem upravit hodnotu">
+                                <strong data-i18n="selection.height"></strong>
+                                <span class="editable-value" id="edit-height-wrapper" tabindex="0" data-i18n-title="selection.editHint">
                                     <span id="sel-height"></span><span class="unit">px</span>
                                 </span>
                                 <input id="input-height" type="number" class="inline-edit-input m-reveal hidden" />
-                                <button class="icon-swap copy-btn edit-pencil-btn push-right" type="button" id="edit-height-pencil" title="Upravit hodnotu" aria-label="Upravit výšku"><svg aria-hidden="true"><use href="#i-pencil"/></svg></button>
-                                <button class="icon-swap copy-btn" type="button" data-copy-target="sel-height" title="Kopírovat hodnotu" aria-label="Kopírovat výšku"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
+                                <button class="icon-swap copy-btn edit-pencil-btn push-right" type="button" id="edit-height-pencil" data-i18n-title="selection.editValue" data-i18n-aria-label="selection.editHeight"><svg aria-hidden="true"><use href="#i-pencil"/></svg></button>
+                                <button class="icon-swap copy-btn" type="button" data-copy-target="sel-height" data-i18n-title="selection.copyValue" data-i18n-aria-label="selection.copyHeight"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
                             </div>
-                            <div class="sel-row"><strong>X</strong> <span class="editable-value"><span id="sel-x"></span><span class="unit">px</span></span>
-                                <button class="icon-swap copy-btn push-right" type="button" data-copy-target="sel-x" title="Kopírovat hodnotu" aria-label="Kopírovat hodnotu X"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
+                            <div class="sel-row"><strong data-i18n="selection.x"></strong> <span class="editable-value"><span id="sel-x"></span><span class="unit">px</span></span>
+                                <button class="icon-swap copy-btn push-right" type="button" data-copy-target="sel-x" data-i18n-title="selection.copyValue" data-i18n-aria-label="selection.copyX"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
                             </div>
-                            <div class="sel-row"><strong>Y</strong> <span class="editable-value"><span id="sel-y"></span><span class="unit">px</span></span>
-                                <button class="icon-swap copy-btn push-right" type="button" data-copy-target="sel-y" title="Kopírovat hodnotu" aria-label="Kopírovat hodnotu Y"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
+                            <div class="sel-row"><strong data-i18n="selection.y"></strong> <span class="editable-value"><span id="sel-y"></span><span class="unit">px</span></span>
+                                <button class="icon-swap copy-btn push-right" type="button" data-copy-target="sel-y" data-i18n-title="selection.copyValue" data-i18n-aria-label="selection.copyY"><svg aria-hidden="true"><use href="#i-copy"/></svg></button>
                             </div>
 
-                            <button id="apply-selection" class="btn btn-primary full-btn m-reveal hidden" disabled>Použít změny</button>
+                            <button id="apply-selection" class="btn btn-primary full-btn m-reveal hidden" disabled data-i18n="selection.apply"></button>
                         </div>
                     </div>
                 </section>
 
                 <section class="panel add-elements">
-                    <h2>Přidat</h2>
+                    <h2 data-i18n="add.title"></h2>
                     <div class="button-group">
-                        <button id="add-slicer" class="btn btn-secondary full-btn"><svg aria-hidden="true"><use href="#i-slicer"/></svg>Slicer</button>
-                        <button id="add-kpi" class="btn btn-secondary full-btn"><svg aria-hidden="true"><use href="#i-kpi"/></svg>KPI</button>
-                        <button id="add-chart-split" class="btn btn-secondary full-btn m-reveal hidden"><svg aria-hidden="true"><use href="#i-chart"/></svg>Graf</button>
+                        <button id="add-slicer" class="btn btn-secondary full-btn"><svg aria-hidden="true"><use href="#i-slicer"/></svg><span data-i18n="add.slicer"></span></button>
+                        <button id="add-kpi" class="btn btn-secondary full-btn"><svg aria-hidden="true"><use href="#i-kpi"/></svg><span data-i18n="add.kpi"></span></button>
+                        <button id="add-chart-split" class="btn btn-secondary full-btn m-reveal hidden"><svg aria-hidden="true"><use href="#i-chart"/></svg><span data-i18n="add.chart"></span></button>
                     </div>
                     <!-- Filled with one button per KPI band beyond the first
                          (see syncKpiBandControls in app.js). Empty when the
@@ -295,10 +302,10 @@
         </main>
 
         <!-- Shown by the rail's "Vlastní prvky" section (ui/rail.js). -->
-        <section id="section-prvky" class="placeholder m-reveal" aria-label="Vlastní prvky">
+        <section id="section-prvky" class="placeholder m-reveal" data-i18n-aria-label="elements.title">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 4a2 2 0 1 1 4 0v1h4v4h1a2 2 0 1 1 0 4h-1v4h-4v-1a2 2 0 1 0-4 0v1H6v-4H5a2 2 0 1 1 0-4h1V5h4V4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-            <h2>Vlastní prvky</h2>
-            <p>Vlastní přizpůsobení elementů (brzy dostupné)</p>
+            <h2 data-i18n="elements.title"></h2>
+            <p data-i18n="elements.text"></p>
         </section>
     </div>
 
