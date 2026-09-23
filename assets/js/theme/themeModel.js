@@ -574,17 +574,3 @@ export function validateTheme(theme) {
 export function cloneTheme(theme) {
   return { ...theme, sections: theme.sections.map(s => ({ ...s })) };
 }
-
-// Which fields differ between two themes — used to tell the user how far a
-// custom theme has drifted from the preset it was derived from. Only the
-// fields the placement actually uses count: a horizontal layout's column
-// widths are carried along untouched, and reporting them as "changes" would
-// inflate the count with values the editor never showed.
-export function diffFromTheme(theme, base) {
-  const keys = fieldsFor(theme.placement).map(f => f.key).concat("placement");
-  const changed = keys.filter(k => theme[k] !== base[k]);
-
-  if (JSON.stringify(theme.sections) !== JSON.stringify(base.sections)) changed.push("sections");
-
-  return changed;
-}

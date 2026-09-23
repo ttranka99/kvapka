@@ -130,10 +130,9 @@ body.theme-editor-open .main {
   box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
 }
 
-/* Top-aligned, not centred: the identity block is two lines (name + meta)
-   and centring put the 36px buttons on the pair's midline, a step below
-   the input. The name is itself 36px tall, so input and buttons share a
-   line and the meta hangs beneath. 20px sides, like every pane below. */
+/* Top-aligned: the name input and the buttons are both 36px, so they share
+   a line, and when the actions wrap they stack beneath rather than
+   centring against it. 20px sides, like every pane below. */
 .theme-editor__head {
   display: flex;
   flex-wrap: wrap;
@@ -150,37 +149,58 @@ body.theme-editor-open .main {
   min-width: 220px;
 }
 
-.theme-editor__name {
-  width: 100%;
+/* The visible field: a bordered box holding the name and, at its end, the
+   pencil — the border shows where the editable area starts and stops. */
+.theme-editor__name-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   height: 36px;
-  padding: 0 8px;
-  margin-left: -8px;
-  border: 0;
+  padding: 0 10px;
+  border: 1px solid var(--line);
   border-radius: var(--r-sm);
+  cursor: text;
+  transition: border-color var(--fast) ease, box-shadow var(--fast) ease, background var(--fast) ease;
+}
+
+.theme-editor__name-box:hover {
+  background: var(--surface-2);
+}
+
+.theme-editor__name-box:has(.theme-editor__name:focus-visible) {
+  border-color: var(--slate);
+  box-shadow: 0 0 0 3px var(--line);
+}
+
+.theme-editor__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
   font: inherit;
   font-size: var(--fs-xl);
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--ink);
   background: transparent;
-  transition: box-shadow var(--fast) ease, background var(--fast) ease;
-}
-
-.theme-editor__name:hover {
-  background: var(--surface-2);
 }
 
 .theme-editor__name:focus-visible {
   outline: none;
-  box-shadow: inset 0 0 0 1px var(--slate), 0 0 0 3px var(--line);
 }
 
-/* The same role as .panel-head-sub in the sidebar. */
-.theme-editor__meta {
-  margin-top: 4px;
-  font-size: var(--fs-xs);
-  letter-spacing: 0.01em;
+.theme-editor__name-box svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
   color: var(--ink-3);
+  transition: color var(--fast) ease;
+}
+
+.theme-editor__name-box:hover svg,
+.theme-editor__name:focus-visible + svg {
+  color: var(--ink);
 }
 
 .theme-editor__head-actions {

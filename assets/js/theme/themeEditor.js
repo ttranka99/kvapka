@@ -21,7 +21,6 @@ import {
   validateTheme,
   usableWidth,
   usableHeight,
-  diffFromTheme,
   PLACEMENTS,
   placementLabel,
   isVerticalPlacement,
@@ -52,7 +51,7 @@ import { leave, durationMs } from "../ui/motion.js";
 
 let root = null;              // the overlay element, built once and reused
 let draft = null;             // the theme being edited
-let baseTheme = null;         // what it was derived from, for the diff readout
+let baseTheme = null;         // what it was derived from, for reset
 let editingExistingId = null; // non-null when editing a saved custom theme
 let onApply = null;           // callback handed in by the opener
 let onClose = null;           // fired on every exit path (see closeThemeEditor)
@@ -192,6 +191,9 @@ function buildHead() {
   const head = el("header", "theme-editor__head");
 
   const identity = el("div", "theme-editor__identity");
+  // The box you see is this <label>, not the input: it holds the name and
+  // the pencil together, and a click on the pencil lands in the field.
+  const box = el("label", "theme-editor__name-box");
   const name = document.createElement("input");
   name.type = "text";
   name.id = "theme-name";
@@ -202,8 +204,9 @@ function buildHead() {
     draft.label = name.value;
     renderMeta();
   });
-  identity.appendChild(name);
-  identity.appendChild(el("p", "theme-editor__meta"));
+  box.appendChild(name);
+  box.appendChild(iconEl("pencil"));
+  identity.appendChild(box);
   head.appendChild(identity);
 
   const actions = el("div", "theme-editor__head-actions");
@@ -757,19 +760,7 @@ function renderMeta() {
   const name = root.querySelector("#theme-name");
   if (document.activeElement !== name) name.value = draft.label;
 
-  const changed = diffFromTheme(draft, baseTheme);
-  const meta = root.querySelector(".theme-editor__meta");
-  meta.textContent = changed.length === 0
-    ? `Odvozeno z „${baseTheme.label}" — zatím beze změn`
-    : `Odvozeno z „${baseTheme.label}" — ${changed.length} ${plural(changed.length, "změna", "změny", "změn")}`;
-
   root.querySelector(".theme-editor__delete").hidden = editingExistingId === null;
-}
-
-function plural(n, one, few, many) {
-  if (n === 1) return one;
-  if (n >= 2 && n <= 4) return few;
-  return many;
 }
 
 function renderControls(g) {
