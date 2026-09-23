@@ -376,7 +376,9 @@ button:active:not(:disabled),
   align-items: center;
   gap: 16px;
   height: var(--topbar);
-  padding: 0 20px;
+  /* Right side on the gutter, so the bell ends on the same line as the sheet
+     and the theme editor card below it. */
+  padding: 0 var(--gutter) 0 20px;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
@@ -1441,15 +1443,17 @@ select {
    vertical one would move the wrapper top that
    computeEffectiveScale() measures.
 -----------------------------------------------------*/
-/* The one scroll container in the desktop shell. The gutter is reserved here
-   (rather than on the root) so a scrollbar appearing can't change the width
-   the auto-fit canvas measures. */
+/* The one scroll container in the desktop shell. No reserved scrollbar
+   gutter: the sheet is fitted to both width and height, so nothing overflows
+   short of the 0.12 scale floor, and a reserved track only pushed the sheet
+   a scrollbar's width further from the window edge than the other sections.
+   Horizontal overflow is clipped so edge controls poking past the sheet
+   can't raise a scrollbar and change the width the fit measures. */
 .main {
   flex: 1;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
-  scrollbar-gutter: stable;
+  overflow: hidden auto;
   padding: var(--gutter);
   text-align: center;
 }
