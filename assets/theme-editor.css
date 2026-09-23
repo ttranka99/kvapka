@@ -75,12 +75,6 @@
   color: var(--pink);
 }
 
-/* A middle KPI band is the same component as the header band, with a left
-   rule marking it as another band. */
-.canvas-element.kpi--band2 {
-  box-shadow: inset 3px 0 0 var(--slate), inset 0 0 0 1px var(--line-strong);
-}
-
 /* ----------------------------------------------------
    THEME EDITOR — a section of its own, filling the
    space right of the rail and below the top bar. It is
@@ -459,16 +453,6 @@ body.theme-editor-open .main {
   box-shadow: inset 0 0 0 1px var(--pink);
 }
 
-/* Every band after the header carries the same left rule its canvas cards
-   do (.canvas-element.kpi--band2). */
-.theme-kpi-band--extra {
-  box-shadow: inset 3px 0 0 var(--slate), inset 0 0 0 1px var(--line-strong);
-}
-
-.theme-kpi-band--extra.is-linked {
-  box-shadow: inset 3px 0 0 var(--slate), inset 0 0 0 1px var(--pink);
-}
-
 .theme-kpi-band__head {
   display: flex;
   align-items: center;
@@ -686,10 +670,6 @@ body.theme-editor-open .main {
 .theme-region--chart {
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--line-strong);
-}
-
-.theme-region--band2 {
-  box-shadow: inset 3px 0 0 var(--slate), inset 0 0 0 1px var(--line-strong);
 }
 
 .theme-region--chart.is-too-small {

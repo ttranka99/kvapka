@@ -379,7 +379,7 @@ export function renderLayout(opts) {
       const domId = band === 0 ? `kpi-${item.index}` : `kpi-b${band}-${item.index}`;
       const el = document.createElement("div");
       el.id = domId;
-      el.className = "canvas-element kpi" + (band === 0 ? "" : " kpi--band2");
+      el.className = "canvas-element kpi";
       el.style.left = scale(item.x) + "px";
       el.style.top = scale(item.y) + "px";
       el.style.width = scale(item.width) + "px";

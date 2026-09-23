@@ -38,6 +38,10 @@ export default {
   // --- Notifications (bell panel) ---------------------------------------
   "notifications.title": "Notifications",
   "notifications.empty": "No notifications.",
+  // Severity label above each toast's message.
+  "notifications.type.error": "Error",
+  "notifications.type.warning": "Warning",
+  "notifications.type.info": "Info",
 
   // --- Left rail --------------------------------------------------------
   "rail.label": "Sections",

@@ -1962,28 +1962,65 @@ body.is-resizing-chart .element-controls {
   outline: none;
 }
 
-/* Filled while a toast is on screen (renderBell() in warnings.js). */
+/* Filled while a toast is on screen, in the colour of the most serious one
+   (renderBell() in warnings.js sets data-severity). */
 .notification-bell.pulse-active {
   color: #fff;
   background: var(--slate);
 }
 
-.notification-dot {
-  position: absolute;
-  top: 7px;
-  right: 8px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--pink);
-  box-shadow: 0 0 0 2px var(--surface);
-  opacity: 0;
-  /* Not --motion-scale: on an 8px dot that would be a quarter pixel. */
-  transform: scale(0.6);
-  transition: opacity var(--fast) ease, transform var(--fast) var(--ease-out);
+.notification-bell.pulse-active[data-severity="warning"] {
+  background: var(--warning);
 }
 
-.notification-bell.has-notifications .notification-dot {
+.notification-bell.pulse-active[data-severity="error"] {
+  background: var(--error);
+}
+
+/* One swing when a toast surfaces, hinged at the top of the bell. */
+.notification-bell.ringing svg {
+  animation: bell-ring 600ms var(--ease-out);
+  transform-origin: 50% 15%;
+}
+
+@keyframes bell-ring {
+  15% { transform: rotate(16deg); }
+  35% { transform: rotate(-13deg); }
+  55% { transform: rotate(8deg); }
+  75% { transform: rotate(-4deg); }
+}
+
+/* How many notifications the panel holds, coloured by the most serious. */
+.notification-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  background: var(--slate);
+  box-shadow: 0 0 0 2px var(--surface);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--fast) ease, transform var(--fast) var(--ease-out), background var(--fast) ease;
+}
+
+.notification-badge[data-severity="warning"] {
+  background: var(--warning);
+}
+
+.notification-badge[data-severity="error"] {
+  background: var(--error);
+}
+
+.notification-bell.has-notifications .notification-badge {
   opacity: 1;
   transform: none;
 }
@@ -2036,16 +2073,35 @@ body.is-resizing-chart .element-controls {
   text-align: center;
 }
 
+/* Tinted like the toasts, so an error still reads as one after it has moved
+   in here. --tone is the type's colour, --tint its background. */
+.notification-list {
+  gap: 4px;
+}
+
 .notification-item {
+  --tone: var(--slate);
+  --tint: var(--surface-2);
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 10px;
   border-radius: var(--r-sm);
+  background: var(--tint);
 }
 
 .notification-item:hover {
-  background: var(--surface-2);
+  background: color-mix(in srgb, var(--tint), var(--tone) 6%);
+}
+
+.notification-warning {
+  --tone: var(--warning);
+  --tint: var(--warning-bg);
+}
+
+.notification-error {
+  --tone: var(--error);
+  --tint: var(--error-bg);
 }
 
 .notification-icon {
@@ -2059,16 +2115,8 @@ body.is-resizing-chart .element-controls {
   line-height: 1.5;
 }
 
-.notification-info .notification-icon {
-  color: var(--slate);
-}
-
-.notification-warning .notification-icon {
-  color: var(--warning);
-}
-
-.notification-error .notification-icon {
-  color: var(--error);
+.notification-item .notification-icon {
+  color: var(--tone);
 }
 
 .toast-container {
@@ -2085,15 +2133,25 @@ body.is-resizing-chart .element-controls {
   pointer-events: none;
 }
 
+/* A card in the type's colours: tinted face, a ring in the type colour, the
+   icon on a filled disc and the type named above the
+   message. Most toasts are errors about the layout just attempted, so they
+   have to hold the eye over the canvas rather than blend into the chrome.
+   --tone is the type's colour, --tint its background. */
 .toast {
+  --tone: var(--slate);
+  --tint: var(--surface);
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 16px 0 12px;
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  box-shadow: 0 0 0 1px var(--line), var(--shadow-pop);
+  align-items: flex-start;
+  gap: 10px;
+  width: 360px;
+  max-width: 100%;
+  padding: 10px 14px 12px 14px;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  background: var(--tint);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tone) 35%, transparent), var(--shadow-pop);
   pointer-events: auto;
   /* Enters from the bell: the shared entrance, aimed downward. */
   --motion-shift: -6px;
@@ -2101,37 +2159,92 @@ body.is-resizing-chart .element-controls {
   transform-origin: var(--motion-origin);
 }
 
+.toast-warning {
+  --tone: var(--warning);
+  --tint: var(--warning-bg);
+}
+
+.toast-error {
+  --tone: var(--error);
+  --tint: var(--error-bg);
+}
+
 /* :not(.m-leave) so the exit class can take the animation over. */
 .toast:not(.m-leave) {
   animation: m-in var(--slow) var(--ease-out);
 }
 
-.toast-icon {
-  width: 16px;
-  height: 16px;
+/* An error gives one short shake once it has landed. */
+.toast-error:not(.m-leave) {
+  animation:
+    m-in var(--slow) var(--ease-out),
+    toast-shake 360ms ease-in-out var(--slow);
+}
+
+@keyframes toast-shake {
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+.toast-badge {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--tone);
+  color: #fff;
+}
+
+.toast-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.toast-body {
+  flex: 1;
+  min-width: 0;
+  /* Centres a one-line message on the 24px disc. */
+  padding-top: 1px;
+}
+
+.toast-label {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  color: var(--tone);
 }
 
 .toast-message {
-  flex: 1;
-  min-width: 0;
+  margin-top: 1px;
   font-weight: 500;
+  line-height: 1.45;
   color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
-.toast-info {
-  color: var(--slate);
+/* Runs down over the toast's time on screen; when it is empty the toast
+   moves into the bell. --toast-elapsed (negative) resumes a toast that is
+   rebuilt part-way through its time. */
+.toast-countdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--tone) 55%, transparent);
+  transform-origin: left;
+  animation: toast-countdown var(--toast-life, 5s) linear var(--toast-elapsed, 0ms) forwards;
 }
 
-.toast-warning {
-  color: var(--warning);
-}
-
-.toast-error {
-  color: var(--error);
+@keyframes toast-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
 }
 
 /* ----------------------------------------------------
@@ -2149,6 +2262,16 @@ body.is-resizing-chart .element-controls {
   .notification-panel,
   .toast {
     --motion-shift: 0px;
+  }
+
+  /* The shake and the bell's swing are pure movement; the error colours
+     still carry the weight without them. */
+  .toast-error:not(.m-leave) {
+    animation: m-in var(--slow) var(--ease-out);
+  }
+
+  .notification-bell.ringing svg {
+    animation: none;
   }
 }
 

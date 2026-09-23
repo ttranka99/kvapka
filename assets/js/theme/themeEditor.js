@@ -594,7 +594,6 @@ function renderKpiBandsList(g) {
     // listener below closes over this id rather than that object.
     const bandId = section.id;
     const row = el("div", "theme-kpi-band");
-    if (i > 0) row.classList.add("theme-kpi-band--extra");
     row.dataset.kpiBandId = bandId;
     row.dataset.region = "kpi-band2";
 
@@ -1416,7 +1415,7 @@ function renderPreview(g) {
   extraKpis.forEach(entry => {
     const section = t.sections.find(s => s.type === "kpi" && s.id === entry.id);
     const rowLabel = afterRowLabel(t, section, g.chartGroups);
-    const band = region("kpi-band2", "theme-region theme-region--kpi theme-region--band2", {
+    const band = region("kpi-band2", "theme-region theme-region--kpi", {
       left: g.contentLeft, top: entry.top, width: g.contentWidth, height: entry.height
     }, px);
     band.dataset.sectionId = entry.id;

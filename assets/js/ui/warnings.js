@@ -7,6 +7,10 @@ import { t, onLocaleChange } from "../i18n/i18n.js";
 // Sprite icon per notification type (see the <defs> block in index.html).
 const STATUS_ICON = { info: "info", warning: "warning", error: "error" };
 
+// Higher is more serious. The bell takes the colour of the most serious
+// notification it is showing, so an error is never dressed as info.
+const SEVERITY = { info: 0, warning: 1, error: 2 };
+
 // How long a notification stays as an active on-screen toast before it is
 // moved into the bell's notification panel.
 const TIMEOUT_MS = 5000;
@@ -61,6 +65,7 @@ export function addWarning(msg, type = "warning") {
     state.setWarnings([...state.warnings, msg]);
     meta.set(msg, { type, addedAt: Date.now(), movedToPanel: false, timerId: startTimeout(msg) });
     renderWarnings();
+    ringBell();
     return;
   }
 
@@ -73,8 +78,22 @@ export function addWarning(msg, type = "warning") {
     m.movedToPanel = false;
     m.type = type;
     m.timerId = startTimeout(msg);
+    m.addedAt = Date.now();
     renderWarnings();
+    ringBell();
   }
+}
+
+// One swing of the bell glyph each time a toast surfaces, so the eye is
+// drawn to where the notification will go once its toast has timed out.
+// Removing and re-adding the class restarts the animation when toasts
+// arrive in quick succession.
+function ringBell() {
+  const bell = document.getElementById("notification-bell");
+  if (!bell) return;
+  bell.classList.remove("ringing");
+  void bell.offsetWidth;
+  bell.classList.add("ringing");
 }
 
 // A language switch re-keys every warning under its translated wording. Each
@@ -91,6 +110,7 @@ onLocaleChange(convert => {
     if (toast) {
       toast.id = toastId(text);
       toast.querySelector(".toast-message").textContent = text;
+      toast.querySelector(".toast-label").textContent = t(`notifications.type.${m.type}`);
     }
     const timerId = m.movedToPanel
       ? null
@@ -127,16 +147,27 @@ function syncMeta() {
   });
 }
 
-function buildToast(msg, type) {
+// A card tinted by type, with the type named above the message and a bar
+// along the bottom that runs down over the toast's remaining time, so it is
+// clear the toast will go to the bell rather than simply vanish. Errors are
+// announced straight away (role="alert"); the rest wait their turn.
+function buildToast(msg, type, addedAt) {
   const toast = document.createElement("div");
   toast.id = toastId(msg);
   toast.className = `toast toast-${type}`;
-  toast.setAttribute("role", "status");
+  toast.setAttribute("role", type === "error" ? "alert" : "status");
+  toast.style.setProperty("--toast-life", `${TIMEOUT_MS}ms`);
+  toast.style.setProperty("--toast-elapsed", `${-Math.min(TIMEOUT_MS, Date.now() - addedAt)}ms`);
 
   toast.innerHTML = `
-    ${icon(STATUS_ICON[type] || "warning", "toast-icon")}
-    <div class="toast-message"></div>
+    <span class="toast-badge">${icon(STATUS_ICON[type] || "warning", "toast-icon")}</span>
+    <div class="toast-body">
+      <div class="toast-label"></div>
+      <div class="toast-message"></div>
+    </div>
+    <span class="toast-countdown" aria-hidden="true"></span>
   `;
+  toast.querySelector(".toast-label").textContent = t(`notifications.type.${type}`);
   toast.querySelector(".toast-message").textContent = msg;
 
   return toast;
@@ -174,7 +205,8 @@ function renderToasts() {
   activeMsgs.forEach(msg => {
     const id = toastId(msg);
     if (document.getElementById(id)) return;
-    container.appendChild(buildToast(msg, meta.get(msg)?.type || "warning"));
+    const m = meta.get(msg);
+    container.appendChild(buildToast(msg, m?.type || "warning", m?.addedAt ?? Date.now()));
   });
 }
 
@@ -201,16 +233,41 @@ function hasActiveToast() {
   return state.warnings.some(msg => !meta.get(msg)?.movedToPanel);
 }
 
-// Shows/hides the small red dot on the bell icon, and highlights the bell
-// itself (via the "pulse-active" class) for as long as at least one
-// notification is showing as an active toast — reverting automatically once
-// every toast has either resolved or moved into the panel. The bell SVG
-// itself is never modified — only these classes are toggled.
+// The most serious type among the given messages, or null for none.
+function topSeverity(msgs) {
+  let top = null;
+  msgs.forEach(msg => {
+    const type = meta.get(msg)?.type || "warning";
+    if (top === null || SEVERITY[type] > SEVERITY[top]) top = type;
+  });
+  return top;
+}
+
+// Shows the count badge on the bell, coloured by the most serious
+// notification in the panel, and fills the bell itself (via "pulse-active")
+// in the colour of the most serious active toast for as long as at least one
+// is on screen — reverting automatically once every toast has either
+// resolved or moved into the panel. The bell SVG itself is never modified —
+// only these classes and attributes are set.
 function renderBell() {
   const bell = document.getElementById("notification-bell");
   if (!bell) return;
-  bell.classList.toggle("has-notifications", state.warnings.length > 0);
+  const count = state.warnings.length;
+  bell.classList.toggle("has-notifications", count > 0);
   bell.classList.toggle("pulse-active", hasActiveToast());
+
+  const active = state.warnings.filter(msg => !meta.get(msg)?.movedToPanel);
+  bell.dataset.severity = topSeverity(active) || "info";
+
+  const badge = bell.querySelector(".notification-badge");
+  if (badge) {
+    // Keeps the last count and colour while the badge fades out, so it
+    // doesn't blank or turn grey on its way out.
+    if (count > 0) {
+      badge.textContent = count > 9 ? "9+" : String(count);
+      badge.dataset.severity = topSeverity(state.warnings);
+    }
+  }
 }
 
 // Rebuilds the full notification list shown inside the bell's panel. Unlike
@@ -252,6 +309,8 @@ function initBell() {
   const bell = document.getElementById("notification-bell");
   const panel = document.getElementById("notification-panel");
   if (!bell || !panel) return;
+
+  bell.addEventListener("animationend", () => bell.classList.remove("ringing"));
 
   bell.addEventListener("click", (e) => {
     e.stopPropagation();

@@ -38,6 +38,10 @@ export default {
   // --- Notifications (bell panel) ---------------------------------------
   "notifications.title": "Oznámení",
   "notifications.empty": "Žádná oznámení.",
+  // Severity label above each toast's message.
+  "notifications.type.error": "Chyba",
+  "notifications.type.warning": "Upozornění",
+  "notifications.type.info": "Info",
 
   // --- Left rail --------------------------------------------------------
   "rail.label": "Sekce",
