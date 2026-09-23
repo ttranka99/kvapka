@@ -11,7 +11,8 @@ let activeResize = null;
 // Step snap: the dragged width always lands on a multiple of 5 canvas px
 // (e.g. 245, 250, 255...), matching the grid the layout solvers use.
 //
-// Strong snap: aligns the dragged edge with a slicer/KPI's right edge.
+// Strong snap: aligns the dragged edge with a slicer/KPI's right edge, or
+// with a chart boundary in another chart row.
 // Tolerance is defined in *screen* px and converted to canvas px at drag
 // time (divided by EFFECTIVE_SCALE), so the catch radius feels consistent
 // under the pointer regardless of how much the canvas preview is currently
@@ -37,7 +38,15 @@ function getCanvasRect() {
 // dragged is always the right edge of "current"/left edge of "next", so the
 // only alignment that makes visual sense is against other elements' right
 // edges.
-function collectSnapEdgeTargets() {
+//
+// Charts in the other rows contribute their boundaries too (every cell's
+// right edge except the row's last, which is the content edge), so columns
+// can be lined up from row to row. The gap between charts is the same in
+// every row, so a matched right edge lines up the whole gap. The dragged
+// row's own charts are skipped: their boundaries aren't moving, so snapping
+// to them would mean nothing. Stacked cells need no special handling — their
+// `chart-r-i` anchor covers the cell's full outer box.
+function collectSnapEdgeTargets(rowIndex) {
   const targets = new Set();
   const canvasRect = getCanvasRect();
   if (!canvasRect) return [];
@@ -46,6 +55,16 @@ function collectSnapEdgeTargets() {
   document.querySelectorAll("#canvas .canvas-element.slicer, #canvas .canvas-element.kpi").forEach(el => {
     const rect = el.getBoundingClientRect();
     targets.add((rect.right - canvasRect.left) / scale);
+  });
+
+  state.chartRows.forEach((row, r) => {
+    if (r === rowIndex) return;
+    for (let i = 0; i < row.items.length - 1; i++) {
+      const el = document.getElementById(`chart-${r}-${i}`);
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      targets.add((rect.right - canvasRect.left) / scale);
+    }
   });
 
   return Array.from(targets);
@@ -260,7 +279,7 @@ export function attachChartResizeHandle(handle, rowIndex, itemIndex, onResize) {
       currentWidth,
       nextWidth,
       itemStartX,
-      edgeTargets: collectSnapEdgeTargets(),
+      edgeTargets: collectSnapEdgeTargets(rowIndex),
       onResize,
       moveHandler: handlePointerMove,
       upHandler: handlePointerUp
