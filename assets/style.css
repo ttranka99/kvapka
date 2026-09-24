@@ -2065,6 +2065,22 @@ body.is-resizing-chart .element-controls {
   display: flex;
 }
 
+/* Undo / redo: two icon buttons, greyed out while there is nothing to step to. */
+.history-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.history-btn {
+  width: 36px;
+  padding: 0;
+}
+
+.history-btn:disabled {
+  color: var(--ink-4);
+  cursor: default;
+}
+
 .project-menu-btn.menu-open {
   color: var(--pink);
   background: var(--pink-soft);

@@ -8,6 +8,7 @@ import { initProjectMenu } from "./ui/projectMenu.js";
 import { renderLayout } from "./ui/renderLayout.js";
 import { initTabs } from "./state/tabs.js";
 import { restoreSession, initSessionPersistence, storageAvailable } from "./state/persist.js";
+import { initHistory } from "./state/history.js";
 import { initTabsUI, renderTabBar } from "./ui/tabs.js";
 import * as state from "./state/state.js";
 import { canAddSlicer, slicerLimitMessage } from "./events/slicerEvents.js";
@@ -161,7 +162,9 @@ function initRowLimitControls() {
   });
 }
 
-function refreshUIFromState() {
+// `motion` is renderLayout's: a page or theme switch fades in ("swap"); an
+// undo / redo passes undefined, so the change plays back as movement.
+function refreshUIFromState({ motion = "swap" } = {}) {
   setSelected(null);
   // A new page opens the Šablona panel; one already worked on stays folded.
   syncTemplateFoldForPage();
@@ -172,7 +175,7 @@ function refreshUIFromState() {
   syncRowLimitControls();
   // Another page or another theme is new content, not the old content moved
   // (see motion.js R3) — it fades in rather than morphing card by card.
-  renderLayout({ motion: "swap" });
+  renderLayout({ motion });
   renderWarnings();
 }
 
@@ -246,6 +249,7 @@ function start() {
   initResizeEvents();
   initExportEvents();
   initProjectMenu({ refreshUI: refreshUIFromState });
+  initHistory({ refreshUI: () => refreshUIFromState({ motion: undefined }) });
   initSelectionCopyButtons();
   initSelectionInlineEditing();
   setSelected(null);

@@ -37,6 +37,12 @@ export default {
   // Shown once at start when the browser won't keep pages between visits.
   "session.storageUnavailable": "This browser doesn't keep data between visits. Your pages will be lost when you close it.",
 
+  // --- Undo / redo (top bar) --------------------------------------------
+  // Button tooltips and labels; the shortcut is shown for discoverability.
+  "history.group": "Undo and redo",
+  "history.undo": "Undo (Ctrl+Z)",
+  "history.redo": "Redo (Ctrl+Y)",
+
   // --- Project file (top bar "Project" menu) ----------------------------
   // Save / open all pages as a .kvapka.json file.
   "project.menu": "Project",

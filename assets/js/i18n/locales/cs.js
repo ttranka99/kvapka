@@ -37,6 +37,11 @@ export default {
   // Shown once at start when the browser won't keep pages between visits.
   "session.storageUnavailable": "Tento prohlížeč neuchovává data mezi návštěvami. Po jeho zavření o své stránky přijdete.",
 
+  // --- Undo / redo (top bar) --------------------------------------------
+  "history.group": "Zpět a znovu",
+  "history.undo": "Zpět (Ctrl+Z)",
+  "history.redo": "Znovu (Ctrl+Y)",
+
   // --- Project file (top bar "Project" menu) ----------------------------
   // Save / open all pages as a .kvapka.json file.
   "project.menu": "Projekt",

@@ -35,6 +35,7 @@ import { renderWarnings } from "../ui/warnings.js";
 import { icon } from "../ui/icon.js";
 import { t } from "../i18n/i18n.js";
 import { scheduleSave } from "../state/persist.js";
+import { noteChange } from "../state/history.js";
 
 const canvas = document.getElementById("canvas");
 
@@ -947,6 +948,8 @@ export function renderLayout(opts) {
   // geometry, and a card mid-glide must not feed them a moving box.
   playCanvas(canvas, before, opts);
   // Every change to a page ends in a render, so this is the one place that
-  // keeps the stored session current (state/persist.js).
+  // keeps the stored session current (state/persist.js) and records the
+  // change for undo (state/history.js).
   scheduleSave();
+  noteChange();
 }

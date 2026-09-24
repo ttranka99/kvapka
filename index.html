@@ -85,6 +85,17 @@
                 <button type="button" class="template-option" data-locale="en" lang="en">EN</button>
             </div>
 
+            <!-- Undo / redo for the page being edited (also Ctrl+Z, Ctrl+Y /
+                 Ctrl+Shift+Z). Enabled by state/history.js. -->
+            <div class="history-buttons" role="group" data-i18n-aria-label="history.group">
+                <button type="button" id="undo-btn" class="btn btn-ghost history-btn" data-i18n-aria-label="history.undo" data-i18n-title="history.undo" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 14 4 9l5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button type="button" id="redo-btn" class="btn btn-ghost history-btn" data-i18n-aria-label="history.redo" data-i18n-title="history.redo" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 14 5-5-5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            </div>
+
             <!-- Save / open the pages as a .kvapka.json file. The menu is
                  positioned against .project-wrap, like the bell's panel.
                  Wired in ui/projectMenu.js. -->
