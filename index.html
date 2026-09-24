@@ -85,6 +85,27 @@
                 <button type="button" class="template-option" data-locale="en" lang="en">EN</button>
             </div>
 
+            <!-- Save / open the pages as a .kvapka.json file. The menu is
+                 positioned against .project-wrap, like the bell's panel.
+                 Wired in ui/projectMenu.js. -->
+            <div class="project-wrap">
+                <button type="button" id="project-menu-btn" class="btn btn-ghost project-menu-btn" data-i18n-aria-label="project.menu" aria-haspopup="menu" aria-expanded="false" aria-controls="project-menu">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                    <span data-i18n="project.menu" data-i18n-stable></span>
+                </button>
+                <div id="project-menu" class="project-menu" role="menu" data-i18n-aria-label="project.menu">
+                    <button type="button" id="project-save" class="project-menu-item" role="menuitem">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 3h11l4 4v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a1 1 0 0 1 1-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 3v5h7V3M8 21v-6h8v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                        <span data-i18n="project.save"></span>
+                    </button>
+                    <button type="button" id="project-open" class="project-menu-item" role="menuitem">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V3m0 0-4 4m4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <span data-i18n="project.open"></span>
+                    </button>
+                </div>
+                <input type="file" id="project-file" accept=".json,application/json" hidden tabindex="-1" />
+            </div>
+
             <button id="export-layout" class="btn btn-primary">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <span data-i18n="topbar.export" data-i18n-stable></span>

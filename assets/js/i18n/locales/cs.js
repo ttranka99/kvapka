@@ -37,6 +37,22 @@ export default {
   // Shown once at start when the browser won't keep pages between visits.
   "session.storageUnavailable": "Tento prohlížeč neuchovává data mezi návštěvami. Po jeho zavření o své stránky přijdete.",
 
+  // --- Project file (top bar "Project" menu) ----------------------------
+  // Save / open all pages as a .kvapka.json file.
+  "project.menu": "Projekt",
+  "project.save": "Uložit projekt",
+  "project.open": "Otevřít projekt…",
+  // Tooltip on "Open project" while the template editor is open.
+  "project.openDisabled": "Nejprve zavřete editor šablony.",
+  // {name} is the opened file's name.
+  "project.opened": "Otevřen soubor {name}.",
+  "project.invalidJson": "Soubor nelze načíst jako projekt: nejde o platný JSON.",
+  "project.notProject": "Tento soubor není projekt kvapka.",
+  "project.newerVersion": "Projekt byl uložen novější verzí aplikace kvapka a zde ho nelze otevřít.",
+  "project.damaged": "Soubor projektu je poškozený nebo ručně upravený, proto nebyl otevřen. Vaše stránky zůstaly beze změny.",
+  "project.tooLarge": "Soubor je příliš velký na projekt kvapka.",
+  "project.readFailed": "Soubor se nepodařilo přečíst.",
+
   // --- Notifications (bell panel) ---------------------------------------
   "notifications.title": "Oznámení",
   "notifications.empty": "Žádná oznámení.",

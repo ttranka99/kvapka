@@ -2056,6 +2056,92 @@ body.is-resizing-chart .element-controls {
   padding: 12px 16px 8px;
 }
 
+/* ----------------------------------------------------
+   PROJECT MENU — save / open a .kvapka.json file.
+   Hangs from its button the way the bell's panel does.
+-----------------------------------------------------*/
+.project-wrap {
+  position: relative;
+  display: flex;
+}
+
+.project-menu-btn.menu-open {
+  color: var(--pink);
+  background: var(--pink-soft);
+}
+
+.project-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1099;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  max-width: calc(100vw - 40px);
+  padding: 6px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-pop);
+  --motion-shift: -4px;
+  opacity: 0;
+  /* Hidden, not only transparent, so a closed menu's items are out of the
+     tab order; visibility flips at the end of the fade-out. */
+  visibility: hidden;
+  transform: translateY(var(--motion-shift)) scale(var(--motion-scale));
+  transform-origin: top right;
+  pointer-events: none;
+  transition: opacity var(--slow) var(--ease-panel), transform var(--slow) var(--ease-panel), visibility 0s linear var(--slow);
+}
+
+.project-menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+  transition: opacity var(--slow) var(--ease-panel), transform var(--slow) var(--ease-panel);
+}
+
+.project-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  font-size: var(--fs-md);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.project-menu-item svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--ink-3);
+}
+
+.project-menu-item:hover:not(:disabled),
+.project-menu-item:focus-visible {
+  color: var(--pink);
+  background: var(--pink-soft);
+  outline: none;
+}
+
+.project-menu-item:hover:not(:disabled) svg,
+.project-menu-item:focus-visible svg {
+  color: currentColor;
+}
+
+.project-menu-item:disabled {
+  color: var(--ink-4);
+}
+
+.project-menu-item:disabled svg {
+  color: var(--ink-4);
+}
+
 .notification-panel-header h3 {
   font-size: var(--fs-md);
   font-weight: 600;
@@ -2260,6 +2346,7 @@ body.is-resizing-chart .element-controls {
   }
 
   .notification-panel,
+  .project-menu,
   .toast {
     --motion-shift: 0px;
   }
@@ -2294,6 +2381,15 @@ body.is-resizing-chart .element-controls {
   }
 
   .topbar-actions .btn-primary {
+    width: 36px;
+    padding: 0;
+  }
+
+  .project-menu-btn > span {
+    display: none;
+  }
+
+  .project-menu-btn {
     width: 36px;
     padding: 0;
   }

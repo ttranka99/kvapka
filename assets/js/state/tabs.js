@@ -1,7 +1,13 @@
 import * as state from "./state.js";
 import { initState } from "./initState.js";
-import { getTheme, getDefaultThemeId } from "../theme/themeStore.js";
-import { normalizeTheme, BUILTIN_THEMES, isVerticalPlacement } from "../theme/themeModel.js";
+import { getTheme, getDefaultThemeId, makeThemeId } from "../theme/themeStore.js";
+import {
+  normalizeTheme,
+  cloneTheme,
+  getBuiltinTheme,
+  BUILTIN_THEMES,
+  isVerticalPlacement
+} from "../theme/themeModel.js";
 import { t, onLocaleChange } from "../i18n/i18n.js";
 
 export const MAX_TABS = 12;
@@ -140,12 +146,17 @@ export function initTabs() {
 
 // --- Session persistence -------------------------------------------------
 
-const SESSION_VERSION = 1;
+// Shared by the autosave (state/persist.js) and project files
+// (state/projectFile.js): both are this same serialized page list.
+export const SESSION_VERSION = 1;
 // Generous ceilings no real layout reaches; anything past them is not a
 // layout this app wrote.
 const MAX_ITEMS = 100;
 const MAX_NAME_LENGTH = 40;   // the rename input's own maxLength (ui/tabs.js)
 const MAX_PAGE_NUMBER = 100000;
+const MAX_SIZE = 10000;       // px; past the largest canvas a theme allows (7680)
+// The shape makeThemeId() produces, with room for hand-written ids.
+const THEME_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
 // The whole page list as plain JSON, for state/persist.js to keep between
 // visits. The active page's stored snapshot is stale by design, so it is
@@ -159,13 +170,15 @@ export function serializeTabs() {
       number: tab.number,
       name: tab.name,
       named: tab.named,
-      snapshot: i === activeTabIndex ? captureSnapshot() : tab.snapshot
+      // Notifications are dropped on the way back in (sanitizeSnapshot), and
+      // they may quote a file name; a saved project holds layout data only.
+      snapshot: { ...(i === activeTabIndex ? captureSnapshot() : tab.snapshot), warnings: [] }
     }))
   };
 }
 
 const isObject = v => v !== null && typeof v === "object" && !Array.isArray(v);
-const size = v => (Number.isFinite(v) && v >= 0 ? v : null);
+const size = v => (Number.isFinite(v) && v >= 0 && v <= MAX_SIZE ? v : null);
 const list = (v, map) => {
   if (!Array.isArray(v) || v.length > MAX_ITEMS) throw new Error("bad list");
   return v.map(map);
@@ -194,12 +207,26 @@ function sanitizeChartItem(v) {
   return item;
 }
 
+// normalizeTheme() clamps every value but takes the id and the built-in flag
+// on trust. A built-in is read-only (the editor always forks it), so one
+// stored under a built-in id can only ever be that built-in: the canonical
+// copy is used, and a file can't pass altered values off as FULL HD. Every
+// other theme is custom, under an id of the shape the app itself generates.
+function sanitizeTheme(raw) {
+  const theme = normalizeTheme(raw);
+  const builtin = getBuiltinTheme(theme.id);
+  if (builtin) return cloneTheme(builtin);
+  theme.builtin = false;
+  if (!THEME_ID_PATTERN.test(theme.id)) theme.id = makeThemeId(theme.label);
+  return theme;
+}
+
 // Stored data is untrusted input — anything with access to the browser's
 // storage can rewrite it — so a snapshot is rebuilt field by field from an
 // allow-list rather than trusted as parsed. Throws on a shape it can't use.
 function sanitizeSnapshot(snap) {
   if (!isObject(snap)) throw new Error("bad snapshot");
-  const theme = normalizeTheme(snap.theme);
+  const theme = sanitizeTheme(snap.theme);
   const kpiBands = {};
   const bands = isObject(snap.kpiBands) ? snap.kpiBands : {};
   // Only the bands this theme defines; any other key (including oddities

@@ -4,6 +4,7 @@ import { addWarning, renderWarnings } from "./ui/warnings.js";
 import { initResizeEvents } from "./events/resizeEvents.js";
 import { handleSplitChart } from "./events/stackEvents.js";
 import { initExportEvents } from "./export/exportPowerBI.js";
+import { initProjectMenu } from "./ui/projectMenu.js";
 import { renderLayout } from "./ui/renderLayout.js";
 import { initTabs } from "./state/tabs.js";
 import { restoreSession, initSessionPersistence, storageAvailable } from "./state/persist.js";
@@ -244,6 +245,7 @@ function start() {
   initStackedCover();
   initResizeEvents();
   initExportEvents();
+  initProjectMenu({ refreshUI: refreshUIFromState });
   initSelectionCopyButtons();
   initSelectionInlineEditing();
   setSelected(null);

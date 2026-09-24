@@ -37,6 +37,22 @@ export default {
   // Shown once at start when the browser won't keep pages between visits.
   "session.storageUnavailable": "This browser doesn't keep data between visits. Your pages will be lost when you close it.",
 
+  // --- Project file (top bar "Project" menu) ----------------------------
+  // Save / open all pages as a .kvapka.json file.
+  "project.menu": "Project",
+  "project.save": "Save project",
+  "project.open": "Open project…",
+  // Tooltip on "Open project" while the template editor is open.
+  "project.openDisabled": "Close the template editor first.",
+  // {name} is the opened file's name.
+  "project.opened": "Opened {name}.",
+  "project.invalidJson": "This file can't be read as a project: it isn't valid JSON.",
+  "project.notProject": "This file isn't a kvapka project.",
+  "project.newerVersion": "This project was saved by a newer version of kvapka and can't be opened here.",
+  "project.damaged": "This project file is damaged or was edited by hand, so it wasn't opened. Your pages are unchanged.",
+  "project.tooLarge": "This file is too large to be a kvapka project.",
+  "project.readFailed": "The file couldn't be read.",
+
   // --- Notifications (bell panel) ---------------------------------------
   "notifications.title": "Notifications",
   "notifications.empty": "No notifications.",
