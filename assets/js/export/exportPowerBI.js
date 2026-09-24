@@ -28,7 +28,8 @@ import {
   CHART_TEMPLATE
 } from "./visualTemplates.js";
 import { createZip } from "./zip.js";
-import { t } from "../i18n/i18n.js";
+import { addWarning, renderWarnings } from "../ui/warnings.js";
+import { t, isFrom } from "../i18n/i18n.js";
 
 // 20-char lowercase hex, same format as PBIR object names.
 // (crypto.getRandomValues also works on file://, unlike crypto.randomUUID.)
@@ -95,10 +96,45 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+// A refused or failed export is reported as an error toast, never a native
+// alert(): it matches the app, and a browser that suppresses dialogs would
+// otherwise swallow the reason silently.
 export function exportPowerBILayout() {
+  const liveSnap = captureSnapshot(); // active tab's true current state
+  let result;
+  try {
+    result = buildExport(liveSnap);
+  } catch (err) {
+    console.error("[export]", err);
+    result = { error: t("export.failed") };
+  } finally {
+    // Whatever happened, the page on screen goes back to the active tab's
+    // own state — never left on the snapshot of the page that failed.
+    loadSnapshot(liveSnap);
+  }
+
+  // The bell holds only the latest attempt's outcome. The same error again
+  // is kept rather than dropped and re-added, so its toast stays put (or
+  // comes back from the panel) instead of fading out under the new one.
+  const stale = state.warnings.filter(w => w !== result.error && isFrom(w, "export."));
+  if (stale.length > 0) {
+    state.setWarnings(state.warnings.filter(w => !stale.includes(w)));
+    renderWarnings();
+  }
+
+  if (result.error) {
+    addWarning(result.error, "error");
+    return;
+  }
+  downloadBlob(result.zip, result.filename);
+}
+
+// The zip for every page, or { error } naming the first page that can't be
+// exported. Loads each tab's snapshot into live state in turn; the caller
+// restores the live one.
+function buildExport(liveSnap) {
   const tabs = getTabs();
   const activeIndex = getActiveTabIndex();
-  const liveSnap = captureSnapshot(); // active tab's true current state
 
   const pageOrder = [];
   const files = [];
@@ -109,17 +145,8 @@ export function exportPowerBILayout() {
 
     const visuals = collectVisuals();
 
-    if (visuals === null) {
-      loadSnapshot(liveSnap);
-      alert(t("export.pageInvalid", { page: tabs[i].name }));
-      return;
-    }
-
-    if (visuals.length === 0) {
-      loadSnapshot(liveSnap);
-      alert(t("export.pageEmpty", { page: tabs[i].name }));
-      return;
-    }
+    if (visuals === null) return { error: t("export.pageInvalid", { page: tabs[i].name }) };
+    if (visuals.length === 0) return { error: t("export.pageEmpty", { page: tabs[i].name }) };
 
     const pageName = genHash();
     pageOrder.push(pageName);
@@ -145,8 +172,6 @@ export function exportPowerBILayout() {
     });
   }
 
-  loadSnapshot(liveSnap); // restore the active tab's live state
-
   // pages.json registers every page — without it Power BI reports
   // "ActivePageName not found" when a pasted page isn't listed.
   const pages = {
@@ -158,7 +183,7 @@ export function exportPowerBILayout() {
   files.unshift({ path: "pages.json", data: JSON.stringify(pages, null, 2) });
 
   const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-");
-  downloadBlob(createZip(files), `kvapka-layout-${timestamp}.zip`);
+  return { zip: createZip(files), filename: `kvapka-layout-${timestamp}.zip` };
 }
 
 export function initExportEvents() {

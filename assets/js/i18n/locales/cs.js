@@ -66,6 +66,9 @@ export default {
   "notifications.type.warning": "Upozornění",
   "notifications.type.info": "Info",
 
+  // --- Confirm dialog ---------------------------------------------------
+  "dialog.cancel": "Zrušit",
+
   // --- Left rail --------------------------------------------------------
   "rail.label": "Sekce",
   "rail.template": "Šablona",
@@ -244,9 +247,10 @@ export default {
   "warnings.theme.deleted": "Šablona byla smazána.",
   "warnings.theme.saved": "Šablona „{label}\" byla použita a uložena.",
 
-  // --- Power BI export (alert dialogs) ----------------------------------
+  // --- Power BI export (error toasts) -----------------------------------
   "export.pageInvalid": "Rozložení na stránce \"{page}\" obsahuje chyby (prvky se nevejdou na plátno), před exportem je opravte.",
   "export.pageEmpty": "Stránka \"{page}\" je prázdná, přidejte alespoň jeden prvek.",
+  "export.failed": "Export se nečekaně nezdařil. Stránky zůstaly beze změny, zkuste to prosím znovu.",
 
   // --- Template editor: header ------------------------------------------
   "editor.region": "Editor vlastní šablony",
@@ -314,7 +318,8 @@ export default {
   // --- Template editor: messages ----------------------------------------
   "editor.ok": "Šablona je v pořádku.",
   "editor.nameRequired": "Zadejte název šablony.",
-  "editor.confirmDelete": "Smazat šablonu „{label}\"? Stránky, které ji používají, si ponechají její současné nastavení; nové stránky začnou na FULL HD nebo HD.",
+  "editor.confirmDeleteTitle": "Smazat šablonu „{label}“?",
+  "editor.confirmDelete": "Stránky, které ji používají, si ponechají její současné nastavení; nové stránky začnou na FULL HD nebo HD.",
   "editor.imported": "Načtena šablona „{label}\".",
   "editor.readFailed": "Soubor se nepodařilo přečíst.",
 

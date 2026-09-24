@@ -67,6 +67,9 @@ export default {
   "notifications.type.warning": "Warning",
   "notifications.type.info": "Info",
 
+  // --- Confirm dialog ---------------------------------------------------
+  "dialog.cancel": "Cancel",
+
   // --- Left rail --------------------------------------------------------
   "rail.label": "Sections",
   "rail.template": "Template",
@@ -245,9 +248,10 @@ export default {
   "warnings.theme.deleted": "Template deleted.",
   "warnings.theme.saved": "Template “{label}” applied and saved.",
 
-  // --- Power BI export (alert dialogs) ----------------------------------
+  // --- Power BI export (error toasts) -----------------------------------
   "export.pageInvalid": "The layout on page \"{page}\" has errors (elements don't fit on the canvas); fix them before exporting.",
   "export.pageEmpty": "Page \"{page}\" is empty; add at least one element.",
+  "export.failed": "Export failed unexpectedly. Your pages are unchanged; please try again.",
 
   // --- Template editor: header ------------------------------------------
   "editor.region": "Custom Template Editor",
@@ -315,7 +319,8 @@ export default {
   // --- Template editor: messages ----------------------------------------
   "editor.ok": "Template is valid.",
   "editor.nameRequired": "Enter a template name.",
-  "editor.confirmDelete": "Delete template “{label}”? Pages that use it will keep its current settings; new pages will start on FULL HD or HD.",
+  "editor.confirmDeleteTitle": "Delete template “{label}”?",
+  "editor.confirmDelete": "Pages that use it will keep its current settings; new pages will start on FULL HD or HD.",
   "editor.imported": "Template “{label}” loaded.",
   "editor.readFailed": "Failed to read file.",
 

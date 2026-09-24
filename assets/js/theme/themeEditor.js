@@ -46,6 +46,7 @@ import { walkSections } from "../layout/sectionWalker.js";
 import { computeChartGroups } from "../layout/chartGroups.js";
 import { icon } from "../ui/icon.js";
 import { leave, durationMs } from "../ui/motion.js";
+import { confirmDialog } from "../ui/dialog.js";
 import { themeIdsInUse } from "../state/tabs.js";
 import { t, onLocaleChange } from "../i18n/i18n.js";
 
@@ -1668,12 +1669,20 @@ function handleSave() {
   if (onApply) onApply(result.theme);
 }
 
-function handleDelete() {
+async function handleDelete() {
   if (editingExistingId === null) return;
   const inUse = getAllThemes().find(t => t.id === editingExistingId);
   if (!inUse) return;
 
-  if (!window.confirm(t("editor.confirmDelete", { label: draft.label }))) return;
+  const id = editingExistingId;
+  const confirmed = await confirmDialog({
+    title: t("editor.confirmDeleteTitle", { label: draft.label }),
+    message: t("editor.confirmDelete"),
+    confirmLabel: t("editor.delete"),
+    danger: true
+  });
+  // The editor may have moved on while the question was open.
+  if (!confirmed || editingExistingId !== id || !root || root.hidden) return;
 
   const result = deleteTheme(editingExistingId);
   if (!result.ok) {

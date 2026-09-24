@@ -2350,6 +2350,64 @@ body.is-resizing-chart .element-controls {
 }
 
 /* ----------------------------------------------------
+   CONFIRM DIALOG — the app's own confirm() (ui/dialog.js).
+   A native <dialog> shown modally, so it sits in the top
+   layer above every z-index. The <dialog> box is bare:
+   the card inside it is what you see, and a click on
+   the box itself is a click on the backdrop.
+-----------------------------------------------------*/
+.app-dialog {
+  width: min(420px, calc(100vw - 2 * var(--gutter)));
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-lg);
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-pop);
+}
+
+.app-dialog::backdrop {
+  background: rgba(28, 33, 40, 0.32);
+}
+
+.app-dialog__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+}
+
+.app-dialog__title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.app-dialog__message {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+}
+
+.app-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* A destructive confirm reads as the weightier of the two buttons. */
+.app-dialog__danger {
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--error);
+}
+
+/* ----------------------------------------------------
    REDUCED MOTION — keep fades, drop movement. Every
    entrance and exit is built from the two tokens, so
    zeroing them is the whole story; motion.js skips the
