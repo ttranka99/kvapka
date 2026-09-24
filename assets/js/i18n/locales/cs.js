@@ -34,6 +34,8 @@ export default {
   "tabs.close": "Odebrat stránku",
   // The name a new page gets until the user renames it.
   "tabs.defaultName": "Page {n}",
+  // Shown once at start when the browser won't keep pages between visits.
+  "session.storageUnavailable": "Tento prohlížeč neuchovává data mezi návštěvami. Po jeho zavření o své stránky přijdete.",
 
   // --- Notifications (bell panel) ---------------------------------------
   "notifications.title": "Oznámení",

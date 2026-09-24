@@ -6,6 +6,7 @@ import { handleSplitChart } from "./events/stackEvents.js";
 import { initExportEvents } from "./export/exportPowerBI.js";
 import { renderLayout } from "./ui/renderLayout.js";
 import { initTabs } from "./state/tabs.js";
+import { restoreSession, initSessionPersistence, storageAvailable } from "./state/persist.js";
 import { initTabsUI, renderTabBar } from "./ui/tabs.js";
 import * as state from "./state/state.js";
 import { canAddSlicer, slicerLimitMessage } from "./events/slicerEvents.js";
@@ -225,7 +226,9 @@ function debounce(fn, waitMs) {
 }
 
 function start() {
-  initTabs();
+  // The pages from the last visit, or a fresh first page.
+  if (!restoreSession()) initTabs();
+  initSessionPersistence();
   initTabsUI({ refreshUI: refreshUIFromState });
   initThemePicker({ refreshUI: refreshUIFromState });
   initRail({ openEditor: openActiveThemeEditor });
@@ -245,6 +248,9 @@ function start() {
   initSelectionInlineEditing();
   setSelected(null);
   initCanvasRefit();
+  // On a machine that blocks site data, say so up front rather than let the
+  // pages vanish on the next visit.
+  if (!storageAvailable()) addWarning(t("session.storageUnavailable"), "info");
 }
 
 // Refits the canvas the moment the workspace changes width — the same frame

@@ -34,6 +34,8 @@ export default {
   "tabs.close": "Remove Page",
   // The name a new page gets until the user renames it.
   "tabs.defaultName": "Page {n}",
+  // Shown once at start when the browser won't keep pages between visits.
+  "session.storageUnavailable": "This browser doesn't keep data between visits. Your pages will be lost when you close it.",
 
   // --- Notifications (bell panel) ---------------------------------------
   "notifications.title": "Notifications",

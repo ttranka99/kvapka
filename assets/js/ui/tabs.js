@@ -2,6 +2,7 @@ import { getTabs, getActiveTabIndex, switchTab, addTab, removeTab, renameTab, MA
 import { icon } from "./icon.js";
 import { reducedMotion, leave } from "./motion.js";
 import { t } from "../i18n/i18n.js";
+import { scheduleSave } from "../state/persist.js";
 
 let tabBarEl;
 let viewportEl;
@@ -65,6 +66,8 @@ const signatureOf = tabs => JSON.stringify(tabs.map(tab => [tab.name, tab.named]
 export function renderTabBar(animate) {
   const tabs = getTabs();
   const active = getActiveTabIndex();
+  // Closing a page that isn't open re-renders only this bar, not the canvas.
+  scheduleSave();
 
   // Switching pages changes nothing about the list itself, only which pill
   // is lit — so the pills are kept and only their state is patched, which
@@ -280,6 +283,9 @@ function startRename(tabEl, label, index) {
     if (finished) return;
     finished = true;
     const tab = getTabs()[index];
+    // A rename restores the pill in place instead of calling renderTabBar(),
+    // so it saves the session itself.
+    if (changed) scheduleSave();
     input.remove();
     label.textContent = tab.name;
     tabEl.classList.remove("tab--editing");

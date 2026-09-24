@@ -34,6 +34,7 @@ import { setSelected, syncSelectionLockState } from "../ui/selection.js";
 import { renderWarnings } from "../ui/warnings.js";
 import { icon } from "../ui/icon.js";
 import { t } from "../i18n/i18n.js";
+import { scheduleSave } from "../state/persist.js";
 
 const canvas = document.getElementById("canvas");
 
@@ -945,4 +946,7 @@ export function renderLayout(opts) {
   // Last: the handle and "+" passes above measured the cards at their final
   // geometry, and a card mid-glide must not feed them a moving box.
   playCanvas(canvas, before, opts);
+  // Every change to a page ends in a render, so this is the one place that
+  // keeps the stored session current (state/persist.js).
+  scheduleSave();
 }

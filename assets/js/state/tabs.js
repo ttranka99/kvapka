@@ -47,10 +47,11 @@ export function loadSnapshot(snap) {
   state.setMaxKpis(snap.maxKpis);
   state.setSlicers(clone(snap.slicers));
 
-  // Snapshots are in-memory only (they never outlive a page load), so a
-  // shape older than `kpiBands` can only ever come from a half-reloaded
-  // session. Falling back to whatever applyTheme() just seeded (rather than
-  // an empty set of bands) is defensive coding, not a real data migration.
+  // Snapshots that outlive a page load come back through sanitizeSnapshot(),
+  // which always rebuilds `kpiBands`, so a snapshot without them can only be
+  // one built in memory before bands existed. Falling back to whatever
+  // applyTheme() just seeded (rather than an empty set of bands) is defensive
+  // coding, not a real data migration.
   if (snap.kpiBands) state.setKpiBands(clone(snap.kpiBands));
 
   state.setChartRows(clone(snap.chartRows));
@@ -135,6 +136,142 @@ export function initTabs() {
   // The first page starts from the stored global default (FULL HD until the
   // user picks another with the "All" scope).
   loadDefaults(newPageTheme(getTheme(getDefaultThemeId()) ?? normalizeTheme({})));
+}
+
+// --- Session persistence -------------------------------------------------
+
+const SESSION_VERSION = 1;
+// Generous ceilings no real layout reaches; anything past them is not a
+// layout this app wrote.
+const MAX_ITEMS = 100;
+const MAX_NAME_LENGTH = 40;   // the rename input's own maxLength (ui/tabs.js)
+const MAX_PAGE_NUMBER = 100000;
+
+// The whole page list as plain JSON, for state/persist.js to keep between
+// visits. The active page's stored snapshot is stale by design, so it is
+// captured fresh here.
+export function serializeTabs() {
+  return {
+    version: SESSION_VERSION,
+    activeTabIndex,
+    nextPageNumber,
+    tabs: tabs.map((tab, i) => ({
+      number: tab.number,
+      name: tab.name,
+      named: tab.named,
+      snapshot: i === activeTabIndex ? captureSnapshot() : tab.snapshot
+    }))
+  };
+}
+
+const isObject = v => v !== null && typeof v === "object" && !Array.isArray(v);
+const size = v => (Number.isFinite(v) && v >= 0 ? v : null);
+const list = (v, map) => {
+  if (!Array.isArray(v) || v.length > MAX_ITEMS) throw new Error("bad list");
+  return v.map(map);
+};
+// Slicers carry both sizes, KPI cards only a height — so a size is kept only
+// where the stored element had one.
+const sized = v => {
+  if (!isObject(v)) throw new Error("bad element");
+  const out = {};
+  if ("width" in v) out.width = size(v.width);
+  if ("height" in v) out.height = size(v.height);
+  out.locked = v.locked === true;
+  return out;
+};
+
+function sanitizeChartItem(v) {
+  const item = {};
+  if (size(v?.width) !== null) item.width = v.width;
+  if (typeof v?.locked === "boolean") item.locked = v.locked;
+  // A stack is two charts or more; stackEvents.js unstacks one that drops
+  // to a single chart, so a shorter one is read as no stack at all.
+  if (v?.stack !== undefined) {
+    const stack = list(v.stack, s => ({ height: size(s?.height), locked: s?.locked === true }));
+    if (stack.length >= 2) item.stack = stack;
+  }
+  return item;
+}
+
+// Stored data is untrusted input — anything with access to the browser's
+// storage can rewrite it — so a snapshot is rebuilt field by field from an
+// allow-list rather than trusted as parsed. Throws on a shape it can't use.
+function sanitizeSnapshot(snap) {
+  if (!isObject(snap)) throw new Error("bad snapshot");
+  const theme = normalizeTheme(snap.theme);
+  const kpiBands = {};
+  const bands = isObject(snap.kpiBands) ? snap.kpiBands : {};
+  // Only the bands this theme defines; any other key (including oddities
+  // like "__proto__") is dropped.
+  theme.sections
+    .filter(s => s.type === "kpi")
+    .forEach(s => {
+      if (Object.prototype.hasOwnProperty.call(bands, s.id)) kpiBands[s.id] = list(bands[s.id], sized);
+    });
+
+  return {
+    slicers: list(snap.slicers, sized),
+    kpiBands,
+    chartRows: list(snap.chartRows, row => ({
+      height: size(row?.height),
+      locked: row?.locked === true,
+      items: list(row?.items, sanitizeChartItem)
+    })).filter(row => row.items.length > 0),
+    // Notifications are about the moment they were raised, not the page.
+    warnings: [],
+    activeTemplate: theme.id,
+    theme,
+    maxSlicers: snap.maxSlicers,
+    maxKpis: snap.maxKpis,
+    slicerColumnWidth: size(snap.slicerColumnWidth) ?? theme.slicerColumnWidth
+  };
+}
+
+/**
+ * Replaces the page list with a serialized one and loads its active page into
+ * live state. Returns false, leaving everything untouched, when the data is
+ * not a session this app could have written.
+ */
+export function restoreTabs(data) {
+  try {
+    if (!isObject(data) || data.version !== SESSION_VERSION) return false;
+    if (!Array.isArray(data.tabs) || data.tabs.length === 0 || data.tabs.length > MAX_TABS) return false;
+    const active = data.activeTabIndex;
+    if (!Number.isInteger(active) || active < 0 || active >= data.tabs.length) return false;
+
+    const restored = data.tabs.map((tab, i) => {
+      const n = tab?.number;
+      if (!isObject(tab) || !Number.isInteger(n) || n < 1 || n > MAX_PAGE_NUMBER) throw new Error("bad tab");
+      const named = tab.named === true && typeof tab.name === "string" && tab.name.trim() !== "";
+      return {
+        id: i + 1,
+        number: tab.number,
+        // An unnamed page's name is generated, so it follows the current
+        // language rather than the one it was saved in.
+        name: named ? tab.name.trim().slice(0, MAX_NAME_LENGTH) : t("tabs.defaultName", { n: tab.number }),
+        named,
+        snapshot: sanitizeSnapshot(tab.snapshot)
+      };
+    });
+
+    // Ids are only identities within this session, so they are renumbered;
+    // the page counter must stay past every number in use so "Page N" names
+    // don't repeat.
+    const highestNumber = Math.max(...restored.map(tab => tab.number));
+    const pageNumber = Number.isInteger(data.nextPageNumber) && data.nextPageNumber <= MAX_PAGE_NUMBER + 1
+      ? data.nextPageNumber
+      : 0;
+
+    loadSnapshot(restored[active].snapshot);
+    tabs = restored;
+    activeTabIndex = active;
+    nextTabId = restored.length + 1;
+    nextPageNumber = Math.max(pageNumber, highestNumber + 1);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // All mutators return true when live state was swapped (caller must refreshUI)
