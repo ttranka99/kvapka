@@ -2421,6 +2421,89 @@ body.is-resizing-chart .element-controls {
   font-size: var(--fs-sm);
 }
 
+/* The GitHub panel: the mark beside the repo, then the two ways to write in.
+   The buttons are <a>s (new tab), so the <button> base is restated here. */
+.about__github {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  column-gap: 12px;
+  row-gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 14px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.about__github-mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-sm);
+  color: #fff;
+  background: var(--ink);
+}
+
+.about__github-mark svg {
+  width: 24px;
+  height: 24px;
+}
+
+.about__github-head {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.about__github-title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.about__github-repo {
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.about__github-repo:hover,
+.about__github-repo:focus-visible {
+  color: var(--pink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.about__github-text {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+}
+
+.about__github-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.about__github-btn {
+  height: 32px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background var(--fast) ease, color var(--fast) ease,
+    box-shadow var(--fast) ease;
+}
+
+.about__github-btn:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 2px;
+}
+
 .about__links {
   display: flex;
   flex-direction: column;
