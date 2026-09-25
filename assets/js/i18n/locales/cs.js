@@ -278,7 +278,7 @@ export default {
   "editor.deleteTitle": "Smazat tuto šablonu",
   "editor.save": "Uložit a použít",
   // File name of an exported template; {name} is the template name.
-  "editor.exportFileName": "kb-sablona-{name}.json",
+  "editor.exportFileName": "kvapka-sablona-{name}.json",
   "editor.exportFallbackName": "sablona",
 
   // --- Template editor: controls ----------------------------------------

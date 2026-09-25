@@ -21,8 +21,8 @@ import {
 } from "./themeModel.js";
 import { t } from "../i18n/i18n.js";
 
-const STORAGE_KEY = "kb-layout-themes-v1";
-const DEFAULT_KEY = "kb-layout-default-theme-v1";
+const STORAGE_KEY = "kvapka-themes-v1";
+const DEFAULT_KEY = "kvapka-default-theme-v1";
 
 // localStorage throws outright in a few real situations (Safari private
 // mode, a browser set to block site data, and the file:// origin in some

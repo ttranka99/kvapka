@@ -17,8 +17,8 @@
 
 import { serializeTabs, restoreTabs } from "./tabs.js";
 
-const STORAGE_KEY = "kb-layout-session-v1";
-const PROBE_KEY = "kb-layout-probe";
+const STORAGE_KEY = "kvapka-session-v1";
+const PROBE_KEY = "kvapka-probe";
 const SAVE_DELAY_MS = 300;
 // A real session is a few tens of KB; anything far past that is not one this
 // app wrote and isn't worth parsing.

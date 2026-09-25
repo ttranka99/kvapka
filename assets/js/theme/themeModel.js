@@ -24,7 +24,7 @@
 
 import { t } from "../i18n/i18n.js";
 
-export const THEME_SCHEMA = "kb-layout-theme@3";
+export const THEME_SCHEMA = "kvapka-theme@3";
 
 // The three shapes a layout can have, in the order the UI offers them. A
 // vertical column's side is part of the layout's identity, not a toggle on

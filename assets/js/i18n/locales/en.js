@@ -279,7 +279,7 @@ export default {
   "editor.deleteTitle": "Delete this template",
   "editor.save": "Save & Apply",
   // File name of an exported template; {name} is the template name.
-  "editor.exportFileName": "kb-template-{name}.json",
+  "editor.exportFileName": "kvapka-template-{name}.json",
   "editor.exportFallbackName": "template",
 
   // --- Template editor: controls ----------------------------------------
