@@ -9,8 +9,8 @@
 import { openModal, makeButton } from "./dialog.js";
 import { openLegal } from "./legalDialog.js";
 import { t, getLocale } from "../i18n/i18n.js";
+import { VERSION } from "../version.js";
 
-const VERSION = "0.9.0";
 const COPYRIGHT_YEAR = 2026;
 const OWNER = "ttranka99";
 const REPO_URL = "https://github.com/ttranka99/kvapka";
