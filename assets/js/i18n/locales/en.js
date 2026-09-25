@@ -88,6 +88,46 @@ export default {
   "legal.back": "Back",
   "legal.loading": "Loading…",
 
+  // --- Help (rail ? button, or the ? key) --------------------------------
+  // A `backticked` part is shown as code (a file or folder name).
+  "rail.help": "Help",
+  "help.button": "Help (?)",
+  "help.title": "Help",
+  "help.how.title": "How it works",
+  "help.step1.title": "Pick a template",
+  "help.step1.text": "In the Template panel choose the page resolution, where the slicers go and how many fit in a row, or build your own layout.",
+  "help.step2.title": "Add and arrange elements",
+  "help.step2.text": "Add slicers and KPIs from the sidebar, or hover a card's edge and click +. Drag the handles between cards to resize, lock a size with the lock icon, and click a card to see its exact position and size.",
+  "help.step3.title": "Export to Power BI",
+  "help.step3.text": "Export Layout downloads a zip with every page, ready to go into a Power BI project.",
+  "help.how.note": "Your pages are saved in this browser as you work. To keep a copy or share it, use Project › Save project.",
+  "help.import.title": "Import into Power BI (PBIR)",
+  "help.import.intro": "The export holds the `definition/pages` folder of a Power BI project in PBIR format. It is not a .pbix file and can't be opened directly.",
+  "help.import.step1": "In Power BI Desktop, save the report as a Power BI project (.pbip) in PBIR format. If your version lists \"Power BI Project (.pbip) save option\" and \"Store reports using enhanced metadata format (PBIR)\" under Preview features, turn them on first.",
+  "help.import.step2": "Close Power BI Desktop.",
+  "help.import.step3": "Back up the project folder, then delete the `definition/pages` folder inside `<name>.Report`.",
+  "help.import.step4": "Unzip the export into `<name>.Report`, so its `definition/pages` takes that place.",
+  "help.import.step5": "Open the .pbip again and fill the placeholder visuals with your fields.",
+  "help.import.note": "The export replaces all of the report's pages, so a new, empty report is the safest place to start.",
+  "help.keys.title": "Keyboard shortcuts",
+  "help.keys.colKeys": "Keys",
+  "help.keys.colAction": "Action",
+  "help.keys.save": "Save the project",
+  "help.keys.export": "Export for Power BI",
+  "help.keys.undo": "Undo",
+  "help.keys.redo": "Redo",
+  "help.keys.delete": "Remove the selected element",
+  "help.keys.deselect": "Clear the selection",
+  "help.keys.arrows": "Select the neighbouring element",
+  "help.keys.rename": "Rename the focused page tab",
+  "help.keys.help": "Open this help",
+
+  // --- Welcome (first visit only) ----------------------------------------
+  "welcome.title": "Welcome to kvapka",
+  "welcome.intro": "Design the layout of a Power BI report page in three steps:",
+  "welcome.guide": "Show the full guide",
+  "welcome.start": "Start designing",
+
   // --- "Customize Elements" placeholder section ------------------------------
   "elements.title": "Customize Elements",
   "elements.text": "Element customization (coming soon)",
@@ -263,6 +303,8 @@ export default {
   "export.pageInvalid": "The layout on page \"{page}\" has errors (elements don't fit on the canvas); fix them before exporting.",
   "export.pageEmpty": "Page \"{page}\" is empty; add at least one element.",
   "export.failed": "Export failed unexpectedly. Your pages are unchanged; please try again.",
+  // Info toast after a successful export; {file} is the zip's name.
+  "export.done": "Exported {file}. See Help › Import into Power BI for the next step.",
 
   // --- Template editor: header ------------------------------------------
   "editor.region": "Custom Template Editor",

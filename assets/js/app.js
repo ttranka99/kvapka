@@ -23,6 +23,8 @@ import {
 } from "./ui/themePicker.js";
 import { initRail } from "./ui/rail.js";
 import { initAbout } from "./ui/about.js";
+import { initHelp, openHelp, maybeShowWelcome } from "./ui/help.js";
+import { initShortcuts } from "./ui/shortcuts.js";
 import { initStackedCover } from "./ui/stackedCover.js";
 import { initTemplatePanel, syncTemplateSummary, syncTemplateFoldForPage } from "./ui/templatePanel.js";
 import { t, applyStaticText, getLocale, setLocale, onLocaleChange } from "./i18n/i18n.js";
@@ -230,11 +232,13 @@ function debounce(fn, waitMs) {
 
 function start() {
   // The pages from the last visit, or a fresh first page.
-  if (!restoreSession()) initTabs();
+  const restored = restoreSession();
+  if (!restored) initTabs();
   initSessionPersistence();
   initTabsUI({ refreshUI: refreshUIFromState });
   initThemePicker({ refreshUI: refreshUIFromState });
   initRail({ openEditor: openActiveThemeEditor });
+  initHelp();
   initAbout();
   initLocaleSwitch();
   initRowLimitControls();
@@ -252,11 +256,14 @@ function start() {
   initHistory({ refreshUI: () => refreshUIFromState({ motion: undefined }) });
   initSelectionCopyButtons();
   initSelectionInlineEditing();
+  initShortcuts({ openHelp });
   setSelected(null);
   initCanvasRefit();
   // On a machine that blocks site data, say so up front rather than let the
   // pages vanish on the next visit.
   if (!storageAvailable()) addWarning(t("session.storageUnavailable"), "info");
+  // A first visit opens with the three steps, once the page has been drawn.
+  requestAnimationFrame(() => maybeShowWelcome({ restored }));
 }
 
 // Refits the canvas the moment the workspace changes width — the same frame

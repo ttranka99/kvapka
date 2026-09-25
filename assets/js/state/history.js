@@ -13,6 +13,7 @@
 // objects) starts every page with a clean history.
 
 import { captureSnapshot, loadSnapshot, getTabs, getActiveTabIndex } from "./tabs.js";
+import { isTextField, letterOf } from "../ui/keys.js";
 
 // Per page. A snapshot is a few KB, and there are at most MAX_TABS pages.
 const MAX_ENTRIES = 100;
@@ -96,20 +97,9 @@ function syncButtons() {
   if (redoBtn) redoBtn.disabled = !h || h.redo.length === 0;
 }
 
-function isTextField(el) {
-  if (!el || !(el instanceof Element)) return false;
-  return el.matches("input, textarea, select, [contenteditable]:not([contenteditable='false'])");
-}
-
-// The letter the user pressed. e.key follows the keyboard layout, so the key
-// labelled Z undoes on Czech QWERTZ as well as QWERTY. Layouts without Latin
-// letters (Cyrillic, Greek) fall back to the physical key.
-function letterOf(e) {
-  const key = typeof e.key === "string" ? e.key.toLowerCase() : "";
-  if (/^[a-z]$/.test(key)) return key;
-  if (e.code === "KeyZ") return "z";
-  if (e.code === "KeyY") return "y";
-  return "";
+/** A pointer is down (a drag in progress): shortcuts leave the page alone. */
+export function isGestureActive() {
+  return gestureActive;
 }
 
 function onKeydown(e) {

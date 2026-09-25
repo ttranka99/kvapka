@@ -133,6 +133,10 @@ export function exportPowerBILayout() {
     return;
   }
   downloadBlob(result.zip, result.filename);
+  // Getting the zip into Power BI is the step people get stuck on, so every
+  // export points at the guide. Under "export." like the errors, so only the
+  // latest outcome stays in the bell.
+  addWarning(t("export.done", { file: result.filename }), "info");
 }
 
 // The zip for every page, or { error } naming the first page that can't be

@@ -143,8 +143,13 @@
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 4a2 2 0 1 1 4 0v1h4v4h1a2 2 0 1 1 0 4h-1v4h-4v-1a2 2 0 1 0-4 0v1H6v-4H5a2 2 0 1 1 0-4h1V5h4V4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
                 <span data-i18n="rail.elements"></span>
             </button>
-            <!-- Opens the About modal (ui/about.js) rather than a section, so
-                 it has no data-section and the rail never lights it. -->
+            <!-- Help and About open modals (ui/help.js, ui/about.js) rather
+                 than sections, so they have no data-section and the rail
+                 never lights them. -->
+            <button type="button" id="help-btn" class="rail-btn rail-btn--help" aria-haspopup="dialog" data-i18n-title="help.button">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M9.6 9.2a2.5 2.5 0 0 1 4.85.85c0 1.7-2.45 2.2-2.45 3.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="16.9" r="1.15" fill="currentColor"/></svg>
+                <span data-i18n="rail.help"></span>
+            </button>
             <button type="button" id="about-btn" class="rail-btn rail-btn--about" aria-haspopup="dialog">
                 <svg aria-hidden="true"><use href="#i-info"/></svg>
                 <span data-i18n="rail.about"></span>

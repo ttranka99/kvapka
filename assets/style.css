@@ -821,9 +821,10 @@ button:active:not(:disabled),
   background: var(--surface-2);
 }
 
-/* Opens a modal, not a section: pinned to the foot of the rail, away from
-   the three it would otherwise read as a fourth of. */
-.rail-btn--about {
+/* Help and About open modals, not sections: pinned to the foot of the rail,
+   away from the three they would otherwise read as more of. The first of the
+   pair takes the free space. */
+.rail-btn--help {
   margin-top: auto;
 }
 
@@ -2493,6 +2494,91 @@ body.is-resizing-chart .element-controls {
   border-radius: var(--r-sm);
   background: var(--surface-2);
   font-size: var(--fs-sm);
+  /* A key or file name is one token: never split the pill across lines. */
+  white-space: nowrap;
+}
+
+/* Keys in Help's shortcut table (ui/help.js): the code pill, with a key's
+   bottom edge. */
+.legal-doc kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  border-bottom: 2px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.help-combo {
+  white-space: nowrap;
+}
+
+.help-keys {
+  line-height: 1.9;
+}
+
+/* The three steps of Help and the first-run welcome: a numbered list, each
+   step a bold title over what to do. */
+.help-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: help-step;
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.help-steps li {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  column-gap: 10px;
+  counter-increment: help-step;
+}
+
+.help-steps li::before {
+  content: counter(help-step);
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--pink-soft);
+  color: var(--pink);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.help-steps strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.help-steps code {
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+.help-note {
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+
+.welcome-card {
+  max-width: 480px;
 }
 
 .legal-table {
@@ -2749,7 +2835,7 @@ html.legal-page body {
     height: 52px;
   }
 
-  .rail-btn--about {
+  .rail-btn--help {
     margin-top: 0;
   }
 

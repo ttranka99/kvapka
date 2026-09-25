@@ -42,7 +42,7 @@ export function initProjectMenu(options) {
 
   saveItem.addEventListener("click", () => {
     close(true);
-    downloadJson(projectFileName(), buildProjectJson());
+    saveProject();
   });
 
   openItem.addEventListener("click", () => {
@@ -56,6 +56,11 @@ export function initProjectMenu(options) {
   document.addEventListener("click", e => {
     if (menu.classList.contains("open") && !menu.contains(e.target) && !button.contains(e.target)) close();
   });
+}
+
+/** Downloads every page as a .kvapka.json file (the menu's Save, and Ctrl+S). */
+export function saveProject() {
+  downloadJson(projectFileName(), buildProjectJson());
 }
 
 const enabledItems = () => [saveItem, openItem].filter(item => !item.disabled);

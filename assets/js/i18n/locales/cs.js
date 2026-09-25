@@ -87,6 +87,46 @@ export default {
   "legal.back": "Zpět",
   "legal.loading": "Načítání…",
 
+  // --- Nápověda (tlačítko ? v liště nebo klávesa ?) ------------------------
+  // Část v `obrácených apostrofech` se zobrazí jako kód (název souboru či složky).
+  "rail.help": "Nápověda",
+  "help.button": "Nápověda (?)",
+  "help.title": "Nápověda",
+  "help.how.title": "Jak to funguje",
+  "help.step1.title": "Vyberte šablonu",
+  "help.step1.text": "V panelu Šablona zvolte rozlišení stránky, umístění slicerů a kolik se jich vejde do řady, nebo si sestavte vlastní layout.",
+  "help.step2.title": "Přidejte a rozmístěte prvky",
+  "help.step2.text": "Slicery a KPI přidáte z postranního panelu, nebo najeďte na okraj karty a klikněte na +. Velikost měníte tažením úchytů mezi kartami, zamknete ji ikonou zámku a po kliknutí na kartu uvidíte její přesnou polohu a rozměry.",
+  "help.step3.title": "Exportujte do Power BI",
+  "help.step3.text": "Tlačítko Exportovat rozložení stáhne zip se všemi stránkami, připravený pro projekt Power BI.",
+  "help.how.note": "Stránky se průběžně ukládají v tomto prohlížeči. Pokud si chcete uložit kopii nebo ji někomu poslat, použijte Projekt › Uložit projekt.",
+  "help.import.title": "Import do Power BI (PBIR)",
+  "help.import.intro": "Export obsahuje složku `definition/pages` projektu Power BI ve formátu PBIR. Nejde o soubor .pbix a nelze ho otevřít přímo.",
+  "help.import.step1": "V Power BI Desktop uložte report jako projekt Power BI (.pbip) ve formátu PBIR. Pokud vaše verze uvádí mezi funkcemi ve verzi Preview volby „Power BI Project (.pbip) save option\" a „Store reports using enhanced metadata format (PBIR)\", nejdřív je zapněte.",
+  "help.import.step2": "Zavřete Power BI Desktop.",
+  "help.import.step3": "Zálohujte složku projektu a pak ve složce `<název>.Report` smažte složku `definition/pages`.",
+  "help.import.step4": "Rozbalte export do složky `<název>.Report`, aby jeho `definition/pages` zaujala její místo.",
+  "help.import.step5": "Znovu otevřete soubor .pbip a vizuály-zástupce naplňte svými poli.",
+  "help.import.note": "Export nahradí všechny stránky reportu, proto je nejbezpečnější začít s novým, prázdným reportem.",
+  "help.keys.title": "Klávesové zkratky",
+  "help.keys.colKeys": "Klávesy",
+  "help.keys.colAction": "Akce",
+  "help.keys.save": "Uložit projekt",
+  "help.keys.export": "Exportovat pro Power BI",
+  "help.keys.undo": "Zpět",
+  "help.keys.redo": "Znovu",
+  "help.keys.delete": "Odebrat označený prvek",
+  "help.keys.deselect": "Zrušit označení",
+  "help.keys.arrows": "Označit sousední prvek",
+  "help.keys.rename": "Přejmenovat stránku, na které je fokus",
+  "help.keys.help": "Otevřít tuto nápovědu",
+
+  // --- Uvítání (jen při první návštěvě) ------------------------------------
+  "welcome.title": "Vítejte v aplikaci kvapka",
+  "welcome.intro": "Rozložení stránky reportu Power BI navrhnete ve třech krocích:",
+  "welcome.guide": "Zobrazit celý návod",
+  "welcome.start": "Začít navrhovat",
+
   // --- "Přizpůsobit prvky" placeholder section ------------------------------
   "elements.title": "Přizpůsobit prvky",
   "elements.text": "Přizpůsobení elementů (brzy dostupné)",
@@ -262,6 +302,8 @@ export default {
   "export.pageInvalid": "Rozložení na stránce \"{page}\" obsahuje chyby (prvky se nevejdou na plátno), před exportem je opravte.",
   "export.pageEmpty": "Stránka \"{page}\" je prázdná, přidejte alespoň jeden prvek.",
   "export.failed": "Export se nečekaně nezdařil. Stránky zůstaly beze změny, zkuste to prosím znovu.",
+  // Informační oznámení po úspěšném exportu; {file} je název zipu.
+  "export.done": "Exportováno: {file}. Jak pokračovat, najdete v Nápovědě › Import do Power BI.",
 
   // --- Template editor: header ------------------------------------------
   "editor.region": "Editor vlastní šablony",
