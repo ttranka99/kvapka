@@ -15,7 +15,7 @@
 // template) and a save time: no user, machine or path. It is plain,
 // pretty-printed JSON, so anyone — or any scanner — can read what is in it.
 
-import { serializeTabs, restoreTabs, SESSION_VERSION } from "./tabs.js";
+import { serializeTabs, serializeBlankTabs, restoreTabs, SESSION_VERSION } from "./tabs.js";
 import { t } from "../i18n/i18n.js";
 
 const PROJECT_FORMAT = "kvapka-project";
@@ -33,6 +33,40 @@ export function projectFileName() {
 }
 
 const isObject = v => v !== null && typeof v === "object" && !Array.isArray(v);
+
+// --- Unsaved changes ---------------------------------------------------------
+//
+// So "New project" and "Open project" only ask to save first when there is
+// something to lose. The pages as last saved to (or opened from) a file are
+// kept as a signature in memory; before any of that this session, the
+// baseline is a blank project, so an untouched first page counts as nothing
+// to lose. The autosave doesn't count as saved: it lives only in this browser.
+
+let savedSignature = null;
+
+// The page list minus what doesn't change the work: the page counter, and the
+// generated "Page N" names (they follow the language).
+function signature(session) {
+  return JSON.stringify(session.tabs.map(tab => ({ ...tab, name: tab.named ? tab.name : null })))
+    + session.activeTabIndex;
+}
+
+/** Records the pages as they are now as saved (after a save or an open). */
+export function markSaved() {
+  savedSignature = signature(serializeTabs());
+}
+
+/** Forgets the saved state, so a blank project is the baseline again. */
+export function forgetSaved() {
+  savedSignature = null;
+}
+
+/** Whether the pages hold work that isn't in a file and would be lost. */
+export function hasUnsavedChanges() {
+  const current = signature(serializeTabs());
+  if (savedSignature !== null && current === savedSignature) return false;
+  return current !== signature(serializeBlankTabs());
+}
 
 /**
  * Replaces the page list with the one in a project file and loads its active
@@ -52,5 +86,6 @@ export function openProjectText(text) {
     return { ok: false, error: t("project.newerVersion") };
   }
   if (!restoreTabs(data)) return { ok: false, error: t("project.damaged") };
+  markSaved();
   return { ok: true };
 }

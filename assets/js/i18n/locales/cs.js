@@ -43,12 +43,26 @@ export default {
   "history.redo": "Znovu (Ctrl+Y)",
 
   // --- Project file (top bar "Project" menu) ----------------------------
-  // Save / open all pages as a .kvapka.json file.
+  // Start over, or save / open all pages as a .kvapka.json file.
   "project.menu": "Projekt",
+  "project.new": "Nový projekt",
   "project.save": "Uložit projekt",
   "project.open": "Otevřít projekt…",
-  // Tooltip on "Open project" while the template editor is open.
-  "project.openDisabled": "Nejprve zavřete editor šablony.",
+  // Tooltip on "New project" and "Open project" while the template editor is open.
+  "project.replaceDisabled": "Nejprve zavřete editor šablony.",
+  // New project with nothing unsaved: a plain confirmation.
+  "project.newBlankTitle": "Začít nový projekt?",
+  "project.newBlankMessage": "Současné stránky budou vymazány. Vaše vlastní šablony zůstanou zachovány.",
+  // New / Open with work not saved to a file.
+  "project.newTitle": "Uložit změny před založením nového projektu?",
+  "project.openTitle": "Uložit změny před otevřením jiného projektu?",
+  "project.replaceMessageOne": "Stránka bude z tohoto prohlížeče odstraněna a změny neuložené do souboru nepůjde obnovit. Vaše vlastní šablony zůstanou zachovány.",
+  // {n} is the number of pages (2 or more).
+  "project.replaceMessage": "Všechny stránky ({n}) budou z tohoto prohlížeče odstraněny a změny neuložené do souboru nepůjde obnovit. Vaše vlastní šablony zůstanou zachovány.",
+  "project.discard": "Neukládat",
+  "project.saveAndNew": "Uložit a začít nový",
+  "project.saveAndOpen": "Uložit a otevřít…",
+  "project.started": "Založen nový projekt.",
   // {name} is the opened file's name.
   "project.opened": "Otevřen soubor {name}.",
   "project.invalidJson": "Soubor nelze načíst jako projekt: nejde o platný JSON.",

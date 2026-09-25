@@ -44,12 +44,26 @@ export default {
   "history.redo": "Redo (Ctrl+Y)",
 
   // --- Project file (top bar "Project" menu) ----------------------------
-  // Save / open all pages as a .kvapka.json file.
+  // Start over, or save / open all pages as a .kvapka.json file.
   "project.menu": "Project",
+  "project.new": "New project",
   "project.save": "Save project",
   "project.open": "Open project…",
-  // Tooltip on "Open project" while the template editor is open.
-  "project.openDisabled": "Close the template editor first.",
+  // Tooltip on "New project" and "Open project" while the template editor is open.
+  "project.replaceDisabled": "Close the template editor first.",
+  // New project with nothing unsaved: a plain confirmation.
+  "project.newBlankTitle": "Start a new project?",
+  "project.newBlankMessage": "The current pages will be cleared. Your custom templates are kept.",
+  // New / Open with work not saved to a file.
+  "project.newTitle": "Save changes before starting a new project?",
+  "project.openTitle": "Save changes before opening another project?",
+  "project.replaceMessageOne": "Your page will be removed from this browser, and changes not saved to a file can't be recovered. Your custom templates are kept.",
+  // {n} is the number of pages (2 or more).
+  "project.replaceMessage": "All {n} pages will be removed from this browser, and changes not saved to a file can't be recovered. Your custom templates are kept.",
+  "project.discard": "Don't save",
+  "project.saveAndNew": "Save and start new",
+  "project.saveAndOpen": "Save and open…",
+  "project.started": "Started a new project.",
   // {name} is the opened file's name.
   "project.opened": "Opened {name}.",
   "project.invalidJson": "This file can't be read as a project: it isn't valid JSON.",

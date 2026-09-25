@@ -137,11 +137,36 @@ function loadDefaults(theme) {
 }
 
 export function initTabs() {
+  resetTabs();
+}
+
+/**
+ * Replaces every page with one fresh "Page 1", as on a first visit — the
+ * Project menu's "New project". The caller refreshes the UI. Undo history
+ * goes with the old pages (state/history.js keys it by tab object).
+ */
+export function resetTabs() {
+  nextTabId = 1;
+  nextPageNumber = 1;
   tabs = [newTab()];
   activeTabIndex = 0;
   // The first page starts from the stored global default (FULL HD until the
   // user picks another with the "All" scope).
   loadDefaults(newPageTheme(getTheme(getDefaultThemeId()) ?? normalizeTheme({})));
+}
+
+/**
+ * What serializeTabs() would return for a brand-new project, without
+ * touching the pages: the fresh page is made live for a moment and the real
+ * ones are put back, the same swap applyThemeToAllTabs() does.
+ */
+export function serializeBlankTabs() {
+  const saved = { tabs, activeTabIndex, nextTabId, nextPageNumber, live: captureSnapshot() };
+  resetTabs();
+  const blank = serializeTabs();
+  ({ tabs, activeTabIndex, nextTabId, nextPageNumber } = saved);
+  loadSnapshot(saved.live);
+  return blank;
 }
 
 // --- Session persistence -------------------------------------------------

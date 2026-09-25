@@ -82,7 +82,7 @@
                 <button type="button" class="template-option" data-locale="en" lang="en">EN</button>
             </div>
 
-            <!-- Save / open the pages as a .kvapka.json file. The menu is
+            <!-- New project, or save / open the pages as a .kvapka.json file. The menu is
                  positioned against .project-wrap, like the bell's panel.
                  Wired in ui/projectMenu.js. -->
             <div class="project-wrap">
@@ -91,6 +91,10 @@
                     <span data-i18n="project.menu" data-i18n-stable></span>
                 </button>
                 <div id="project-menu" class="project-menu" role="menu" data-i18n-aria-label="project.menu">
+                    <button type="button" id="project-new" class="project-menu-item" role="menuitem">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5M12 11v6m-3-3h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <span data-i18n="project.new"></span>
+                    </button>
                     <button type="button" id="project-save" class="project-menu-item" role="menuitem">
                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 3h11l4 4v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a1 1 0 0 1 1-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 3v5h7V3M8 21v-6h8v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
                         <span data-i18n="project.save"></span>

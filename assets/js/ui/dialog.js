@@ -99,7 +99,27 @@ export function openModal({ card, labelledBy, describedBy, role, initialFocus, c
  * danger: styles the confirm button as destructive and puts the initial
  * focus on Cancel, so a stray Enter never deletes anything.
  */
-export function confirmDialog({ title, message, confirmLabel, cancelLabel = t("dialog.cancel"), danger = false }) {
+export async function confirmDialog({ title, message, confirmLabel, cancelLabel = t("dialog.cancel"), danger = false }) {
+  const answer = await choiceDialog({
+    title,
+    message,
+    cancelLabel,
+    choices: [{ label: confirmLabel, value: true, danger, primary: !danger }]
+  });
+  return answer === true;
+}
+
+/**
+ * Asks a question with several answers besides Cancel, e.g. "Save" / "Don't
+ * save". Resolves the pressed choice's value; Escape, Cancel, a click on the
+ * backdrop or another dialog opening over it all resolve null.
+ *
+ * choices: [{ label, value, primary?, danger? }], shown after Cancel in this
+ * order. With any danger choice the dialog is an alertdialog and the initial
+ * focus is on Cancel, so a stray Enter never throws work away; otherwise it
+ * is on the primary choice.
+ */
+export function choiceDialog({ title, message, choices, cancelLabel = t("dialog.cancel") }) {
   return new Promise(resolve => {
     const titleId = "app-dialog-title";
     const messageId = "app-dialog-message";
@@ -117,24 +137,39 @@ export function confirmDialog({ title, message, confirmLabel, cancelLabel = t("d
     const actions = document.createElement("div");
     actions.className = "app-dialog__actions";
     const cancel = makeButton(cancelLabel, "btn-secondary");
-    const confirm = makeButton(confirmLabel, danger ? "btn-danger app-dialog__danger" : "btn-primary");
-    actions.append(cancel, confirm);
+    actions.append(cancel);
+
+    const danger = choices.some(choice => choice.danger);
+    let primary = null;
+    const buttons = choices.map(choice => {
+      const variant = choice.danger ? "btn-danger app-dialog__danger" : choice.primary ? "btn-primary" : "btn-secondary";
+      const button = makeButton(choice.label, variant);
+      if (choice.primary && !primary) primary = button;
+      actions.append(button);
+      return button;
+    });
 
     const card = document.createElement("div");
     card.className = "app-dialog__card";
     card.append(heading, body, actions);
 
+    let answered = null;
     const { close } = openModal({
       card,
       labelledBy: titleId,
       describedBy: messageId,
       role: danger ? "alertdialog" : undefined,
-      initialFocus: danger ? cancel : confirm,
-      onClose: answer => resolve(answer === true),
+      initialFocus: danger || !primary ? cancel : primary,
+      onClose: () => resolve(answered),
     });
 
-    cancel.addEventListener("click", () => close(false));
-    confirm.addEventListener("click", () => close(true));
+    cancel.addEventListener("click", () => close());
+    buttons.forEach((button, i) => {
+      button.addEventListener("click", () => {
+        answered = choices[i].value;
+        close();
+      });
+    });
   });
 }
 
