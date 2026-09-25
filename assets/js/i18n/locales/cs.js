@@ -84,6 +84,8 @@ export default {
   "about.changelog": "Seznam změn",
   "about.feedback": "Zpětná vazba a zdrojový kód (GitHub)",
   "about.close": "Zavřít",
+  "legal.back": "Zpět",
+  "legal.loading": "Načítání…",
 
   // --- "Přizpůsobit prvky" placeholder section ------------------------------
   "elements.title": "Přizpůsobit prvky",

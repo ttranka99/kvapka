@@ -85,6 +85,8 @@ export default {
   "about.changelog": "Changelog",
   "about.feedback": "Feedback & source (GitHub)",
   "about.close": "Close",
+  "legal.back": "Back",
+  "legal.loading": "Loading…",
 
   // --- "Customize Elements" placeholder section ------------------------------
   "elements.title": "Customize Elements",

@@ -2427,15 +2427,177 @@ body.is-resizing-chart .element-controls {
   font-size: var(--fs-md);
 }
 
-.about__links a {
+.about__links a,
+.legal-doc a {
   color: var(--ink-2);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .about__links a:hover,
-.about__links a:focus-visible {
+.about__links a:focus-visible,
+.legal-doc a:hover,
+.legal-doc a:focus-visible {
   color: var(--pink);
+}
+
+/* The Privacy / Terms modal (ui/legalDialog.js) and the standalone pages
+   (privacy.html, terms.html) share .legal-doc, so the text looks the same in
+   both. */
+.app-dialog--doc {
+  width: min(640px, calc(100vw - 2 * var(--gutter)));
+}
+
+.legal-card {
+  max-height: min(80vh, 720px);
+}
+
+.legal-doc {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 8px -20px 0;
+  padding: 0 20px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.legal-card__back {
+  margin-right: auto;
+}
+
+.legal-doc h2 {
+  margin: 16px 0 4px;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.legal-doc p,
+.legal-doc ul {
+  margin: 0 0 8px;
+}
+
+.legal-doc ul {
+  padding-left: 18px;
+}
+
+.legal-doc code {
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+}
+
+.legal-table {
+  overflow-x: auto;
+  margin: 0 0 8px;
+}
+
+.legal-doc table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.legal-doc th,
+.legal-doc td {
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+
+.legal-doc th {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.legal-todo {
+  padding: 0 4px;
+  border-radius: var(--r-sm);
+  background: var(--warning-bg);
+  color: var(--warning);
+  font-weight: 600;
+}
+
+/* Standalone pages: undo the fixed-height app shell, then one card under the
+   app's own top bar. Both languages sit in the page; #en in the URL shows
+   English. No script, so it works with JS off. */
+html.legal-page,
+html.legal-page body {
+  height: auto;
+}
+
+html.legal-page body {
+  display: block;
+  overflow: auto;
+}
+
+.legal-page main {
+  width: min(640px, calc(100% - 2 * var(--gutter)));
+  margin: 32px auto;
+  padding: 20px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
+}
+
+.legal-page article > h1 {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.legal-page .legal-meta {
+  margin: 4px 0 0;
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+
+.legal-page .legal-doc {
+  margin: 8px 0 0;
+  padding: 0;
+  overflow: visible;
+  border-bottom: 0;
+}
+
+.legal-page .template-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+/* Oversized scroll margin: the jump to #en/#cs clamps at the page top. */
+.legal-page #cs,
+.legal-page #en {
+  scroll-margin-top: 100vh;
+}
+
+.legal-page #en {
+  display: none;
+}
+
+.legal-page:has(#en:target) #en {
+  display: block;
+}
+
+.legal-page:has(#en:target) #cs {
+  display: none;
+}
+
+.legal-page:has(#en:target) .lang-switch::before {
+  transform: translateX(calc(100% + var(--thumb-gap)));
+}
+
+.legal-page:not(:has(#en:target)) .lang-switch a[href="#cs"],
+.legal-page:has(#en:target) .lang-switch a[href="#en"] {
+  color: #fff;
+  font-weight: 600;
 }
 
 /* A destructive confirm reads as the weightier of the two buttons. */
