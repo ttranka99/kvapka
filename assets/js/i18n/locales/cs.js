@@ -167,7 +167,6 @@ export default {
   "add.kpiBandMiddle": "KPI – prostřední pás",
 
   // --- Canvas -----------------------------------------------------------
-  "canvas.sizeLabel": "Power BI plátno {width} × {height}",
   "canvas.header": "Hlavička ({width} × {height})",
   "canvas.slicer": "Slicer {n}",
   "canvas.kpi": "KPI {n}",

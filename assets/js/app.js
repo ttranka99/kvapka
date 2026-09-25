@@ -34,7 +34,6 @@ const addKpiBtn = document.getElementById("add-kpi");
 const addKpiBandsContainer = document.getElementById("add-kpi-bands");
 const addSlicerBtn = document.getElementById("add-slicer");
 const addChartSplitBtn = document.getElementById("add-chart-split");
-const canvasSizeLabel = document.getElementById("canvas-size-label");
 const scopeNote = document.getElementById("theme-scope-note");
 const slicersPerRowSelect = document.getElementById("slicers-per-row");
 const slicersPerRowField = document.getElementById("slicers-per-row-field");
@@ -86,7 +85,6 @@ addChartSplitBtn.addEventListener("mouseleave", () => {
 
 function syncTemplateControls() {
   renderThemeSelector();
-  canvasSizeLabel.textContent = t("canvas.sizeLabel", { width: state.CANVAS_WIDTH, height: state.CANVAS_HEIGHT });
   // Spelling out both halves of the split: what this page uses, and what a
   // brand-new page would start on.
   scopeNote.textContent =

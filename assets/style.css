@@ -416,23 +416,37 @@ button:active:not(:disabled),
   line-height: 1;
 }
 
+/* Brand and undo / redo on the left, the actions on the right. Both sides
+   take an equal share of the slack (flex-basis 0), so the subtitle between
+   them lands in the true centre of the bar whatever either side holds. */
+.topbar-start {
+  flex: 1 1 0;
+  min-width: max-content;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* A hairline between the brand and the first tool, so the undo / redo pair
+   reads as the start of the toolbar rather than part of the logo. */
+.topbar-start .history-buttons {
+  padding-left: 12px;
+  border-left: 1px solid var(--line-strong);
+}
+
 .topbar-subtitle {
   flex-shrink: 0;
-  padding-left: 16px;
-  border-left: 1px solid var(--line-strong);
   font-size: var(--fs-md);
   color: var(--ink-3);
   white-space: nowrap;
 }
 
 .topbar-actions {
-  /* .tab-strip's flex: 1 already pushes this right on one row; the auto
-     margin is what keeps it pinned right on the wrapped narrow bar, where
-     the strip sits on a row of its own. */
-  margin-left: auto;
-  flex-shrink: 0;
+  flex: 1 1 0;
+  min-width: max-content;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -453,13 +467,10 @@ button:active:not(:disabled),
 }
 
 /* The shorter language sits centred in the button's reserved width, not
-   pushed to one side of it. The subtitle keeps its left edge. */
-.btn [data-i18n-stable] {
-  justify-items: center;
-}
-
+   pushed to one side of it — the centred subtitle too. */
+.btn [data-i18n-stable],
 .topbar-subtitle[data-i18n-stable] {
-  justify-items: start;
+  justify-items: center;
 }
 
 /* The CS / EN switch: the sidebar's segmented pill, sized down so it reads
@@ -517,20 +528,18 @@ button:active:not(:disabled),
 }
 
 /* ----------------------------------------------------
-   PAGE TABS — centred in the top bar.
+   PAGE TABS — in a row above the sheet (see MAIN below), or
+   on the top bar's own row in the stacked layout, where
+   ui/tabs.js moves the strip.
 
-   The strip is the only elastic item in the bar (flex: 1 + min-width: 0), so
-   it absorbs the slack on wide screens — which centres the tabs — and is the
-   first thing to give when the window narrows. Only .tab-viewport shrinks;
-   the arrows and the + sit outside it at their natural size, so they can
-   never be squashed, and the + never scrolls out of reach.
+   Only .tab-viewport shrinks; the arrows and the + sit outside it at their
+   natural size, so they can never be squashed, and the + never scrolls out
+   of reach.
 -----------------------------------------------------*/
 .tab-strip {
-  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
 }
 
@@ -1444,10 +1453,11 @@ select {
 }
 
 /* ----------------------------------------------------
-   MAIN — the workspace. The sheet and its caption sit
-   on the centre line. Only horizontal centring: a
-   vertical one would move the wrapper top that
-   computeEffectiveScale() measures.
+   MAIN — the workspace. The page tabs in a row at the
+   top, the sheet under them on the centre line. Only
+   horizontal centring for the sheet: a vertical one
+   would move the wrapper top that computeEffectiveScale()
+   measures.
 -----------------------------------------------------*/
 /* The one scroll container in the desktop shell. No reserved scrollbar
    gutter: the sheet is fitted to both width and height, so nothing overflows
@@ -1461,7 +1471,6 @@ select {
   min-height: 0;
   overflow: hidden auto;
   padding: var(--gutter);
-  text-align: center;
 }
 
 #canvas-wrapper {
@@ -1470,23 +1479,17 @@ select {
   width: fit-content;
   max-width: 100%;
   margin: 0 auto;
-  /* Bottom padding only, sized for the caption: the scale measurement reads
-     this padding, so the caption has to live inside it. */
-  padding: 0 0 32px;
+  padding: 0;
   border: 0;
-  text-align: left;
 }
 
-.sheet-caption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  color: var(--ink-3);
-  text-align: center;
+/* The page tabs, in a row above the sheet rather than tied to its size:
+   pages on different templates have differently sized sheets, and a switch
+   must not move the tab that was just clicked. The sheet hangs from below
+   this row, so it doesn't move either, and computeEffectiveScale() counts the
+   row through the wrapper's top offset. The padding is the gap to the sheet. */
+.main > .tab-strip {
+  padding-bottom: 12px;
 }
 
 #canvas {
@@ -2705,10 +2708,20 @@ html.legal-page body {
     row-gap: 8px;
   }
 
+  /* Natural width again, so the actions wrap up beside the brand and the
+     strip (moved here by ui/tabs.js) takes a row of its own. */
+  .topbar-start,
+  .topbar-actions {
+    flex: 0 0 auto;
+  }
+
+  .topbar-actions {
+    margin-left: auto;
+  }
+
   .tab-strip {
     order: 3;
     flex-basis: 100%;
-    justify-content: flex-start;
   }
 
   .app {
@@ -2780,18 +2793,6 @@ html.legal-page body {
 
   #canvas-wrapper {
     pointer-events: auto;
-  }
-
-  /* The caption may end up over the covered panels, so it sits on a chip
-     of the workspace colour. */
-  .sheet-caption {
-    left: 50%;
-    right: auto;
-    width: max-content;
-    padding: 2px 10px;
-    transform: translateX(-50%);
-    border-radius: var(--r-pill);
-    background: var(--bg);
   }
 
   /* The covered panels recede — a fade, nothing that changes their size —

@@ -56,6 +56,8 @@ export function initTabsUI(options) {
   // breakpoints, both of which change what fits.
   new ResizeObserver(updateScrollAffordances).observe(viewportEl);
 
+  placeStrip();
+
   tabBarEl.addEventListener("keydown", onTabKeydown);
 
   renderTabBar();
@@ -158,13 +160,35 @@ export function renderTabBar(animate) {
   updateScrollAffordances();
 }
 
+/* The strip lives at the top of .main, above the sheet but not tied to its
+   size, so a page switch never moves it. In the stacked layout the sheet
+   scrolls away under the panels, so the strip takes its own row of the top
+   bar instead (style.css, max-width: 900px). One node, moved rather than
+   duplicated, so its listeners and ResizeObserver come along. */
+function placeStrip() {
+  const strip = viewportEl.parentElement;
+  const main = document.querySelector(".main");
+  const topbar = document.querySelector(".topbar");
+
+  const stacked = window.matchMedia("(max-width: 900px)");
+  const place = () => {
+    if (stacked.matches) topbar.insertBefore(strip, topbar.querySelector(".topbar-actions"));
+    else main.prepend(strip);
+    updateScrollAffordances();
+    scrollActiveIntoView();
+  };
+  place();
+  stacked.addEventListener("change", place);
+}
+
 /* Scrolls the minimum distance to reveal the active tab. scrollIntoView()
    would do this too, but it also walks up and scrolls every ancestor, which
    in the stacked layout drags the whole page.
 
-   Measured with rects rather than offsetLeft: .topbar is positioned, so it —
-   not .tab-bar — is the tabs' offsetParent, and offsetLeft would be measured
-   from the wrong origin. */
+   Measured with rects rather than offsetLeft: the tabs' offsetParent is
+   whichever positioned ancestor holds the strip (the sticky .topbar when
+   stacked), not .tab-bar, so offsetLeft would be measured from the wrong
+   origin. */
 function scrollActiveIntoView(behavior) {
   const activeEl = tabBarEl.querySelector(".tab--active");
   if (!activeEl) return;

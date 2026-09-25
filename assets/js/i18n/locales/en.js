@@ -168,7 +168,6 @@ export default {
   "add.kpiBandMiddle": "KPI – middle band",
 
   // --- Canvas -----------------------------------------------------------
-  "canvas.sizeLabel": "Power BI canvas {width} × {height}",
   "canvas.header": "Header ({width} × {height})",
   "canvas.slicer": "Slicer {n}",
   "canvas.kpi": "KPI {n}",
