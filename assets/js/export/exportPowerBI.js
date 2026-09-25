@@ -1,9 +1,12 @@
 // assets/js/export/exportPowerBI.js
 //
-// Exports every tab as a page in a PBIR definition/pages folder: pages.json
-// (pageOrder + activePageName) + one <pageHash>/page.json +
-// <pageHash>/visuals/<hash>/visual.json per slicer, KPI and chart per page,
-// zipped for download.
+// Exports every tab as a page of a PBIR report, zipped for download. The zip
+// mirrors a report folder (<name>.Report), so it unzips straight into one:
+//
+//   definition/pages/pages.json                         pageOrder + activePageName
+//   definition/pages/<pageHash>/page.json               one per tab
+//   definition/pages/<pageHash>/visuals/<hash>/visual.json
+//                                                       one per slicer, KPI and chart
 // Styling comes verbatim from visualTemplates.js; positions come from the
 // same pure layout functions the renderer uses. The header/title element is
 // intentionally not exported.
@@ -30,6 +33,9 @@ import {
 import { createZip } from "./zip.js";
 import { addWarning, renderWarnings } from "../ui/warnings.js";
 import { t, isFrom } from "../i18n/i18n.js";
+
+// Where the pages folder sits inside a PBIR report folder.
+const PAGES_ROOT = "definition/pages";
 
 // 20-char lowercase hex, same format as PBIR object names.
 // (crypto.getRandomValues also works on file://, unlike crypto.randomUUID.)
@@ -161,12 +167,12 @@ function buildExport(liveSnap) {
       width: state.CANVAS_WIDTH
     };
 
-    files.push({ path: `${pageName}/page.json`, data: JSON.stringify(page, null, 2) });
+    files.push({ path: `${PAGES_ROOT}/${pageName}/page.json`, data: JSON.stringify(page, null, 2) });
 
     visuals.forEach((entry, n) => {
       const visualJson = buildVisualJson(entry, n);
       files.push({
-        path: `${pageName}/visuals/${visualJson.name}/visual.json`,
+        path: `${PAGES_ROOT}/${pageName}/visuals/${visualJson.name}/visual.json`,
         data: JSON.stringify(visualJson, null, 2)
       });
     });
@@ -180,7 +186,7 @@ function buildExport(liveSnap) {
     activePageName
   };
 
-  files.unshift({ path: "pages.json", data: JSON.stringify(pages, null, 2) });
+  files.unshift({ path: `${PAGES_ROOT}/pages.json`, data: JSON.stringify(pages, null, 2) });
 
   const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-");
   return { zip: createZip(files), filename: `kvapka-layout-${timestamp}.zip` };
