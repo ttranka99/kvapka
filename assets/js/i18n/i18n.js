@@ -26,7 +26,19 @@ function storedLocale() {
   }
 }
 
-let locale = LOCALES[storedLocale()] ? storedLocale() : FALLBACK;
+// ?lang=en in the address gives each language its own URL (for search engines
+// and shared links). It wins for this visit but isn't saved, so a shared link
+// doesn't overwrite the visitor's own choice.
+function urlLocale() {
+  try {
+    const code = new URLSearchParams(location.search).get("lang");
+    return LOCALES[code] ? code : null;
+  } catch {
+    return null;
+  }
+}
+
+let locale = urlLocale() ?? (LOCALES[storedLocale()] ? storedLocale() : FALLBACK);
 let dict = LOCALES[locale];
 let plural = new Intl.PluralRules(locale);
 
@@ -148,9 +160,55 @@ function fillStable(node) {
   });
 }
 
+const OG_LOCALES = { cs: "cs_CZ", en: "en_US" };
+
+// The URL of `href` in the active language: the default language has no
+// ?lang, every other one has ?lang=<code>. Other params and the hash stay.
+function localeUrl(href) {
+  const url = new URL(href);
+  if (locale === FALLBACK) url.searchParams.delete("lang");
+  else url.searchParams.set("lang", locale);
+  return url.href;
+}
+
+// Keeps the address bar, the canonical link and the Open Graph URL/locale on
+// the active language, so a copied link or a crawler lands on the same one.
+// The canonical is the active language's hreflang URL (index.html), so the
+// site's address is written in one place only.
+function syncLocaleUrl() {
+  try {
+    const next = localeUrl(location.href);
+    if (next !== location.href) history.replaceState(history.state, "", next);
+  } catch {
+    // A sandboxed frame may refuse replaceState; the language still switches.
+  }
+  const own = document.querySelector(`link[rel="alternate"][hreflang="${locale}"]`);
+  if (own) {
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.rel = "canonical";
+      own.before(canonical);
+    }
+    canonical.href = own.href;
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    if (ogUrl) ogUrl.content = own.href;
+  }
+  const ogLocale = document.querySelector('meta[property="og:locale"]');
+  if (ogLocale) ogLocale.content = OG_LOCALES[locale];
+  const ogAlternate = document.querySelector('meta[property="og:locale:alternate"]');
+  if (ogAlternate) {
+    ogAlternate.content = Object.keys(LOCALES).filter(code => code !== locale)
+      .map(code => OG_LOCALES[code]).join();
+  }
+}
+
 /** Fills every element under `root` marked with data-i18n / data-i18n-<attr>. */
 export function applyStaticText(root = document) {
-  if (root === document) document.documentElement.lang = locale;
+  if (root === document) {
+    document.documentElement.lang = locale;
+    syncLocaleUrl();
+  }
 
   root.querySelectorAll("[data-i18n]").forEach(node => {
     if (node.hasAttribute("data-i18n-stable")) fillStable(node);

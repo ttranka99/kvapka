@@ -15,8 +15,8 @@
 export default {
   // --- Page -------------------------------------------------------------
   // The browser tab title and the page description for search engines.
-  "app.title": "kvapka",
-  "app.description": "Power BI report layout designer.",
+  "app.title": "kvapka · Power BI report layout designer",
+  "app.description": "Design Power BI report layouts in your browser: pick a template, arrange visuals and themes, then export a PBIR project ready to open in Power BI Desktop.",
 
   // --- Top bar ----------------------------------------------------------
   "topbar.brand": "kvapka",

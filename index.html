@@ -4,9 +4,33 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title data-i18n="app.title"></title>
-    <meta name="description" data-i18n-content="app.description" />
+    <!-- The Czech text below is what crawlers and link previews see (they
+         don't run JS); i18n.js swaps it for the active language. -->
+    <title data-i18n="app.title">kvapka · návrhář rozložení Power BI reportů</title>
+    <meta name="description" data-i18n-content="app.description" content="Navrhněte rozložení Power BI reportu přímo v prohlížeči: vyberte šablonu, rozmístěte vizuály a motiv, pak exportujte projekt PBIR pro Power BI Desktop." />
     <meta name="theme-color" content="#2b3038" />
+
+    <!-- SEO: replace https://kvapka.example with the production domain before release.
+         Each language has its own URL (?lang=en), listed by the hreflang
+         links. There is no static canonical on purpose: the same file serves
+         both URLs, so i18n.js adds it from the active language's hreflang
+         link (and keeps og:url / og:locale in step). -->
+    <link rel="alternate" hreflang="cs" href="https://kvapka.example/" />
+    <link rel="alternate" hreflang="en" href="https://kvapka.example/?lang=en" />
+    <link rel="alternate" hreflang="x-default" href="https://kvapka.example/?lang=en" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="kvapka" />
+    <meta property="og:title" data-i18n-content="app.title" content="kvapka · návrhář rozložení Power BI reportů" />
+    <meta property="og:description" data-i18n-content="app.description" content="Navrhněte rozložení Power BI reportu přímo v prohlížeči: vyberte šablonu, rozmístěte vizuály a motiv, pak exportujte projekt PBIR pro Power BI Desktop." />
+    <meta property="og:url" content="https://kvapka.example/" />
+    <meta property="og:image" content="https://kvapka.example/assets/img/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="kvapka" />
+    <meta property="og:locale" content="cs_CZ" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="icon" type="image/svg+xml" href="assets/img/favicon/favicon.svg" />
     <link rel="icon" type="image/png" sizes="96x96" href="assets/img/favicon/favicon-96x96.png" />

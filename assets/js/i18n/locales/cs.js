@@ -15,8 +15,8 @@
 export default {
   // --- Page -------------------------------------------------------------
   // The browser tab title and the page description for search engines.
-  "app.title": "kvapka",
-  "app.description": "návrhář rozložení Power BI reportů.",
+  "app.title": "kvapka · návrhář rozložení Power BI reportů",
+  "app.description": "Navrhněte rozložení Power BI reportu přímo v prohlížeči: vyberte šablonu, rozmístěte vizuály a motiv, pak exportujte projekt PBIR pro Power BI Desktop.",
 
   // --- Top bar ----------------------------------------------------------
   "topbar.brand": "kvapka",
