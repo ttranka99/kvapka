@@ -45,6 +45,7 @@ import {
 import { walkSections } from "../layout/sectionWalker.js";
 import { computeChartGroups } from "../layout/chartGroups.js";
 import { icon } from "../ui/icon.js";
+import { createSwitch } from "../ui/switch.js";
 import { leave, durationMs } from "../ui/motion.js";
 import { confirmDialog } from "../ui/dialog.js";
 import { themeIdsInUse } from "../state/tabs.js";
@@ -582,7 +583,7 @@ function renderKpiBandsList(g) {
       const section = sections[i];
       const count = row.querySelector(".theme-kpi-band__count");
       if (document.activeElement !== count) count.value = String(section.defaultCount);
-      setToggleValue(row.querySelector(".theme-kpi-band__second-row"), section.allowSecondRow ? 1 : 0);
+      row.secondRowSwitch.set(section.allowSecondRow);
       setToggleValue(row.querySelector(".theme-kpi-band__gap"), section.gapBefore);
       row.querySelector(".theme-kpi-band__title").textContent = bandTitle(section, i, g);
     });
@@ -627,11 +628,15 @@ function renderKpiBandsList(g) {
     });
     row.appendChild(bandRow(t("editor.band.count"), count));
 
-    const secondRow = toggle("theme-kpi-band__second-row", [["1", t("editor.band.yes")], ["0", t("editor.band.no")]], value => {
-      updateSection(bandId, { allowSecondRow: value === "1" });
+    // On or off, so the app's switch (ui/switch.js), kept on the row so the
+    // in-place refresh above can set it.
+    const secondRow = createSwitch({
+      label: t("editor.band.secondRow"),
+      onToggle: on => updateSection(bandId, { allowSecondRow: on })
     });
-    setToggleValue(secondRow, section.allowSecondRow ? 1 : 0);
-    row.appendChild(bandRow(t("editor.band.secondRow"), secondRow));
+    secondRow.set(section.allowSecondRow);
+    row.secondRowSwitch = secondRow;
+    row.appendChild(bandRow(t("editor.band.secondRow"), secondRow.node));
 
     // The gap immediately above this band. "Auto" derives it from the
     // layout's usual rule (a wide block gap once charts are involved

@@ -7,7 +7,8 @@
 //   definition/pages/<pageHash>/page.json               one per tab
 //   definition/pages/<pageHash>/visuals/<hash>/visual.json
 //                                                       one per slicer, KPI and chart
-// Styling comes verbatim from visualTemplates.js; positions come from the
+// Styling is visualTemplates.js with the project's element styles laid over
+// it (styleToPbir.js); positions come from the
 // same pure layout functions the renderer uses. The header/title element is
 // intentionally not exported.
 //
@@ -22,14 +23,9 @@ import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeSlicersLayout } from "../layout/computeSlicersLayout.js";
 import { computeKpiLayoutForBand } from "../layout/computeKpiLayout.js";
 import { computeChartsLayout } from "../layout/computeChartsLayout.js";
-import {
-  VISUAL_SCHEMA,
-  PAGE_SCHEMA,
-  PAGES_SCHEMA,
-  SLICER_TEMPLATE,
-  KPI_TEMPLATE,
-  CHART_TEMPLATE
-} from "./visualTemplates.js";
+import { VISUAL_SCHEMA, PAGE_SCHEMA, PAGES_SCHEMA } from "./visualTemplates.js";
+import { buildVisual } from "./styleToPbir.js";
+import { getElementStyles } from "../elements/elementStyles.js";
 import { createZip } from "./zip.js";
 import { addWarning, renderWarnings } from "../ui/warnings.js";
 import { t, isFrom } from "../i18n/i18n.js";
@@ -69,13 +65,15 @@ function collectVisuals() {
   }
 
   return [
-    ...charts.map(item => ({ kind: "chart", template: CHART_TEMPLATE, item })),
-    ...slicers.map(item => ({ kind: "slicer", template: SLICER_TEMPLATE, item })),
-    ...kpis.map(item => ({ kind: "kpi", template: KPI_TEMPLATE, item }))
+    ...charts.map(item => ({ kind: "chart", item })),
+    ...slicers.map(item => ({ kind: "slicer", item })),
+    ...kpis.map(item => ({ kind: "kpi", item }))
   ];
 }
 
-function buildVisualJson({ kind, template, item }, n) {
+// The styling is the project's element styles (Customize Elements) over the
+// fixed templates — the same for every page, so it is built once per export.
+function buildVisualJson({ kind, item }, n, visuals) {
   return {
     $schema: VISUAL_SCHEMA,
     name: genHash(),
@@ -87,7 +85,7 @@ function buildVisualJson({ kind, template, item }, n) {
       width: Math.round(item.width),
       tabOrder: n * 1000
     },
-    visual: structuredClone(template)
+    visual: structuredClone(visuals[kind])
   };
 }
 
@@ -146,6 +144,13 @@ function buildExport(liveSnap) {
   const tabs = getTabs();
   const activeIndex = getActiveTabIndex();
 
+  const styles = getElementStyles();
+  const styledVisuals = {
+    slicer: buildVisual("slicer", styles),
+    kpi: buildVisual("kpi", styles),
+    chart: buildVisual("chart", styles)
+  };
+
   const pageOrder = [];
   const files = [];
   let activePageName = null;
@@ -174,7 +179,7 @@ function buildExport(liveSnap) {
     files.push({ path: `${PAGES_ROOT}/${pageName}/page.json`, data: JSON.stringify(page, null, 2) });
 
     visuals.forEach((entry, n) => {
-      const visualJson = buildVisualJson(entry, n);
+      const visualJson = buildVisualJson(entry, n, styledVisuals);
       files.push({
         path: `${PAGES_ROOT}/${pageName}/visuals/${visualJson.name}/visual.json`,
         data: JSON.stringify(visualJson, null, 2)

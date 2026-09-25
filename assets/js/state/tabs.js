@@ -9,6 +9,8 @@ import {
   isVerticalPlacement
 } from "../theme/themeModel.js";
 import { t, onLocaleChange } from "../i18n/i18n.js";
+import { getElementStyles, replaceElementStyles } from "../elements/elementStyles.js";
+import { defaultElementStyles, normalizeElementStyles } from "../elements/elementStyleModel.js";
 
 export const MAX_TABS = 12;
 
@@ -163,7 +165,9 @@ export function resetTabs() {
 export function serializeBlankTabs() {
   const saved = { tabs, activeTabIndex, nextTabId, nextPageNumber, live: captureSnapshot() };
   resetTabs();
-  const blank = serializeTabs();
+  // A new project also starts on the default element styles; the live ones
+  // are never touched here.
+  const blank = { ...serializeTabs(), elementStyles: defaultElementStyles() };
   ({ tabs, activeTabIndex, nextTabId, nextPageNumber } = saved);
   loadSnapshot(saved.live);
   return blank;
@@ -185,7 +189,10 @@ const THEME_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
 // The whole page list as plain JSON, for state/persist.js to keep between
 // visits. The active page's stored snapshot is stale by design, so it is
-// captured fresh here.
+// captured fresh here. The element styles (Customize Elements) belong to the
+// project rather than a page, so they sit beside the pages. They are
+// optional on the way back in — a file saved before they existed opens with
+// the defaults — so the version stays the same.
 export function serializeTabs() {
   return {
     version: SESSION_VERSION,
@@ -198,7 +205,8 @@ export function serializeTabs() {
       // Notifications are dropped on the way back in (sanitizeSnapshot), and
       // they may quote a file name; a saved project holds layout data only.
       snapshot: { ...(i === activeTabIndex ? captureSnapshot() : tab.snapshot), warnings: [] }
-    }))
+    })),
+    elementStyles: JSON.parse(JSON.stringify(getElementStyles()))
   };
 }
 
@@ -315,7 +323,11 @@ export function restoreTabs(data) {
       ? data.nextPageNumber
       : 0;
 
+    // Rebuilt from the allow-list like every snapshot; never throws.
+    const elementStyles = normalizeElementStyles(data.elementStyles);
+
     loadSnapshot(restored[active].snapshot);
+    replaceElementStyles(elementStyles);
     tabs = restored;
     activeTabIndex = active;
     nextTabId = restored.length + 1;

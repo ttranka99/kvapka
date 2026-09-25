@@ -1,0 +1,1562 @@
+/* ====================================================
+   kvapka — Customize Elements section
+   (elements/elementsSection.js, elements/elementPreview.js)
+   Tokens come from style.css.
+==================================================== */
+
+/* ----------------------------------------------------
+   SECTION — takes the sidebar + canvas's place beside
+   the rail, exactly like the layout editor.
+-----------------------------------------------------*/
+.elements {
+  display: none;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--gutter);
+  background: var(--bg);
+}
+
+body.section-prvky .elements {
+  display: flex;
+}
+
+body.section-prvky .sidebar,
+body.section-prvky .main {
+  display: none;
+}
+
+.elements__card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
+}
+
+/* --- Head ------------------------------------------------------------ */
+.elements__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.elements__heading {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.elements__title {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.elements__lead {
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+.elements__types {
+  --thumb-gap: 2px;   /* = .segmented's gap */
+  position: relative;
+  flex: 0 1 380px;
+  min-width: 280px;
+  isolation: isolate;
+}
+
+/* One slate pill that slides to the chosen type, like the CS / EN switch
+   (style.css .lang-switch): the same object moving is what reads as a
+   switch. Columns are equal, so one step is a column plus the gap. */
+.elements__types::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px - 2 * var(--thumb-gap)) / 3);
+  border-radius: var(--r-pill);
+  background: var(--slate);
+  transform: translateX(calc(var(--thumb-step, 0) * (100% + var(--thumb-gap))));
+}
+
+.elements__types[data-ready]::before {
+  transition: transform var(--slow) var(--ease-out);
+}
+
+.elements__types[data-active="1"] { --thumb-step: 1; }
+.elements__types[data-active="2"] { --thumb-step: 2; }
+
+.elements__type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  position: relative;
+  transition: color var(--slow) ease;
+}
+
+/* The thumb is the background; the tab only changes its ink. */
+.elements__type.active {
+  background: none;
+}
+
+/* A customized type says so on its tab. */
+.elements__type-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pink);
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity var(--base) ease, transform var(--base) var(--ease-out);
+}
+
+.elements__type.has-changes .elements__type-dot {
+  opacity: 1;
+  transform: none;
+}
+
+/* Discard and Save & Apply at the right end, as in the layout editor. */
+.elements__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Unsaved edits: a dot on the button that saves them, popping in and out. */
+.elements__save {
+  position: relative;
+}
+
+.elements__save-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--pink);
+  box-shadow: 0 0 0 2px var(--surface);
+  opacity: 0;
+  scale: 0.3;
+  transition: opacity var(--base) ease, scale var(--base) var(--ease-out);
+}
+
+.elements__save.is-dirty .elements__save-dot {
+  opacity: 1;
+  scale: 1;
+}
+
+/* --- Body: controls | stage ------------------------------------------- */
+.elements__body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: calc(var(--sidebar) - var(--gutter)) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.elements__controls {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+  padding: 8px 20px 20px;
+  border-right: 1px solid var(--line);
+}
+
+/* ----------------------------------------------------
+   CONTROL GROUPS
+-----------------------------------------------------*/
+.el-group {
+  padding: 0;
+}
+
+.el-group + .el-group {
+  margin-top: 20px;
+}
+
+.el-group__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.el-group__toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 32px;
+  text-align: left;
+  border-radius: var(--r-sm);
+}
+
+.el-group__toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--line);
+}
+
+/* .panel-head-name's voice (style.css). */
+.el-group__title {
+  font-size: var(--fs-lg);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  transition: color var(--fast) ease;
+}
+
+.el-group__toggle:hover .el-group__title {
+  color: var(--pink);
+}
+
+.el-group__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pink);
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity var(--base) ease, transform var(--base) var(--ease-out);
+}
+
+.el-group.has-changes .el-group__dot {
+  opacity: 1;
+  transform: none;
+}
+
+/* A folded group's rows fade as they close. */
+.el-group__body {
+  padding: 4px 0 2px;
+  transition: opacity var(--slow) ease;
+}
+
+.el-group.is-collapsed .el-group__body {
+  opacity: 0;
+}
+
+/* .panel-head-chevron's size, colour and fold timing (style.css). */
+.el-group__chevron {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  color: var(--ink-3);
+  transform: rotate(-90deg);
+  transition: transform var(--slower) var(--ease-panel), color var(--fast) ease;
+}
+
+.el-group__toggle:hover .el-group__chevron {
+  color: var(--pink);
+}
+
+.el-group.is-collapsed .el-group__chevron {
+  transform: rotate(0deg);
+}
+
+/* Switched off: the fields still apply once it is back on, so they stay
+   editable, only quieter. */
+.el-group.is-off .el-group__body {
+  opacity: 0.45;
+  transition: opacity var(--base) ease;
+}
+
+/* ----------------------------------------------------
+   FIELDS — the layout editor's .theme-field, plus a
+   changed marker and a reset per field.
+-----------------------------------------------------*/
+.el-field {
+  position: relative;
+}
+
+.el-field:hover,
+.el-field:focus-within {
+  background: var(--surface-2);
+}
+
+.el-field.is-linked,
+.el-field.is-live {
+  background: var(--pink-soft);
+}
+
+.el-field__top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+}
+
+.el-field__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Changed from the default: a pink dot before the label… */
+.el-field__label::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-left: -12px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--pink);
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity var(--base) ease, transform var(--base) var(--ease-out);
+}
+
+.el-field.is-changed .el-field__label::before {
+  opacity: 1;
+  transform: none;
+}
+
+.el-field.is-changed .el-field__label {
+  color: var(--ink);
+}
+
+/* …and a way back. */
+.el-field__reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: var(--ink-3);
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity var(--fast) ease, color var(--fast) ease, background var(--fast) ease;
+}
+
+.el-field__reset svg {
+  width: 13px;
+  height: 13px;
+}
+
+.el-field.is-changed .el-field__reset {
+  visibility: visible;
+  opacity: 1;
+}
+
+.el-field__reset:hover {
+  color: var(--pink);
+  background: var(--surface);
+}
+
+/* The slider reads as a level: the track fills up to the thumb. */
+.el-field .theme-field__range::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, var(--ink-4) var(--fill, 0%), var(--surface-2) var(--fill, 0%));
+}
+
+.el-field.is-changed .theme-field__range::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, var(--pink) var(--fill, 0%), var(--surface-2) var(--fill, 0%));
+}
+
+.el-field .theme-field__range::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ink-4);
+}
+
+.el-field.is-changed .theme-field__range::-moz-range-progress {
+  background: var(--pink);
+}
+
+.el-field .theme-field__unit {
+  width: 22px;
+}
+
+.el-field .theme-toggle,
+.el-field .el-select,
+.el-field .el-color,
+.el-field .el-preset {
+  margin-top: 8px;
+}
+
+.el-toggle {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.el-toggle .theme-toggle__option {
+  flex: 1;
+}
+
+/* An on/off field: the switch sits on the label's line. */
+.el-field--inline .el-field__top {
+  min-height: 26px;
+}
+
+/* --- Select (fonts): styled with .panel-row select in style.css ------------ */
+.el-select {
+  width: 100%;
+}
+
+/* --- Shadow direction pad ----------------------------------------------- */
+.el-preset {
+  display: grid;
+  grid-template-columns: repeat(3, 30px);
+  gap: 4px;
+  padding: 4px;
+  width: max-content;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.el-preset__cell {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.el-preset__mark {
+  position: absolute;
+  inset: 9px;
+  border-radius: 3px;
+  background: var(--ink-4);
+  transition: background var(--fast) ease;
+}
+
+.el-preset__cell:hover .el-preset__mark {
+  background: var(--pink);
+}
+
+.el-preset__cell.is-active {
+  background: var(--slate);
+  box-shadow: none;
+}
+
+.el-preset__cell.is-active .el-preset__mark {
+  background: #fff;
+}
+
+/* --- Color ------------------------------------------------------------ */
+.el-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 8px 0 5px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: box-shadow var(--fast) ease;
+}
+
+.el-color:hover,
+.el-field.is-open .el-color {
+  box-shadow: inset 0 0 0 1px var(--pink);
+}
+
+.el-color__chip {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: background var(--fast) ease;
+}
+
+.el-color__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+.el-color__chevron {
+  width: 12px;
+  height: 12px;
+  color: var(--ink-3);
+  transform: rotate(-90deg);
+  transition: transform var(--base) var(--ease-out);
+}
+
+.el-field.is-open .el-color__chevron {
+  transform: rotate(90deg);
+}
+
+.el-color-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 2px 4px;
+  padding: 10px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
+}
+
+.el-color-panel__label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.el-color-panel__slots {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+}
+
+.el-color-panel__slot {
+  aspect-ratio: 1;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: transform var(--fast) var(--ease-out), box-shadow var(--fast) ease;
+}
+
+.el-color-panel__slot:hover {
+  transform: scale(1.12);
+}
+
+.el-color-panel__slot.is-active {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--pink);
+}
+
+.el-color-panel__shade {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+}
+
+.el-color-panel__shade input:disabled {
+  opacity: 0.4;
+}
+
+.el-color-panel__shade-value {
+  width: 44px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.el-color-panel__custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.el-color-panel__picker {
+  width: 40px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+.el-color-panel__hex {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.el-color-panel__hex:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--slate), 0 0 0 3px var(--line);
+}
+
+/* --- Padding link --------------------------------------------------------- */
+.el-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  margin-bottom: 4px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.el-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+.el-link[aria-pressed="true"] {
+  color: #fff;
+  background: var(--slate);
+  box-shadow: none;
+}
+
+.el-link:hover:not([aria-pressed="true"]) {
+  color: var(--pink);
+  box-shadow: inset 0 0 0 1px var(--pink);
+}
+
+/* The linked value and the four sides fold into each other. */
+.el-padding .collapsible-inner > .theme-field {
+  margin: 0;
+}
+
+/* ----------------------------------------------------
+   STAGE
+-----------------------------------------------------*/
+.elements__stage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The layout editor's stage toolbar (.theme-stage__toolbar): a label on the
+   left, the tools on the right. */
+.elements__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+}
+
+.elements__toolbar-label {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.elements__tools {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+/* Icon-only, like the top bar's undo / redo (.history-btn). */
+.elements__tool {
+  width: 36px;
+  padding: 0;
+}
+
+.elements__tool svg {
+  width: 18px;
+  height: 18px;
+}
+
+.elements__tool:disabled {
+  color: var(--ink-4);
+  cursor: default;
+}
+
+/* A pressed tool reads like the open project menu (.project-menu-btn). */
+.elements__tool[aria-pressed="true"] {
+  color: var(--pink);
+  background: var(--pink-soft);
+}
+
+/* Compare is held, not clicked: the press is the state. */
+.elements__compare {
+  touch-action: none;
+  user-select: none;
+}
+
+.elements__compare:active {
+  color: #fff;
+  background: var(--slate);
+}
+
+.elements__viewport {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  margin: 0 20px;
+  overflow: auto;
+  border-radius: var(--r-md);
+  background: var(--sheet-dots), var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* The zoom, bottom right like most apps: a small floating pill over the
+   preview. */
+.elements__zoom {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
+}
+
+.elements__zoom .elements__tool {
+  width: 30px;
+  height: 30px;
+}
+
+.elements__zoom .elements__tool svg {
+  width: 16px;
+  height: 16px;
+}
+
+.elements__zoom-value {
+  min-width: 52px;
+  height: 30px;
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  transition: color var(--fast) ease, background var(--fast) ease;
+}
+
+.elements__zoom-value:hover {
+  color: var(--pink);
+  background: var(--pink-soft);
+}
+
+/* Holding Compare: the defaults are on screen, and it says so. */
+.elements__badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: #fff;
+  background: var(--slate);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity var(--base) ease, transform var(--base) var(--ease-out);
+  pointer-events: none;
+}
+
+.elements__viewport.is-comparing .elements__badge {
+  opacity: 1;
+  transform: none;
+}
+
+/* The zoom box is the mock's size at the zoom, so the viewport centres and
+   scrolls it by its real footprint; the frame inside keeps Power BI's px. */
+.elements__zoom-box {
+  position: relative;
+  flex-shrink: 0;
+  margin: 48px 48px 64px;
+  transition: width var(--slow) var(--ease-in-out), height var(--slow) var(--ease-in-out);
+}
+
+.elements__zoom-box > .el-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: scale(var(--zoom, 1));
+  transform-origin: 0 0;
+  transition: width var(--slow) var(--ease-in-out), height var(--slow) var(--ease-in-out),
+    transform var(--slow) var(--ease-in-out);
+}
+
+/* A drag's own size changes (none today, but the handles resize the box's
+   contents) never ease. */
+.elements__zoom-box > .el-frame.is-dragging {
+  transition: none;
+}
+
+.elements__strip {
+  padding: 12px 20px 16px;
+}
+
+.elements__strip-label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.elements__strip-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* Every mock at the same small scale, so their sizes compare truly. */
+.elements__strip-item {
+  --mini: 0.42;
+  position: relative;
+  padding: 10px;
+  border-radius: var(--r-md);
+  background: var(--sheet-dots), var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: box-shadow var(--fast) ease;
+}
+
+.elements__strip-item:hover {
+  box-shadow: inset 0 0 0 1px var(--pink);
+}
+
+.elements__strip-item.is-active {
+  box-shadow: inset 0 0 0 2px var(--pink);
+}
+
+.elements__strip-item .el-frame {
+  zoom: var(--mini);
+  pointer-events: none;
+}
+
+.elements__note {
+  margin-top: 10px;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+/* ----------------------------------------------------
+   THE MOCK — every value arrives as a variable on
+   .el-frame (elementPreview.js applyStyles).
+-----------------------------------------------------*/
+.el-frame {
+  position: relative;
+  width: var(--w);
+  height: var(--h);
+  /* The slicer grows into its list style rather than jumping to it. */
+  transition: width var(--slow) var(--ease-in-out), height var(--slow) var(--ease-in-out);
+  color: #252423;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  text-align: left;
+  letter-spacing: 0;
+}
+
+.el-mock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: var(--pt) var(--pr) var(--pb) var(--pl);
+  border: var(--bw) solid var(--bc);
+  border-radius: var(--r);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+}
+
+/* A discrete change (a switch, a choice, a reset, undo, compare) eases; a
+   drag never does — it follows the pointer frame by frame. */
+.el-frame.is-tweening .el-mock,
+.el-frame.is-tweening .el-part {
+  transition: border-radius var(--slow) var(--ease-out), padding var(--slow) var(--ease-out),
+    background-color var(--slow) ease, border-color var(--slow) ease, border-width var(--slow) ease,
+    box-shadow var(--slow) ease, color var(--slow) ease, font-size var(--slow) var(--ease-out),
+    outline-color var(--base) ease, letter-spacing var(--slow) ease;
+}
+
+.el-frame.is-tweening .el-guide--content {
+  transition: inset var(--slow) var(--ease-out), opacity var(--base) ease;
+}
+
+/* The outline is always there, transparent, so the change highlight and the
+   hover link fade in rather than blink on. */
+.el-part {
+  position: relative;
+  border-radius: 3px;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: outline-color var(--base) ease, background-color var(--base) ease;
+}
+
+.el-mock {
+  outline: 2px solid transparent;
+  outline-offset: 6px;
+}
+
+/* A switched-off part eases shut and the rest slides into its place. */
+.el-fold {
+  display: grid;
+  grid-template-rows: 1fr;
+  flex-shrink: 0;
+  transition: grid-template-rows var(--slow) var(--ease-in-out), opacity var(--base) ease;
+}
+
+.el-fold__inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.el-frame[data-title="off"] .el-fold[data-fold="title"],
+.el-frame[data-header="off"] .el-fold[data-fold="header"],
+.el-frame[data-category="off"] .el-fold[data-fold="category"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+/* Swapping type: the old mock fades out as the new one fades in. `translate`
+   and `scale`, not `transform`, which already holds the zoom. */
+@keyframes el-frame-in {
+  from { opacity: 0; translate: 0 6px; scale: 0.98; }
+}
+
+@keyframes el-frame-out {
+  to { opacity: 0; translate: 0 -4px; scale: 0.98; }
+}
+
+.el-frame.m-enter {
+  animation: el-frame-in var(--slow) var(--ease-out);
+}
+
+.el-frame.m-leave {
+  animation: el-frame-out var(--fast) var(--ease-out) forwards;
+}
+
+/* The visual header's icons: shown over a Power BI visual on hover. */
+.el-chrome {
+  position: absolute;
+  top: 3px;
+  right: 6px;
+  display: flex;
+  gap: 2px;
+  color: #605e5c;
+  opacity: 0.8;
+  transition: opacity var(--base) ease, translate var(--base) var(--ease-out);
+}
+
+.el-chrome svg {
+  width: 14px;
+  height: 14px;
+}
+
+.el-frame[data-chrome="off"] .el-chrome {
+  opacity: 0;
+  translate: 0 -4px;
+}
+
+/* Title (KPI, chart). */
+.el-title {
+  flex-shrink: 0;
+  font-family: var(--title-font);
+  font-size: var(--title-size);
+  font-weight: var(--title-weight, 400);
+  font-style: var(--title-style, normal);
+  color: var(--title-color);
+  text-align: var(--title-align, left);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Slicer. */
+.el-slicer__header {
+  flex-shrink: 0;
+  padding: 2px 4px 4px;
+  font-family: var(--header-font);
+  font-size: var(--header-size);
+  font-weight: var(--header-weight, 400);
+  color: var(--header-color);
+  background: var(--header-bg);
+  line-height: 1.3;
+}
+
+/* The dropdown and the list share the cell to cross-fade. Only the style in
+   use sizes it: the other leaves the flow (below), and nothing stretches —
+   a dropdown stretched to the list's height pushed its text out of the
+   slicer. */
+.el-slicer__items {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  align-items: start;
+  font-family: var(--items-font);
+  font-size: var(--items-size);
+  color: var(--items-color);
+}
+
+.el-dropdown,
+.el-list {
+  grid-area: 1 / 1;
+  transition: opacity var(--slow) ease, translate var(--slow) var(--ease-out);
+}
+
+.el-dropdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border-bottom: 1px solid #c8c6c4;
+  background: var(--items-bg);
+}
+
+.el-chevron {
+  width: 12px;
+  height: 12px;
+}
+
+.el-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  background: var(--items-bg);
+}
+
+.el-frame[data-mode="dropdown"] .el-list,
+.el-frame[data-mode="basic"] .el-dropdown {
+  position: absolute;
+  inset: 0 0 auto 0;
+  opacity: 0;
+  translate: 0 -6px;
+  pointer-events: none;
+}
+
+.el-list__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.el-list__box {
+  width: 0.95em;
+  height: 0.95em;
+  flex-shrink: 0;
+  border: 1px solid #605e5c;
+  border-radius: 2px;
+}
+
+.el-list__item.is-checked .el-list__box {
+  border-color: #252423;
+  background: #252423;
+  box-shadow: inset 0 0 0 2px var(--items-bg);
+}
+
+/* KPI card. */
+.el-kpi__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  text-align: center;
+}
+
+.el-kpi__value {
+  font-family: var(--value-font);
+  font-size: calc(var(--value-size) * 2);
+  font-weight: var(--value-weight, 700);
+  color: var(--value-color);
+  line-height: 1.15;
+  padding: 0 4px;
+}
+
+.el-kpi__category {
+  max-width: 100%;
+  padding: 0 4px;
+  font-family: var(--category-font);
+  font-size: var(--category-size);
+  color: var(--category-color);
+  line-height: 1.3;
+}
+
+.el-frame[data-wrap="off"] .el-kpi__category {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Chart. */
+.el-chart__plot {
+  flex: 1;
+  min-height: 0;
+  margin-top: 6px;
+}
+
+.el-chart__plot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.el-chart__grid line {
+  stroke: #edebe9;
+  stroke-width: 1;
+}
+
+.el-chart__area {
+  fill: rgba(17, 141, 255, 0.12);
+}
+
+.el-chart__line {
+  fill: none;
+  stroke: #118dff;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.el-chart__dot {
+  fill: #fff;
+  stroke: #118dff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.el-chart__axis text {
+  font-size: 11px;
+  fill: #605e5c;
+}
+
+/* Power BI's tooltip, over the highlighted point while the plot is hovered
+   (or while its switch is being pointed at). */
+.el-tooltip {
+  position: absolute;
+  left: 64%;
+  top: 44%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px;
+  border-radius: 2px;
+  font-size: 11px;
+  color: #fff;
+  background: #252423;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--fast) ease, transform var(--fast) var(--ease-out);
+  pointer-events: none;
+}
+
+.el-tooltip__label {
+  opacity: 0.75;
+}
+
+.el-frame[data-tooltip="on"] .el-chart__plot:hover ~ .el-tooltip,
+.el-frame[data-tooltip="on"] .el-tooltip.is-linked,
+.el-frame[data-tooltip="on"] .el-tooltip.el-pulse {
+  opacity: 1;
+  transform: none;
+}
+
+/* ----------------------------------------------------
+   LINKED HIGHLIGHT — a control hovered outlines its part
+   of the mock (and the other way round).
+-----------------------------------------------------*/
+.el-part.is-linked {
+  outline-style: dashed;
+  outline-color: var(--pink);
+  background-color: rgba(251, 73, 163, 0.08);
+}
+
+.el-mock.is-linked {
+  box-shadow: var(--shadow), inset 0 0 0 999px rgba(251, 73, 163, 0.06);
+}
+
+.el-frame.lit-border .el-guide--border,
+.el-frame.lit-shadow .el-guide--shadow,
+.el-frame.lit-padding .el-guide--padding {
+  opacity: 1;
+}
+
+/* ----------------------------------------------------
+   GUIDES — what a value is, drawn where it acts while
+   it is being set; they linger a moment, then fade.
+-----------------------------------------------------*/
+.el-guide {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--slow) ease;
+}
+
+/* Corner radius: a dashed arc on each corner, the size of the radius. */
+.el-guide--radius {
+  inset: 0;
+}
+
+.el-guide__corner {
+  position: absolute;
+  width: var(--r);
+  height: var(--r);
+  border: 0 dashed var(--pink);
+}
+
+.el-guide__corner--tl { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; border-top-left-radius: var(--r); }
+.el-guide__corner--tr { top: 0; right: 0; border-top-width: 2px; border-right-width: 2px; border-top-right-radius: var(--r); }
+.el-guide__corner--bl { bottom: 0; left: 0; border-bottom-width: 2px; border-left-width: 2px; border-bottom-left-radius: var(--r); }
+.el-guide__corner--br { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; border-bottom-right-radius: var(--r); }
+
+/* The arc's centre, so the radius reads as a length. */
+.el-guide__corner--br::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--pink);
+}
+
+/* Padding: hatched bands between the border and the content. */
+.el-guide--padding {
+  inset: var(--bw);
+}
+
+.el-guide__band {
+  position: absolute;
+  background: repeating-linear-gradient(-45deg, rgba(251, 73, 163, 0.35) 0 2px, rgba(251, 73, 163, 0.1) 2px 6px);
+}
+
+.el-guide__band--top { top: 0; left: 0; right: 0; height: var(--pt); }
+.el-guide__band--bottom { bottom: 0; left: 0; right: 0; height: var(--pb); }
+.el-guide__band--left { top: var(--pt); bottom: var(--pb); left: 0; width: var(--pl); }
+.el-guide__band--right { top: var(--pt); bottom: var(--pb); right: 0; width: var(--pr); }
+
+/* Shadow: where the shadow's box lands, and which way it falls. */
+.el-guide--shadow {
+  inset: 0;
+  border: 1.5px dashed var(--pink);
+  border-radius: var(--r);
+  transform: translate(var(--sdx), var(--sdy)) scale(1.02);
+}
+
+.el-frame[data-shadow="off"] .el-guide--shadow {
+  border-color: var(--ink-4);
+  transform: none;
+}
+
+.el-frame[data-shadow="inner"] .el-guide--shadow {
+  transform: translate(var(--sdx), var(--sdy)) scale(0.96);
+}
+
+/* Border: a halo tracing the edge. */
+.el-guide--border {
+  inset: -5px;
+  border: 2px solid var(--pink);
+  border-radius: calc(var(--r) + 5px);
+  box-shadow: 0 0 0 4px var(--pink-ring);
+}
+
+/* Text size: rulers at the top and bottom of the text being sized. */
+.el-guide--ruler {
+  left: -14px;
+  right: -14px;
+}
+
+.el-guide__rule {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1.5px dashed var(--pink);
+}
+
+.el-guide__rule--top { top: 0; }
+.el-guide__rule--bottom { bottom: 0; }
+
+.el-frame.show-radius .el-guide--radius,
+.el-frame.show-padding .el-guide--padding,
+.el-frame.show-shadow .el-guide--shadow,
+.el-frame.show-border .el-guide--border,
+.el-frame.show-ruler .el-guide--ruler {
+  opacity: 1;
+  transition-duration: var(--fast);
+}
+
+/* The value being set, on a pill beside what it sets. */
+.el-tag {
+  position: absolute;
+  z-index: 3;
+  padding: 3px 8px;
+  border-radius: var(--r-pill);
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--pink);
+  box-shadow: 0 4px 10px -4px rgba(251, 73, 163, 0.8);
+  transform: translate(-50%, 0) scale(calc(1 / var(--zoom, 1)));
+  transform-origin: 50% 0;
+  opacity: 0;
+  transition: opacity var(--slow) ease;
+  pointer-events: none;
+}
+
+.el-frame.tag-side .el-tag {
+  transform: scale(calc(1 / var(--zoom, 1)));
+  transform-origin: 0 50%;
+}
+
+.el-frame.show-tag .el-tag {
+  opacity: 1;
+  transition-duration: var(--fast);
+}
+
+/* A pulse on the part just changed (motion.js R7). */
+@keyframes el-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(251, 73, 163, 0.55); }
+  100% { box-shadow: 0 0 0 10px rgba(251, 73, 163, 0); }
+}
+
+.el-part.el-pulse {
+  animation: el-pulse var(--slower) var(--ease-out) 2;
+}
+
+.el-mock.el-pulse {
+  animation: el-pulse-box calc(var(--slower) * 2) var(--ease-out);
+}
+
+@keyframes el-pulse-box {
+  0% { outline: 3px solid rgba(251, 73, 163, 0.6); outline-offset: 0; }
+  100% { outline: 3px solid rgba(251, 73, 163, 0); outline-offset: 10px; }
+}
+
+/* ----------------------------------------------------
+   HIGHLIGHT CHANGES — every part no longer at its
+   default glows pink.
+-----------------------------------------------------*/
+.el-frame.show-changes .el-part.is-changed {
+  outline-color: var(--pink);
+  background-color: rgba(251, 73, 163, 0.1);
+}
+
+.el-part::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pink);
+  box-shadow: 0 0 0 2px #fff;
+  opacity: 0;
+  scale: 0.4;
+  transition: opacity var(--base) ease, scale var(--base) var(--ease-out);
+  pointer-events: none;
+}
+
+.el-frame.show-changes .el-part.is-changed::after {
+  opacity: 1;
+  scale: 1;
+}
+
+.el-frame.show-changes.changed-border .el-guide--border,
+.el-frame.show-changes.changed-shadow .el-guide--shadow,
+.el-frame.show-changes.changed-padding .el-guide--padding {
+  opacity: 0.85;
+}
+
+.el-frame.show-changes .el-mock.is-changed {
+  outline-color: var(--pink);
+}
+
+/* ----------------------------------------------------
+   HANDLES — drag the corner to round it, the inner
+   left edge to pad it.
+-----------------------------------------------------*/
+.el-handle {
+  position: absolute;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity var(--fast) ease;
+  touch-action: none;
+}
+
+.el-frame:hover .el-handle,
+.el-frame.is-dragging .el-handle {
+  opacity: 1;
+}
+
+/* On the arc of the bottom-right corner, 45° round. */
+.el-handle--radius {
+  right: calc(var(--r) * 0.2929 - 7px);
+  bottom: calc(var(--r) * 0.2929 - 7px);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--pink);
+  box-shadow: 0 0 0 3px #fff, 0 2px 6px rgba(0, 0, 0, 0.3);
+  cursor: nwse-resize;
+}
+
+/* Padding: the content box, outlined while the mock is hovered, with a
+   grip in the middle of each edge. Sizes are divided by the zoom so the
+   grips stay the same size on screen at every zoom. */
+.el-content {
+  --px: calc(1px / var(--zoom, 1));
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--bw) + var(--pt));
+  right: calc(var(--bw) + var(--pr));
+  bottom: calc(var(--bw) + var(--pb));
+  left: calc(var(--bw) + var(--pl));
+  border: var(--px) dashed rgba(251, 73, 163, 0.7);
+  border-radius: calc(3 * var(--px));
+  opacity: 0;
+  transition: opacity var(--base) ease;
+  pointer-events: none;
+}
+
+.el-frame:hover .el-content,
+.el-frame.is-dragging .el-content {
+  opacity: 1;
+}
+
+.el-grip {
+  position: absolute;
+  border-radius: var(--r-pill);
+  background: var(--pink);
+  box-shadow: 0 0 0 calc(2 * var(--px)) #fff, 0 calc(1 * var(--px)) calc(4 * var(--px)) rgba(0, 0, 0, 0.25);
+  pointer-events: auto;
+  touch-action: none;
+  transition: scale var(--fast) var(--ease-out), background var(--fast) ease;
+}
+
+/* A generous invisible hit area around the small pill. */
+.el-grip::before {
+  content: "";
+  position: absolute;
+  inset: calc(-6 * var(--px));
+}
+
+.el-grip--top,
+.el-grip--bottom {
+  left: 50%;
+  width: calc(20 * var(--px));
+  height: calc(5 * var(--px));
+  margin-left: calc(-10 * var(--px));
+  cursor: ns-resize;
+}
+
+.el-grip--top { top: calc(-3 * var(--px)); }
+.el-grip--bottom { bottom: calc(-3 * var(--px)); }
+
+.el-grip--left,
+.el-grip--right {
+  top: 50%;
+  width: calc(5 * var(--px));
+  height: calc(20 * var(--px));
+  margin-top: calc(-10 * var(--px));
+  cursor: ew-resize;
+}
+
+.el-grip--left { left: calc(-3 * var(--px)); }
+.el-grip--right { right: calc(-3 * var(--px)); }
+
+.el-grip:hover,
+.el-grip.is-active {
+  scale: 1.25;
+  background: var(--pink-hover);
+}
+
+.el-frame.is-dragging,
+.el-frame.is-dragging * {
+  cursor: grabbing;
+  user-select: none;
+}
+
+/* ----------------------------------------------------
+   NARROW — the stage goes under the controls.
+-----------------------------------------------------*/
+@media (max-width: 900px) {
+  .elements__body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  /* The mock goes above the controls, and the controls scroll in a pane of
+     their own under it, so an edit is still seen as it happens. The strip
+     gives its room to the mock. */
+  .elements__stage {
+    order: -1;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .elements__viewport {
+    flex: none;
+    height: 260px;
+    min-height: 0;
+  }
+
+  .elements__controls {
+    max-height: 55vh;
+    border-right: 0;
+  }
+
+  .elements__strip {
+    display: none;
+  }
+
+  .elements__types {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .el-part.el-pulse,
+  .el-mock.el-pulse {
+    animation: none;
+  }
+
+  /* Fades stay; nothing travels or grows. */
+  .el-frame.m-enter {
+    animation-name: el-fade-in;
+  }
+
+  .el-frame.m-leave {
+    animation-name: el-fade-out;
+  }
+
+  .el-dropdown,
+  .el-list,
+  .el-chrome {
+    translate: none !important;
+  }
+
+  .el-grip:hover,
+  .el-grip.is-active {
+    scale: 1;
+  }
+}
+
+@keyframes el-fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes el-fade-out {
+  to { opacity: 0; }
+}

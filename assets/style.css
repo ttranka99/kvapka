@@ -828,46 +828,37 @@ button:active:not(:disabled),
   margin-top: auto;
 }
 
+/* A dot on a rail item: something there needs attention (Customize
+   Elements: edits not yet saved). */
+.rail-btn {
+  position: relative;
+}
+
+.rail-btn::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: calc(50% - 16px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pink);
+  box-shadow: 0 0 0 2px var(--surface);
+  opacity: 0;
+  scale: 0.3;
+  transition: opacity var(--base) ease, scale var(--base) var(--ease-out);
+  pointer-events: none;
+}
+
+.rail-btn.has-dot::after {
+  opacity: 1;
+  scale: 1;
+}
+
 .rail-btn.is-active,
 .rail-btn.is-active:hover {
   color: var(--pink);
   background: var(--pink-soft);
-}
-
-/* The "Vlastní prvky" section swaps the inspector + workspace for its
-   placeholder (toggled by ui/rail.js). */
-.placeholder {
-  display: none;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 48px;
-  text-align: center;
-  color: var(--ink-3);
-}
-
-.placeholder svg {
-  width: 40px;
-  height: 40px;
-  margin-bottom: 8px;
-  color: var(--ink-4);
-}
-
-.placeholder h2 {
-  font-size: var(--fs-lg);
-  font-weight: 600;
-  color: var(--ink);
-}
-
-body.section-prvky .placeholder {
-  display: flex;
-}
-
-body.section-prvky .sidebar,
-body.section-prvky .main {
-  display: none;
 }
 
 /* ----------------------------------------------------
@@ -1184,6 +1175,53 @@ body.section-prvky .main {
 }
 
 /* ----------------------------------------------------
+   SWITCH — the one on/off control (ui/switch.js):
+   a pill whose thumb slides across, pink when on.
+-----------------------------------------------------*/
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  border-radius: var(--r-pill);
+  background: var(--ink-4);
+  transition: background var(--fast) ease;
+}
+
+.switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(28, 33, 40, 0.3);
+  transition: transform var(--base) var(--ease-out);
+}
+
+.switch:hover:not([aria-checked="true"]) {
+  background: var(--ink-3);
+}
+
+.switch[aria-checked="true"] {
+  background: var(--pink);
+}
+
+.switch[aria-checked="true"]:hover {
+  background: var(--pink-hover);
+}
+
+.switch[aria-checked="true"] .switch__thumb {
+  transform: translateX(14px);
+}
+
+.switch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pink-ring);
+}
+
+/* ----------------------------------------------------
    PANEL ROWS (label left, control right)
 -----------------------------------------------------*/
 .panel-row {
@@ -1204,7 +1242,8 @@ select {
   font-feature-settings: inherit;
 }
 
-.panel-row select {
+.panel-row select,
+.el-select {
   width: 72px;
   height: 32px;
   flex-shrink: 0;
@@ -1223,7 +1262,8 @@ select {
   transition: box-shadow var(--fast) ease;
 }
 
-.panel-row select:hover:not(:disabled) {
+.panel-row select:hover:not(:disabled),
+.el-select:hover:not(:disabled) {
   box-shadow: inset 0 0 0 1px var(--pink);
 }
 
@@ -1566,6 +1606,17 @@ select {
   -webkit-mask: var(--glyph) center / contain no-repeat;
   mask: var(--glyph) center / contain no-repeat;
   pointer-events: none;
+}
+
+/* The project's element styles (Customize Elements), drawn lightly: the
+   card's corners, fill, border and shadow, set per card by renderLayout.js
+   styleCard(). Hover and selection rings, declared below, still win. */
+.canvas-element.slicer,
+.canvas-element.kpi,
+.canvas-element.chart {
+  border-radius: var(--el-radius, 6px);
+  background: var(--el-bg, var(--surface));
+  box-shadow: var(--el-shadow,) var(--el-ring, inset 0 0 0 1px var(--line-strong));
 }
 
 .canvas-element.slicer {

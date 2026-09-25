@@ -28,6 +28,12 @@ let redoBtn = null;
 
 const activeTab = () => getTabs()[getActiveTabIndex()];
 
+// While a section with a history of its own is on screen (Customize
+// Elements: project-wide styles, not page state), the undo / redo buttons and
+// keys act on that instead of the page. See setHistoryDelegate().
+let delegate = null;
+const delegated = () => delegate !== null && delegate.active();
+
 // Notifications are about the moment they were raised, not the page, so they
 // never make a step of their own and are not brought back by one.
 const serialize = () => JSON.stringify({ ...captureSnapshot(), warnings: undefined });
@@ -88,13 +94,47 @@ function step(from, to) {
   syncButtons();
 }
 
-export function undo() { step("undo", "redo"); }
-export function redo() { step("redo", "undo"); }
+export function undo() {
+  if (delegated()) {
+    if (!gestureActive) delegate.undo();
+    syncButtons();
+    return;
+  }
+  step("undo", "redo");
+}
+
+export function redo() {
+  if (delegated()) {
+    if (!gestureActive) delegate.redo();
+    syncButtons();
+    return;
+  }
+  step("redo", "undo");
+}
 
 function syncButtons() {
+  if (delegated()) {
+    if (undoBtn) undoBtn.disabled = !delegate.canUndo();
+    if (redoBtn) redoBtn.disabled = !delegate.canRedo();
+    return;
+  }
   const h = histories.get(activeTab());
   if (undoBtn) undoBtn.disabled = !h || h.undo.length === 0;
   if (redoBtn) redoBtn.disabled = !h || h.redo.length === 0;
+}
+
+/**
+ * Hands the undo / redo buttons and keys to another history while
+ * `active()` says so: { active, undo, redo, canUndo, canRedo }.
+ */
+export function setHistoryDelegate(d) {
+  delegate = d;
+  syncButtons();
+}
+
+/** Re-reads which history the buttons stand for (after a section switch). */
+export function syncHistoryButtons() {
+  syncButtons();
 }
 
 /** A pointer is down (a drag in progress): shortcuts leave the page alone. */

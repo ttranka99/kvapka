@@ -7,7 +7,7 @@ import { initExportEvents } from "./export/exportPowerBI.js";
 import { initProjectMenu } from "./ui/projectMenu.js";
 import { renderLayout } from "./ui/renderLayout.js";
 import { initTabs } from "./state/tabs.js";
-import { restoreSession, initSessionPersistence, storageAvailable } from "./state/persist.js";
+import { restoreSession, initSessionPersistence, storageAvailable, scheduleSave } from "./state/persist.js";
 import { initHistory } from "./state/history.js";
 import { initTabsUI, renderTabBar } from "./ui/tabs.js";
 import * as state from "./state/state.js";
@@ -22,6 +22,8 @@ import {
   openActiveThemeEditor
 } from "./ui/themePicker.js";
 import { initRail } from "./ui/rail.js";
+import { initElementsSection } from "./elements/elementsSection.js";
+import { onStylesChange } from "./elements/elementStyles.js";
 import { initAbout } from "./ui/about.js";
 import { initHelp, openHelp, maybeShowWelcome } from "./ui/help.js";
 import { initShortcuts } from "./ui/shortcuts.js";
@@ -237,6 +239,11 @@ function start() {
   initSessionPersistence();
   initTabsUI({ refreshUI: refreshUIFromState });
   initThemePicker({ refreshUI: refreshUIFromState });
+  initElementsSection();
+  // Element styles are project data, autosaved like the pages once saved
+  // (a draft being edited is not). The canvas needs no render here: it is
+  // hidden while they are edited and re-rendered on the way back (rail.js).
+  onStylesChange(info => { if (info.saved || info.replaced) scheduleSave(); });
   initRail({ openEditor: openActiveThemeEditor });
   initHelp();
   initAbout();

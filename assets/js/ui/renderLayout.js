@@ -36,6 +36,8 @@ import { icon } from "../ui/icon.js";
 import { t } from "../i18n/i18n.js";
 import { scheduleSave } from "../state/persist.js";
 import { noteChange } from "../state/history.js";
+import { getElementStyles } from "../elements/elementStyles.js";
+import { resolveColor, rgba, shadowCss } from "../elements/elementStyleModel.js";
 
 const canvas = document.getElementById("canvas");
 
@@ -55,6 +57,28 @@ window.addEventListener("pointermove", (e) => {
 // Registered once here (not inside renderLayout) since the #canvas element
 // itself persists across renders — only its children are cleared and rebuilt.
 canvas.addEventListener("click", () => setSelected(null));
+
+// The project's element styles (Customize Elements), drawn lightly on the
+// card: its corner radius, background, border and shadow, at the canvas
+// scale. style.css reads the variables, falling back to the plain card; the
+// selection and hover rings still draw over them.
+function styleCard(el, type) {
+  const v = getElementStyles()[type];
+  const s = state.EFFECTIVE_SCALE;
+  el.style.setProperty("--el-radius", `${Math.max(2, v["border.radius"] * s)}px`);
+  if (v["background.show"]) {
+    el.style.setProperty("--el-bg", rgba(resolveColor(v["background.color"]), 1 - v["background.transparency"] / 100));
+  }
+  if (v["border.show"]) {
+    // A border that matches the sheet (the default white one) would vanish;
+    // the plain card's line keeps the card readable then.
+    const color = resolveColor(v["border.color"]);
+    if (color !== "#FFFFFF") el.style.setProperty("--el-ring", `inset 0 0 0 ${Math.max(1, v["border.width"] * s)}px ${color}`);
+  }
+  if (v["dropShadow.show"] && v["dropShadow.position"] !== "Inner") {
+    el.style.setProperty("--el-shadow", shadowCss(v, s) + ",");
+  }
+}
 
 function scale(v) {
   return v * state.EFFECTIVE_SCALE;
@@ -290,6 +314,7 @@ export function renderLayout(opts) {
       const el = document.createElement("div");
       el.id = domId;
       el.className = "canvas-element slicer";
+      styleCard(el, "slicer");
       el.style.left = scale(item.x) + "px";
       el.style.top = scale(item.y) + "px";
       el.style.width = scale(item.width) + "px";
@@ -382,6 +407,7 @@ export function renderLayout(opts) {
       const el = document.createElement("div");
       el.id = domId;
       el.className = "canvas-element kpi";
+      styleCard(el, "kpi");
       el.style.left = scale(item.x) + "px";
       el.style.top = scale(item.y) + "px";
       el.style.width = scale(item.width) + "px";
@@ -501,6 +527,7 @@ export function renderLayout(opts) {
           const el = document.createElement("div");
           el.id = subDomId;
           el.className = "canvas-element chart";
+          styleCard(el, "chart");
           // A sub-chart's locked visual reflects only its own lock state —
           // the cell's item.locked is *derived* from the sub-charts (see
           // handleToggleStackLock in stackEvents.js), so mirroring it here
@@ -593,6 +620,7 @@ export function renderLayout(opts) {
       const el = document.createElement("div");
       el.id = domId;
       el.className = "canvas-element chart";
+      styleCard(el, "chart");
       // Width is the chart's own lock; height is the row's (set by Apply).
       markLocked(el, chartStateItem.locked, state.chartRows[rowIndex].locked);
       el.style.left = scale(item.x) + "px";

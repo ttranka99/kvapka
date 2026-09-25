@@ -22,6 +22,7 @@ import {
   MAX_PROJECT_BYTES
 } from "../state/projectFile.js";
 import { getTabs, resetTabs } from "../state/tabs.js";
+import { replaceElementStyles } from "../elements/elementStyles.js";
 import { downloadJson } from "../theme/themeStore.js";
 import { renderTabBar } from "./tabs.js";
 import { addWarning } from "./warnings.js";
@@ -117,6 +118,8 @@ async function readyToReplace(kind) {
 async function newProject() {
   if (!(await readyToReplace("new"))) return;
   resetTabs();
+  // The element styles belong to the project, so they start over too.
+  replaceElementStyles(null);
   // A blank project is the baseline again, whatever was saved before.
   forgetSaved();
   // The rest of the app follows as it does on a page switch, and the render

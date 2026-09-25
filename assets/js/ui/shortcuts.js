@@ -60,7 +60,7 @@ export function initShortcuts(options) {
 }
 
 // The canvas is on screen: not behind the template editor or the rail's
-// placeholder section.
+// Customize Elements section.
 const canvasShown = () =>
   !document.body.classList.contains("theme-editor-open") && !document.body.classList.contains("section-prvky");
 

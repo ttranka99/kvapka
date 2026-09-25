@@ -41,6 +41,7 @@
     <link rel="stylesheet" href="assets/fonts/fonts.css" />
     <link rel="stylesheet" href="assets/style.css" />
     <link rel="stylesheet" href="assets/theme-editor.css" />
+    <link rel="stylesheet" href="assets/elements.css" />
 </head>
 
 <body>
@@ -377,12 +378,9 @@
             </div>
         </main>
 
-        <!-- Shown by the rail's "Vlastní prvky" section (ui/rail.js). -->
-        <section id="section-prvky" class="placeholder m-reveal" data-i18n-aria-label="elements.title">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 4a2 2 0 1 1 4 0v1h4v4h1a2 2 0 1 1 0 4h-1v4h-4v-1a2 2 0 1 0-4 0v1H6v-4H5a2 2 0 1 1 0-4h1V5h4V4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-            <h2 data-i18n="elements.title"></h2>
-            <p data-i18n="elements.text"></p>
-        </section>
+        <!-- The rail's "Customize Elements" section (ui/rail.js), built by
+             elements/elementsSection.js the first time it is shown. -->
+        <section id="section-prvky" class="elements m-reveal" data-i18n-aria-label="elements.title"></section>
     </div>
 
 

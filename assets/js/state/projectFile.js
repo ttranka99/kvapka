@@ -12,7 +12,7 @@
 // the pages half-replaced, or be autosaved over good work.
 //
 // The file holds layout data only (page names, sizes, locks, the layout
-// template) and a save time: no user, machine or path. It is plain,
+// template, the element styles) and a save time: no user, machine or path. It is plain,
 // pretty-printed JSON, so anyone — or any scanner — can read what is in it.
 
 import { serializeTabs, serializeBlankTabs, restoreTabs, SESSION_VERSION } from "./tabs.js";
@@ -45,10 +45,12 @@ const isObject = v => v !== null && typeof v === "object" && !Array.isArray(v);
 let savedSignature = null;
 
 // The page list minus what doesn't change the work: the page counter, and the
-// generated "Page N" names (they follow the language).
+// generated "Page N" names (they follow the language). The element styles
+// are work too.
 function signature(session) {
   return JSON.stringify(session.tabs.map(tab => ({ ...tab, name: tab.named ? tab.name : null })))
-    + session.activeTabIndex;
+    + session.activeTabIndex
+    + JSON.stringify(session.elementStyles);
 }
 
 /** Records the pages as they are now as saved (after a save or an open). */
