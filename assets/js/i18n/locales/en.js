@@ -75,6 +75,16 @@ export default {
   "rail.template": "Template",
   "rail.layout": "Custom Layout",
   "rail.elements": "Customize Elements",
+  "rail.about": "About",
+
+  // --- About modal (opened from the rail) -------------------------------
+  "about.title": "About kvapka",
+  "about.version": "Version {version}",
+  "about.privacy": "Privacy policy",
+  "about.terms": "Terms of use",
+  "about.changelog": "Changelog",
+  "about.feedback": "Feedback & source (GitHub)",
+  "about.close": "Close",
 
   // --- "Customize Elements" placeholder section ------------------------------
   "elements.title": "Customize Elements",

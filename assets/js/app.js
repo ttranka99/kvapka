@@ -22,6 +22,7 @@ import {
   openActiveThemeEditor
 } from "./ui/themePicker.js";
 import { initRail } from "./ui/rail.js";
+import { initAbout } from "./ui/about.js";
 import { initStackedCover } from "./ui/stackedCover.js";
 import { initTemplatePanel, syncTemplateSummary, syncTemplateFoldForPage } from "./ui/templatePanel.js";
 import { t, applyStaticText, getLocale, setLocale, onLocaleChange } from "./i18n/i18n.js";
@@ -236,6 +237,7 @@ function start() {
   initTabsUI({ refreshUI: refreshUIFromState });
   initThemePicker({ refreshUI: refreshUIFromState });
   initRail({ openEditor: openActiveThemeEditor });
+  initAbout();
   initLocaleSwitch();
   initRowLimitControls();
   syncTemplateControls();

@@ -74,6 +74,16 @@ export default {
   "rail.template": "Šablona",
   "rail.layout": "Vlastní layout",
   "rail.elements": "Přizpůsobit prvky",
+  "rail.about": "O aplikaci",
+
+  // --- About modal (opened from the rail) -------------------------------
+  "about.title": "O aplikaci kvapka",
+  "about.version": "Verze {version}",
+  "about.privacy": "Zásady ochrany soukromí",
+  "about.terms": "Podmínky použití",
+  "about.changelog": "Seznam změn",
+  "about.feedback": "Zpětná vazba a zdrojový kód (GitHub)",
+  "about.close": "Zavřít",
 
   // --- "Přizpůsobit prvky" placeholder section ------------------------------
   "elements.title": "Přizpůsobit prvky",

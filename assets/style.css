@@ -812,6 +812,12 @@ button:active:not(:disabled),
   background: var(--surface-2);
 }
 
+/* Opens a modal, not a section: pinned to the foot of the rail, away from
+   the three it would otherwise read as a fourth of. */
+.rail-btn--about {
+  margin-top: auto;
+}
+
 .rail-btn.is-active,
 .rail-btn.is-active:hover {
   color: var(--pink);
@@ -2401,6 +2407,37 @@ body.is-resizing-chart .element-controls {
   margin-top: 12px;
 }
 
+/* The About modal (ui/about.js): version and copyright, then the links. */
+.about__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+
+.about__links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-md);
+}
+
+.about__links a {
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.about__links a:hover,
+.about__links a:focus-visible {
+  color: var(--pink);
+}
+
 /* A destructive confirm reads as the weightier of the two buttons. */
 .app-dialog__danger {
   font-weight: 600;
@@ -2535,6 +2572,10 @@ body.is-resizing-chart .element-controls {
   .rail-btn {
     flex: 1;
     height: 52px;
+  }
+
+  .rail-btn--about {
+    margin-top: 0;
   }
 
   .sidebar {
