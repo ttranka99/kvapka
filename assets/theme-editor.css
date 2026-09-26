@@ -219,7 +219,7 @@ body.theme-editor-open .main {
   flex: 1;
   display: grid;
   /* The controls column is exactly the sidebar card's width (the sidebar
-     minus its left gutter), so switching between the Šablona section and
+     minus its left gutter), so switching between the Studio section and
      this one keeps the left column in place instead of resizing it. */
   grid-template-columns: calc(var(--sidebar) - var(--gutter)) minmax(0, 1fr);
   min-height: 0;

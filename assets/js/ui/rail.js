@@ -2,7 +2,7 @@
 //
 // The left rail: three sections, exactly one lit at a time.
 //
-//   sablona — the template panel + canvas (the app as it always was)
+//   studio  — the Template panel + canvas (the app as it always was)
 //   layout  — the theme editor, shown as a section rather than a dialog
 //   prvky   — Customize Elements: the styles of slicers, KPI cards and
 //             charts (elements/elementsSection.js)
@@ -26,7 +26,7 @@ export function initRail(options) {
   buttons.forEach(button => {
     button.addEventListener("click", () => selectSection(button.dataset.section));
   });
-  lightSection("sablona");        // app.js renders the canvas itself on start
+  lightSection("studio");        // app.js renders the canvas itself on start
 }
 
 async function selectSection(section) {
@@ -49,8 +49,8 @@ export function setActiveSection(section) {
 
   // .main is display:none while another section is up, so any window resize
   // that happened meanwhile measured nothing and left the canvas at a stale
-  // scale. Now that the template section is visible again, fit it for real.
-  if (section === "sablona") renderLayout();
+  // scale. Now that the Studio section is visible again, fit it for real.
+  if (section === "studio") renderLayout();
 }
 
 function lightSection(section) {

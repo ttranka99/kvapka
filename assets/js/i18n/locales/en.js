@@ -86,7 +86,7 @@ export default {
 
   // --- Left rail --------------------------------------------------------
   "rail.label": "Sections",
-  "rail.template": "Template",
+  "rail.studio": "Studio",
   "rail.layout": "Custom Layout",
   "rail.elements": "Customize Elements",
   "rail.about": "About",
@@ -115,7 +115,7 @@ export default {
   "help.title": "Help",
   "help.how.title": "How it works",
   "help.step1.title": "Pick a template",
-  "help.step1.text": "In the Template panel choose the page resolution, where the slicers go and how many fit in a row, or build your own layout.",
+  "help.step1.text": "In Studio, use the Template panel to choose the page resolution, where the slicers go and how many fit in a row, or build your own layout.",
   "help.step2.title": "Add and arrange elements",
   "help.step2.text": "Add slicers and KPIs from the sidebar, or hover a card's edge and click +. Drag the handles between cards to resize, lock a size with the lock icon, and click a card to see its exact position and size.",
   "help.step3.title": "Export to Power BI",

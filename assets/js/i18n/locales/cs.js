@@ -85,7 +85,7 @@ export default {
 
   // --- Left rail --------------------------------------------------------
   "rail.label": "Sekce",
-  "rail.template": "Šablona",
+  "rail.studio": "Studio",
   "rail.layout": "Vlastní layout",
   "rail.elements": "Přizpůsobit prvky",
   "rail.about": "O aplikaci",
@@ -114,7 +114,7 @@ export default {
   "help.title": "Nápověda",
   "help.how.title": "Jak to funguje",
   "help.step1.title": "Vyberte šablonu",
-  "help.step1.text": "V panelu Šablona zvolte rozlišení stránky, umístění slicerů a kolik se jich vejde do řady, nebo si sestavte vlastní layout.",
+  "help.step1.text": "Ve Studiu v panelu Šablona zvolte rozlišení stránky, umístění slicerů a kolik se jich vejde do řady, nebo si sestavte vlastní layout.",
   "help.step2.title": "Přidejte a rozmístěte prvky",
   "help.step2.text": "Slicery a KPI přidáte z postranního panelu, nebo najeďte na okraj karty a klikněte na +. Velikost měníte tažením úchytů mezi kartami, zamknete ji ikonou zámku a po kliknutí na kartu uvidíte její přesnou polohu a rozměry.",
   "help.step3.title": "Exportujte do Power BI",

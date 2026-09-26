@@ -258,7 +258,7 @@ function openEditorFor(theme, mode) {
   openThemeEditor({
     theme,
     mode,
-    onClose: () => setActiveSection("sablona"),
+    onClose: () => setActiveSection("studio"),
     onApply: saved => {
       if (!saved) {
         // The theme was deleted. Pages keep the settings they were authored
