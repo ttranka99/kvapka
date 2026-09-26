@@ -270,7 +270,12 @@ body.theme-editor-open .main {
   margin-top: 4px;
 }
 
-/* A control lit from its region — or the region from its control. */
+.theme-field:hover,
+.theme-field:focus-within {
+  background: var(--surface-2);
+}
+
+/* A control lit from its region on the preview. */
 .theme-field.is-linked {
   background: var(--pink-soft);
 }
@@ -451,6 +456,10 @@ body.theme-editor-open .main {
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--line-strong);
   transition: background var(--fast) ease, box-shadow var(--fast) ease;
+}
+
+.theme-kpi-band:hover {
+  background: var(--surface-2);
 }
 
 .theme-kpi-band.is-linked {

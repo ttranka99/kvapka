@@ -72,6 +72,9 @@ let preview = {
   chartRows: 2
 };
 let highlightedRegion = null;
+// "preview" or "controls": only a hover over the preview lights the controls;
+// a hovered control is already lit by its own :hover.
+let highlightFrom = null;
 
 // How many cells a preview chart row is drawn as. Fixed: the preview shows
 // the shape a theme's rules produce, and nothing in a theme governs how many
@@ -385,9 +388,9 @@ function buildField(field) {
   if (hint) row.appendChild(el("p", "theme-field__hint", hint));
 
   if (region) {
-    row.addEventListener("mouseenter", () => setHighlight(region));
+    row.addEventListener("mouseenter", () => setHighlight(region, "controls"));
     row.addEventListener("mouseleave", () => setHighlight(null));
-    number.addEventListener("focus", () => setHighlight(region));
+    number.addEventListener("focus", () => setHighlight(region, "controls"));
     number.addEventListener("blur", () => setHighlight(null));
   }
 
@@ -651,7 +654,7 @@ function renderKpiBandsList(g) {
     row.appendChild(bandRow(t("editor.band.gapBefore"), gap,
       t("editor.band.gapBeforeHint"), true));
 
-    row.addEventListener("mouseenter", () => setHighlight("kpi-band2"));
+    row.addEventListener("mouseenter", () => setHighlight("kpi-band2", "controls"));
     row.addEventListener("mouseleave", () => setHighlight(null));
 
     list.appendChild(row);
@@ -747,14 +750,17 @@ function displayValue(field) {
     : draft[field.key];
 }
 
-function setHighlight(region) {
+function setHighlight(region, from = "preview") {
   highlightedRegion = region;
+  highlightFrom = from;
   applyHighlight();
 }
 
 function applyHighlight() {
   root.querySelectorAll("[data-region]").forEach(node => {
-    node.classList.toggle("is-linked", !!highlightedRegion && node.dataset.region === highlightedRegion);
+    const isControl = !!node.closest(".theme-editor__controls");
+    node.classList.toggle("is-linked", !!highlightedRegion && node.dataset.region === highlightedRegion
+      && (!isControl || highlightFrom === "preview"));
   });
 }
 
