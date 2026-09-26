@@ -11,6 +11,12 @@
 // region that maps to a single tunable can be dragged to change it — so the
 // controls on the left and the picture on the right are two views of one
 // object, and hovering either highlights the other.
+//
+// Motion follows ui/motion.js: a discrete change (a reset, a band added or
+// removed, a reorder, another placement) glides the preview's regions to
+// their new boxes; an imported layout is new content and fades in (R3); the
+// switchers slide their thumb (ui/thumb.js); a slider,
+// a typed value or a handle drag never eases — it follows the input (R5).
 
 import {
   GROUPS,
@@ -47,7 +53,8 @@ import { walkSections } from "../layout/sectionWalker.js";
 import { computeChartGroups } from "../layout/chartGroups.js";
 import { icon } from "../ui/icon.js";
 import { createSwitch } from "../ui/switch.js";
-import { leave, durationMs } from "../ui/motion.js";
+import { initThumb, syncThumb } from "../ui/thumb.js";
+import { leave, durationMs, flashEl, snapshotBoxes, playBoxes, settleBoxes } from "../ui/motion.js";
 import { confirmDialog } from "../ui/dialog.js";
 import { themeIdsInUse } from "../state/tabs.js";
 import { t, onLocaleChange } from "../i18n/i18n.js";
@@ -75,6 +82,9 @@ let highlightedRegion = null;
 // "preview" or "controls": only a hover over the preview lights the controls;
 // a hovered control is already lit by its own :hover.
 let highlightFrom = null;
+// The findings on screen, by title, so only a new one fades in. null right
+// after opening: the section fades in as a whole then.
+let shownFindings = null;
 
 // How many cells a preview chart row is drawn as. Fixed: the preview shows
 // the shape a theme's rules produce, and nothing in a theme governs how many
@@ -136,6 +146,7 @@ export function openThemeEditor(options) {
   if (!root) root = buildDialog();
   root.hidden = false;
   document.body.classList.add("theme-editor-open");
+  shownFindings = null;
   render();
 
   // A read-only peek at the draft's section order, for the test harness —
@@ -328,8 +339,13 @@ function buildControlsPane() {
   });
 
   const reset = button(t("editor.resetToBase"), "ghost", () => {
+    const before = new Map(fieldsFor(draft.placement).map(f => [f.key, displayValue(f)]));
     draft = { ...cloneTheme(baseTheme), id: draft.id, label: draft.label, builtin: false };
-    render();
+    render({ motion: "move" });
+    // R7: every value the reset put back gets a halo, so it can be found.
+    fieldsFor(draft.placement).forEach(f => {
+      if (before.get(f.key) !== displayValue(f)) flashEl(root.querySelector(`.theme-field[data-field="${f.key}"]`));
+    });
   });
   reset.classList.add("theme-editor__reset");
   pane.appendChild(reset);
@@ -429,15 +445,17 @@ function buildPlacementControl() {
       // diffing itself against a horizontal preset.
       draft = normalizeTheme({ ...draft, placement });
       baseTheme = cloneTheme(baselineFor(draft));
-      render();
-      // render() rebuilt the pane this button lived in; keep the keyboard
-      // where the user left it.
-      const again = root.querySelector(`.theme-editor__placement [data-placement="${placement}"]`);
-      if (again) again.focus();
+      // The same header, bands and gaps, rearranged: they glide to where the
+      // new placement puts them, the slicer stripe giving way to a column.
+      // This row survives the pane rebuild (syncControlsPane), so the thumb
+      // slides and the keyboard stays where it was.
+      render({ motion: "move" });
     });
     group.appendChild(b);
   });
   row.appendChild(group);
+  // The slate pill slides to the chosen placement (ui/thumb.js).
+  initThumb(group);
 
   if (locked) {
     row.appendChild(el("p", "theme-field__hint",
@@ -523,17 +541,20 @@ const GAP_BEFORE_LABELS = {
 // section objects every time, while a band row (and the listener closing over
 // it) outlives any number of renders — see renderKpiBandsList. Matching on
 // identity meant every edit after the first silently patched nothing.
-function updateSection(sectionId, patch) {
+//
+// `opts` goes to render(): a switch or a choice glides the preview, a typed
+// count does not.
+function updateSection(sectionId, patch, opts) {
   draft = normalizeTheme({
     ...draft,
     sections: draft.sections.map(s => (s.id === sectionId ? { ...s, ...patch } : s))
   });
-  render();
+  render(opts);
 }
 
 function removeSection(sectionId) {
   draft = normalizeTheme({ ...draft, sections: draft.sections.filter(s => s.id !== sectionId) });
-  render();
+  render({ motion: "move" });
 }
 
 // A two-or-three-way choice as a small toggle, in the pane's own idiom:
@@ -550,6 +571,8 @@ function toggle(className, options, onPick) {
     b.addEventListener("click", () => onPick(value));
     group.appendChild(b);
   });
+  // The slate pill slides to the chosen option (ui/thumb.js).
+  initThumb(group);
   return group;
 }
 
@@ -557,6 +580,7 @@ function setToggleValue(group, value) {
   group.querySelectorAll(".theme-toggle__option").forEach(b => {
     b.classList.toggle("is-active", b.dataset.value === String(value));
   });
+  syncThumb(group);
 }
 
 function bandRow(label, control, title, stack) {
@@ -568,7 +592,7 @@ function bandRow(label, control, title, stack) {
   return row;
 }
 
-function renderKpiBandsList(g) {
+function renderKpiBandsList(g, motion) {
   const list = root.querySelector("#theme-kpi-bands-list");
   if (!list) return;
 
@@ -595,6 +619,7 @@ function renderKpiBandsList(g) {
     return;
   }
 
+  const before = new Set(rendered.map(row => row.dataset.kpiBandId));
   list.innerHTML = "";
 
   sections.forEach((section, i) => {
@@ -604,6 +629,8 @@ function renderKpiBandsList(g) {
     const row = el("div", "theme-kpi-band");
     row.dataset.kpiBandId = bandId;
     row.dataset.region = "kpi-band2";
+    // A band just added enters (R2); the ones already listed stay put.
+    if (motion && !before.has(bandId)) row.classList.add("m-enter");
 
     const head = el("div", "theme-kpi-band__head");
     head.appendChild(el("span", "theme-kpi-band__title", bandTitle(section, i, g)));
@@ -614,7 +641,8 @@ function renderKpiBandsList(g) {
     removeBtn.title = t("editor.band.remove");
     removeBtn.setAttribute("aria-label", t("editor.band.remove"));
     removeBtn.innerHTML = icon("close");
-    removeBtn.addEventListener("click", () => removeSection(bandId));
+    // The card fades out before the list is rebuilt without it (R2).
+    removeBtn.addEventListener("click", () => leave(row, () => removeSection(bandId)));
     head.appendChild(removeBtn);
     row.appendChild(head);
 
@@ -637,7 +665,7 @@ function renderKpiBandsList(g) {
     // in-place refresh above can set it.
     const secondRow = createSwitch({
       label: t("editor.band.secondRow"),
-      onToggle: on => updateSection(bandId, { allowSecondRow: on })
+      onToggle: on => updateSection(bandId, { allowSecondRow: on }, { motion: "move" })
     });
     secondRow.set(section.allowSecondRow);
     row.secondRowSwitch = secondRow;
@@ -649,7 +677,7 @@ function renderKpiBandsList(g) {
     // of what ends up around it.
     const gap = toggle("theme-kpi-band__gap",
       ["auto", "small", "block"].map(value => [value, GAP_BEFORE_LABELS[value]]),
-      value => updateSection(bandId, { gapBefore: value }));
+      value => updateSection(bandId, { gapBefore: value }, { motion: "move" }));
     setToggleValue(gap, section.gapBefore);
     row.appendChild(bandRow(t("editor.band.gapBefore"), gap,
       t("editor.band.gapBeforeHint"), true));
@@ -673,7 +701,7 @@ function buildKpiBandsControl() {
 
   const addBtn = button(t("editor.band.add"), "secondary", () => {
     draft = normalizeTheme({ ...draft, sections: appendKpiBand(draft.sections) });
-    render();
+    render({ motion: "move" });
   }, undefined, "plus");
   addBtn.id = "theme-kpi-band-add";
   wrap.appendChild(addBtn);
@@ -697,7 +725,7 @@ function buildStagePane() {
   rowsInput.id = "theme-preview-rows";
   rowsInput.addEventListener("input", () => {
     const v = Number(rowsInput.value);
-    if (Number.isFinite(v)) { preview.chartRows = Math.min(6, Math.max(1, Math.round(v))); render(); }
+    if (Number.isFinite(v)) { preview.chartRows = Math.min(6, Math.max(1, Math.round(v))); render({ motion: "move" }); }
   });
   rows.appendChild(rowsInput);
   toolbar.appendChild(rows);
@@ -776,11 +804,36 @@ let placementIsEditable = null;
 
 function syncControlsPane() {
   if (controlsPlacement === draft.placement) return;
+  const previous = controlsPlacement;
   controlsPlacement = draft.placement;
   const body = root.querySelector(".theme-editor__body");
-  body.replaceChild(buildControlsPane(), body.querySelector(".theme-editor__controls"));
-  // The fresh pane's placement slot is empty; make syncPlacementSlot() fill it.
-  placementIsEditable = null;
+  const old = body.querySelector(".theme-editor__controls");
+  // Read before the placement row leaves it, which shortens it.
+  const scrollTop = old.scrollTop;
+  const pane = buildControlsPane();
+
+  // Another placement within the same session: the placement row the user
+  // just clicked moves across as it is, so its thumb slides and focus stays
+  // put; the controls both placements share are rebuilt without a flicker,
+  // and only the ones this placement adds fade in (R2).
+  const oldSlot = old.querySelector(".theme-editor__placement-slot");
+  // Moving a node out of the document blurs it, so the focused option is
+  // handed its focus back once the row is in the new pane.
+  const focused = oldSlot && oldSlot.contains(document.activeElement) ? document.activeElement : null;
+  if (previous !== null && placementIsEditable !== null && oldSlot) {
+    pane.replaceChild(oldSlot, pane.querySelector(".theme-editor__placement-slot"));
+    const had = new Set(fieldsFor(previous).map(f => f.key));
+    pane.querySelectorAll(".theme-field[data-field]").forEach(row => {
+      if (!had.has(row.dataset.field)) row.classList.add("m-reveal");
+    });
+  } else {
+    // A fresh open: the empty slot is filled by syncPlacementSlot().
+    placementIsEditable = null;
+  }
+
+  body.replaceChild(pane, old);
+  pane.scrollTop = scrollTop;
+  if (focused && pane.contains(focused)) focused.focus({ preventScroll: true });
 }
 
 // Refilled when the pane was rebuilt or the chooser flips between live and
@@ -794,7 +847,10 @@ function syncPlacementSlot() {
   slot.appendChild(buildPlacementControl());
 }
 
-function render() {
+// `motion` is for renderPreview(): "move" glides the regions to their new
+// boxes, "swap" fades the preview in, and none — every keystroke, slider and
+// drag frame — redraws it in place (motion.js R5).
+function render({ motion } = {}) {
   draft = resolveDependencies(draft);
   syncControlsPane();
   syncPlacementSlot();
@@ -803,8 +859,8 @@ function render() {
   // solver once per consumer was the most expensive thing a render did.
   const g = previewLayout();
   renderMeta();
-  renderControls(g);
-  renderPreview(g);
+  renderControls(g, motion);
+  renderPreview(g, motion);
   renderReadout(g);
   applyHighlight();
 }
@@ -816,7 +872,7 @@ function renderMeta() {
   root.querySelector(".theme-editor__delete").hidden = editingExistingId === null;
 }
 
-function renderControls(g) {
+function renderControls(g, motion) {
   // The same list buildControlsPane() rendered — asking for a field this
   // placement doesn't show would only find nothing.
   fieldsFor(draft.placement).forEach(field => {
@@ -833,8 +889,10 @@ function renderControls(g) {
   root.querySelectorAll("[data-placement]").forEach(b => {
     b.classList.toggle("active", b.dataset.placement === draft.placement);
   });
+  const placementGroup = root.querySelector(".theme-editor__placement .segmented");
+  if (placementGroup) syncThumb(placementGroup);
 
-  renderKpiBandsList(g);
+  renderKpiBandsList(g, motion);
 
   // Same rule as the FIELDS inputs above: never rewrite a field the user is
   // currently typing into.
@@ -971,7 +1029,7 @@ function moveSectionOneSlot(sectionType, sectionId, direction) {
   if (sectionsSignature(nextSections) === sectionsSignature(sections)) return;
 
   draft = normalizeTheme({ ...draft, sections: nextSections });
-  render();
+  render({ motion: "move" });
 
   // render() tore down and rebuilt every node, including the grip that had
   // focus — put focus back on the (same conceptual) grip in its new spot so
@@ -1153,6 +1211,9 @@ function startSectionDrag(event, sectionType, sectionId) {
   try { event.target.setPointerCapture(event.pointerId); } catch { /* not every target supports it */ }
 
   const stage = root.querySelector("#theme-preview");
+  // A glide still running would be measured mid-flight, and a fading ghost
+  // would be shuffled with the live bands.
+  settleBoxes(stage, ".theme-region");
   const stageRect = stage.getBoundingClientRect();
   const scale = Number(stage.style.getPropertyValue("--preview-scale")) || 1;
 
@@ -1267,11 +1328,10 @@ function startSectionDrag(event, sectionType, sectionId) {
     if (!chosenSlot || chosenSlot.invalid) { revertVisualState(); return; }   // no-op: nothing to mutate
     const patch = chosenSlot.apply();
     draft = normalizeTheme({ ...draft, ...patch });
-    // render() rebuilds every node fresh at its final position — nothing to
-    // transition *from* on a brand-new element — so the committed layout
-    // simply appears already equal to the last live-previewed frame, with
-    // no separate suppression needed.
-    render();
+    // The other bands already stand where the live shuffle put them, so
+    // their boxes match and they stay put; the lifted band glides from where
+    // it was held into its slot.
+    render({ motion: "move" });
   };
 
   const cancel = () => { cleanup(); revertVisualState(); };   // aborts with zero mutation
@@ -1294,13 +1354,29 @@ function startSectionDrag(event, sectionType, sectionId) {
   window.addEventListener("keydown", onKeydown, true);
 }
 
-function renderPreview(g) {
+// Every region is keyed (data-key) by what it stands for, not by its place in
+// the DOM, so a rebuild can be replayed as movement (motion.js playBoxes).
+const REGION = ".theme-region[data-key]";
+const regionKey = node => node.dataset.key;
+
+// A region that is gone fades out as a picture only: nothing on it may be
+// hovered, grabbed or found by the next snapshot or applyHighlight().
+function cleanRegion(node) {
+  node.classList.remove("is-linked", "theme-region--dragging", "theme-region--returning");
+  node.style.transform = "";
+  node.removeAttribute("data-key");
+  node.removeAttribute("data-region");
+  node.querySelectorAll(".theme-handle, .theme-grip").forEach(c => c.remove());
+}
+
+function renderPreview(g, motion) {
   // Exposed for the test harness: a reorder drag must call render() exactly
   // once (on a successful drop), never on every pointermove.
   window.__themeRenderPreviewCalls = (window.__themeRenderPreviewCalls || 0) + 1;
 
   const stage = root.querySelector("#theme-preview");
   const frame = root.querySelector(".theme-stage__frame");
+  const snap = motion ? snapshotBoxes(stage, REGION, regionKey) : null;
   stage.innerHTML = "";
 
   const t = draft;
@@ -1318,6 +1394,7 @@ function renderPreview(g) {
   // where content may go, and it is nearly the size of the whole preview, so
   // highlighting it would read as "everything" rather than as one setting.
   const usable = el("div", "theme-region theme-region--usable");
+  usable.dataset.key = "usable";
   usable.style.left = px(t.margin);
   usable.style.top = px(t.margin);
   usable.style.width = px(usableWidth(t));
@@ -1338,7 +1415,7 @@ function renderPreview(g) {
     { side: "left", box: { left: 0, top: t.margin, width: t.margin, height: inner }, axis: "x", sign: 1 },
     { side: "right", box: { left: t.canvasWidth - t.margin, top: t.margin, width: t.margin, height: inner }, axis: "x", sign: -1, edge: "left" }
   ].forEach(band => {
-    const node = region("margin", `theme-region theme-region--margin theme-region--margin-${band.side}`, band.box, px);
+    const node = region("margin", `theme-region theme-region--margin theme-region--margin-${band.side}`, band.box, px, `margin-${band.side}`);
     // The label only fits once the band is a few real pixels tall; below that
     // it would spill over the header. The drag handle stays either way, so a
     // margin dragged down to 0 can always be dragged back out.
@@ -1407,7 +1484,7 @@ function renderPreview(g) {
   if (headerKpi) {
     const kpi = region("kpi", "theme-region theme-region--kpi", {
       left: g.contentLeft, top: headerKpi.top, width: g.contentWidth, height: headerKpi.height
-    }, px);
+    }, px, `kpi:${headerKpi.id}`);
     kpi.dataset.sectionId = headerKpi.id;
     stackCells(kpi, t.defaultKpisPerRow, t.gapSmall * scale, "row");
     kpi.appendChild(dragHandle("kpiMinHeight", "y", 1, scale));
@@ -1427,7 +1504,7 @@ function renderPreview(g) {
     const height = g.rowHeights[i];
     const row = region("charts", "theme-region theme-region--chart", {
       left: g.contentLeft, top, width: g.contentWidth, height
-    }, px);
+    }, px, `charts:${i}`);
     if (i === 0) {
       row.appendChild(tag(
         tr("editor.preview.charts", { height: Math.round(height), min: t.minChartRowHeight, width: t.minChartWidth })
@@ -1443,7 +1520,7 @@ function renderPreview(g) {
     const rowLabel = afterRowLabel(t, section, g.chartGroups);
     const band = region("kpi-band2", "theme-region theme-region--kpi", {
       left: g.contentLeft, top: entry.top, width: g.contentWidth, height: entry.height
-    }, px);
+    }, px, `kpi:${entry.id}`);
     band.dataset.sectionId = entry.id;
     stackCells(band, entry.defaultCount, t.gapSmall * scale, "row");
     band.appendChild(grip("kpi", entry.id,
@@ -1512,6 +1589,8 @@ function renderPreview(g) {
       height: g.slicerColumnHeight
     }, px, scale, right ? { axis: "x", sign: -1, side: "left" } : { axis: "x", sign: 1 }));
   }
+
+  playBoxes(stage, snap, { selector: REGION, keyOf: regionKey, motion, clean: cleanRegion });
 }
 
 function cellWidth(total, count, gap) {
@@ -1519,9 +1598,12 @@ function cellWidth(total, count, gap) {
   return Math.max(0, Math.floor((total - (count - 1) * gap) / count));
 }
 
-function region(regionName, className, box, px) {
+// `key` names the region for the motion replay; it defaults to the region
+// name, which is enough wherever a theme draws only one of it.
+function region(regionName, className, box, px, key = regionName) {
   const node = el("div", className);
   node.dataset.region = regionName;
+  node.dataset.key = key;
   node.style.left = px(box.left);
   node.style.top = px(box.top);
   node.style.width = px(box.width);
@@ -1550,7 +1632,8 @@ function stackCells(parent, count, gapPx, direction) {
 // the modifier that turns its value pill along the strip.
 function gapRuler(regionName, fieldKey, value, box, px, scale, handle = { axis: "y", sign: 1 }) {
   const upright = handle.axis === "x";
-  const node = region(regionName, `theme-region theme-region--gap${upright ? " theme-region--gap-x" : ""}`, box, px);
+  const node = region(regionName, `theme-region theme-region--gap${upright ? " theme-region--gap-x" : ""}`, box, px,
+    upright ? `${regionName}-x` : regionName);
   // Same guard as the margin label: below a few real pixels the pill would
   // only spill over the neighbours it is meant to sit between.
   if (!upright || value * scale >= 11) {
@@ -1654,8 +1737,15 @@ function renderStatus(issues) {
   status.dataset.key = key;
   status.innerHTML = "";
 
+  // Only a finding that just appeared fades in (R2). The rest are rebuilt
+  // in place, so a drag that keeps changing the list never flickers it.
+  const before = shownFindings;
+  shownFindings = new Set(issues.map(i => i.title));
+  const isNew = title => before !== null && !before.has(title);
+
   if (issues.length === 0) {
     const ok = el("p", "theme-status theme-status--ok");
+    if (before && before.size) ok.classList.add("m-reveal");
     ok.appendChild(iconEl("check"));
     ok.appendChild(el("span", null, tr("editor.status.ok")));
     status.appendChild(ok);
@@ -1676,6 +1766,7 @@ function renderStatus(issues) {
   const list = el("ul", "theme-issues");
   issues.forEach(({ severity, title, hint }) => {
     const item = el("li", `theme-issue theme-issue--${severity}`);
+    if (isNew(title)) item.classList.add("m-reveal");
     const badge = el("span", "theme-issue__badge");
     badge.appendChild(iconEl(severity));
     item.appendChild(badge);
@@ -1699,6 +1790,8 @@ function handleSave() {
   if (!label) {
     flash(t("editor.nameRequired"), "error");
     markNameInvalid(true);
+    // R7, refusal: point at the field that blocked it.
+    flashEl(root.querySelector(".theme-editor__name-box"));
     root.querySelector("#theme-name").focus();
     return;
   }
@@ -1774,7 +1867,7 @@ function handleImportFile(event) {
     if (parsed.themes.length === 1) {
       draft = { ...parsed.themes[0], builtin: false, id: draft.id, label: parsed.themes[0].label };
       editingExistingId = null;
-      render();
+      render({ motion: "swap" });
       flash(t("editor.imported", { label: draft.label }), "ok");
       return;
     }

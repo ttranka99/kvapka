@@ -474,36 +474,10 @@ button:active:not(:disabled),
 }
 
 /* The CS / EN switch: the sidebar's segmented pill, sized down so it reads
-   as a setting beside the export button rather than as a second action. */
+   as a setting beside the export button rather than as a second action. Its
+   slate pill slides between the two (.has-thumb, ui/thumb.js). */
 .lang-switch {
-  --thumb-gap: 2px;   /* = .segmented's gap: the thumb travels one column + it */
-  position: relative;
   flex-shrink: 0;
-  isolation: isolate;
-}
-
-/* The slate pill is one element that slides between the two options, rather
-   than each option lighting up its own background — the same object moving
-   from CS to EN is what makes it read as a switch. The columns are equal
-   (1fr 1fr), so one column plus the gap is exactly the distance to travel. */
-.lang-switch::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  width: calc((100% - 6px - var(--thumb-gap)) / 2);
-  border-radius: var(--r-pill);
-  background: var(--slate);
-}
-
-.lang-switch[data-ready]::before {
-  transition: transform var(--slow) var(--ease-out);
-}
-
-.lang-switch[data-active="en"]::before {
-  transform: translateX(calc(100% + var(--thumb-gap)));
 }
 
 .lang-switch .template-option {
@@ -515,17 +489,6 @@ button:active:not(:disabled),
   letter-spacing: 0.04em;
 }
 
-/* The thumb is the background; the option only changes its ink, easing in
-   step with the thumb arriving under it. */
-.lang-switch .template-option.active {
-  background: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .lang-switch::before {
-    transition: none;
-  }
-}
 
 /* ----------------------------------------------------
    PAGE TABS — in a row above the sheet (see MAIN below), or
@@ -1172,6 +1135,51 @@ button:active:not(:disabled),
   color: #fff;
   font-weight: 600;
   background: var(--slate);
+}
+
+/* SLIDING THUMB (ui/thumb.js) — every switcher: one slate pill slides to the
+   chosen option instead of each option lighting its own background. The
+   same object moving is what reads as a switch. Columns are equal, so one
+   step is a column plus the gap; --thumb-count and --thumb-step come from
+   the helper. It only transitions once data-ready is set, a frame after it
+   first lands, so nothing slides in on load. */
+.has-thumb {
+  --thumb-gap: 2px;   /* = .segmented's and .theme-toggle's gap */
+  position: relative;
+  isolation: isolate;
+}
+
+.has-thumb::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px - (var(--thumb-count, 2) - 1) * var(--thumb-gap)) / var(--thumb-count, 2));
+  border-radius: var(--r-pill);
+  background: var(--slate);
+  transform: translateX(calc(var(--thumb-step, 0) * (100% + var(--thumb-gap))));
+}
+
+.has-thumb[data-ready]::before {
+  transition: transform var(--slow) var(--ease-out);
+}
+
+/* The thumb is the background; the option only changes its ink, easing in
+   step with the thumb arriving under it. */
+.has-thumb > .active {
+  background: none;
+}
+
+.has-thumb > button {
+  transition: color var(--slow) ease, transform var(--fast) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .has-thumb[data-ready]::before {
+    transition: none;
+  }
 }
 
 /* ----------------------------------------------------

@@ -275,6 +275,12 @@ body.theme-editor-open .main {
   background: var(--surface-2);
 }
 
+/* A control a new placement adds fades in (themeEditor.js syncControlsPane);
+   .m-reveal's own transition would lose to the one above. */
+.theme-field.m-reveal {
+  transition: background var(--fast) ease, opacity var(--base) ease;
+}
+
 /* A control lit from its region on the preview. */
 .theme-field.is-linked {
   background: var(--pink-soft);
@@ -421,6 +427,12 @@ body.theme-editor-open .main {
   color: #fff;
   font-weight: 600;
   background: var(--slate);
+}
+
+/* A thumbed toggle (ui/thumb.js): the sliding pill is the background. */
+.has-thumb > .theme-toggle__option.is-active,
+.has-thumb > .theme-toggle__option.is-active:hover {
+  background: none;
 }
 
 /* Where the slicers stand — the first row of the controls pane. The same
@@ -608,7 +620,28 @@ body.theme-editor-open .main {
   position: absolute;
   border-radius: 3px;
   /* top/height animate during a reorder drag so the other bands glide. */
-  transition: box-shadow var(--fast) ease, top var(--base) var(--ease-in-out), height var(--base) var(--ease-in-out);
+  transition: box-shadow var(--fast) ease, opacity var(--base) ease,
+    top var(--base) var(--ease-in-out), height var(--base) var(--ease-in-out);
+}
+
+/* The preview is rebuilt from scratch on every render, so a discrete change
+   is replayed per region by data-key (motion.js playBoxes), exactly as the
+   Studio canvas replays its cards: a survivor glides from its old box, a
+   newcomer fades in, a region that is gone fades out as a ghost. */
+.theme-region.is-moving {
+  transition: box-shadow var(--fast) ease, opacity var(--base) ease,
+    left var(--base) var(--ease-in-out), top var(--base) var(--ease-in-out),
+    width var(--base) var(--ease-in-out), height var(--base) var(--ease-in-out);
+}
+
+/* transition: none so the start state lands without itself easing. */
+.theme-region.m-enter--fade {
+  opacity: 0;
+  transition: none;
+}
+
+.theme-region.is-ghost {
+  pointer-events: none;
 }
 
 /* The lifted band tracks the cursor through an inline transform written
@@ -944,9 +977,11 @@ body.theme-editor-reordering .theme-grip {
 
 /* A finding, dressed as a notification toast (.toast in style.css): tinted
    face, a ring in the severity colour, the icon on a filled disc, the
-   headline in that colour and the fix beneath it. No shadow, width or
-   entrance motion: it sits in the page, not over it, and is rebuilt as the
-   user drags. --tone is the severity colour, --tint its background. */
+   headline in that colour and the fix beneath it. No shadow or width: it
+   sits in the page, not over it. Only a finding that just appeared fades in
+   (.m-reveal, opacity only); the list is rebuilt as the user drags, and the
+   ones already there stay still. --tone is the severity colour, --tint its
+   background. */
 .theme-issue {
   --tone: var(--warning);
   --tint: var(--warning-bg);

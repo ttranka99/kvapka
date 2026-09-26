@@ -28,6 +28,7 @@ import { initAbout } from "./ui/about.js";
 import { initHelp, openHelp, maybeShowWelcome } from "./ui/help.js";
 import { initShortcuts } from "./ui/shortcuts.js";
 import { initStackedCover } from "./ui/stackedCover.js";
+import { initThumb, syncThumb } from "./ui/thumb.js";
 import { initTemplatePanel, syncTemplateSummary, syncTemplateFoldForPage } from "./ui/templatePanel.js";
 import { t, applyStaticText, getLocale, setLocale, onLocaleChange } from "./i18n/i18n.js";
 
@@ -190,16 +191,16 @@ function refreshUIFromState({ motion = "swap" } = {}) {
 const localeSwitch = document.querySelector(".lang-switch");
 const localeButtons = localeSwitch.querySelectorAll("[data-locale]");
 
-// data-active places the sliding thumb (style.css). The thumb only transitions
-// once data-ready is set, a frame after it first lands, so a page that loads
-// in English shows it already on EN instead of sliding over from CS.
+// The sliding thumb (ui/thumb.js) follows .active. It only transitions once
+// it has landed, so a page that loads in English shows it already on EN
+// instead of sliding over from CS.
 function syncLocaleButtons() {
-  localeSwitch.dataset.active = getLocale();
   localeButtons.forEach(button => {
     const active = button.dataset.locale === getLocale();
     button.classList.toggle("active", active);
     button.setAttribute("aria-pressed", String(active));
   });
+  syncThumb(localeSwitch);
 }
 
 function initLocaleSwitch() {
@@ -207,7 +208,7 @@ function initLocaleSwitch() {
     button.addEventListener("click", () => setLocale(button.dataset.locale));
   });
   syncLocaleButtons();
-  requestAnimationFrame(() => requestAnimationFrame(() => { localeSwitch.dataset.ready = ""; }));
+  initThumb(localeSwitch);
 
   onLocaleChange(() => {
     syncLocaleButtons();

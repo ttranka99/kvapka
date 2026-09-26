@@ -28,6 +28,7 @@ import {
 import { openThemeEditor } from "../theme/themeEditor.js";
 import { setActiveSection } from "./rail.js";
 import { icon } from "./icon.js";
+import { initThumb, syncThumb } from "./thumb.js";
 import { applyThemeToAllTabs, retargetTabsToTheme, newPageTheme } from "../state/tabs.js";
 import { addWarning } from "./warnings.js";
 import { PLACEMENTS, placementLabel } from "../theme/themeModel.js";
@@ -78,6 +79,9 @@ export function initThemePicker(options) {
 
   syncScopeButtons();
   syncPlacementControls();
+  // Both switchers slide their slate pill to the chosen option.
+  initThumb(scopeButtons[0].parentElement);
+  initThumb(placementButtons[0].parentElement);
   renderThemeSelector();
 }
 
@@ -85,6 +89,7 @@ function syncScopeButtons() {
   scopeButtons.forEach(button => {
     button.classList.toggle("active", button.dataset.scope === scope);
   });
+  if (scopeButtons.length) syncThumb(scopeButtons[0].parentElement);
   syncTemplateSummary();
 }
 
@@ -117,6 +122,7 @@ export function syncPlacementControls() {
       button.removeAttribute("title");
     }
   });
+  if (placementButtons.length) syncThumb(placementButtons[0].parentElement);
 
   if (placementNote) {
     placementNote.textContent = missing.length

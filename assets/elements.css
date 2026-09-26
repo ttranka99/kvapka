@@ -64,36 +64,11 @@ body.section-prvky .main {
   color: var(--ink-3);
 }
 
+/* One slate pill slides to the chosen type (.has-thumb, ui/thumb.js). */
 .elements__types {
-  --thumb-gap: 2px;   /* = .segmented's gap */
-  position: relative;
   flex: 0 1 380px;
   min-width: 280px;
-  isolation: isolate;
 }
-
-/* One slate pill that slides to the chosen type, like the CS / EN switch
-   (style.css .lang-switch): the same object moving is what reads as a
-   switch. Columns are equal, so one step is a column plus the gap. */
-.elements__types::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  width: calc((100% - 6px - 2 * var(--thumb-gap)) / 3);
-  border-radius: var(--r-pill);
-  background: var(--slate);
-  transform: translateX(calc(var(--thumb-step, 0) * (100% + var(--thumb-gap))));
-}
-
-.elements__types[data-ready]::before {
-  transition: transform var(--slow) var(--ease-out);
-}
-
-.elements__types[data-active="1"] { --thumb-step: 1; }
-.elements__types[data-active="2"] { --thumb-step: 2; }
 
 .elements__type {
   display: inline-flex;
@@ -101,12 +76,6 @@ body.section-prvky .main {
   justify-content: center;
   gap: 6px;
   position: relative;
-  transition: color var(--slow) ease;
-}
-
-/* The thumb is the background; the tab only changes its ink. */
-.elements__type.active {
-  background: none;
 }
 
 /* A customized type says so on its tab. */

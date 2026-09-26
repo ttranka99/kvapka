@@ -57,6 +57,7 @@ import { buildFrame, applyStyles, frameSize, showGuide, hideGuides, pulse } from
 import { setHistoryDelegate, syncHistoryButtons } from "../state/history.js";
 import { icon } from "../ui/icon.js";
 import { createSwitch } from "../ui/switch.js";
+import { initThumb, syncThumb } from "../ui/thumb.js";
 import { durationMs, leave } from "../ui/motion.js";
 import { choiceDialog } from "../ui/dialog.js";
 import { setRailDot } from "../ui/rail.js";
@@ -207,9 +208,8 @@ function buildHead() {
     types.appendChild(button);
   });
   head.appendChild(types);
-  // The thumb only slides once it has landed, so the first build doesn't
-  // show it travelling in from the first tab.
-  requestAnimationFrame(() => requestAnimationFrame(() => { types.dataset.ready = ""; }));
+  // One slate pill slides to the chosen type (ui/thumb.js).
+  initThumb(types);
 
   const actions = el("div", "elements__head-actions");
   const discard = el("button", "btn btn-secondary elements__discard");
@@ -362,12 +362,12 @@ function selectType(type, { force = false } = {}) {
   activeType = type;
   highlightedPart = null;
 
-  root.querySelector(".elements__types").dataset.active = String(ELEMENT_TYPES.indexOf(type));
   root.querySelectorAll(".elements__type").forEach(button => {
     const active = button.dataset.type === type;
     button.classList.toggle("active", active);
     button.setAttribute("aria-selected", String(active));
   });
+  syncThumb(root.querySelector(".elements__types"));
   root.querySelectorAll(".elements__strip-item").forEach(button => {
     button.classList.toggle("is-active", button.dataset.type === type);
   });

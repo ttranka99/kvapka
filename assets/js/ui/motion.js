@@ -65,7 +65,11 @@ export function leave(el, done) {
 /* R7. The class goes on the node that exists *after* a render, so callers
    flash by id once renderLayout() has returned. */
 export function flash(id) {
-  const el = document.getElementById(id);
+  flashEl(document.getElementById(id));
+}
+
+/* R7 on a node the caller already holds (a control row, a field). */
+export function flashEl(el) {
   if (!el) return;
   el.classList.remove("m-flash");
   void el.offsetWidth;   // restart if it was already flashing
@@ -95,11 +99,18 @@ export function flashAll(ids) {
 const CARD = ".canvas-element[id]";
 
 export function snapshotCanvas(canvas) {
-  const rect = canvas.getBoundingClientRect();
+  return snapshotBoxes(canvas, CARD);
+}
+
+/* The same snapshot for any absolutely placed boxes inside `container`,
+   keyed by `keyOf` — the canvas keys its cards by id, the Custom Layout
+   preview its regions by data-key. */
+export function snapshotBoxes(container, selector, keyOf = el => el.id) {
+  const rect = container.getBoundingClientRect();
   const items = new Map();
-  canvas.querySelectorAll(CARD).forEach(el => {
+  container.querySelectorAll(selector).forEach(el => {
     const r = el.getBoundingClientRect();
-    items.set(el.id, {
+    items.set(keyOf(el), {
       left: r.left - rect.left,
       top: r.top - rect.top,
       width: r.width,
@@ -149,7 +160,41 @@ export function playCanvas(canvas, snap, opts) {
     // Collapsed back into its parent: the parent grows out of the first
     // half, so only the other halves are left behind to fade.
     if (seen.has(parentId(id)) && /-0$/.test(id)) return;
-    ghost(canvas, was);
+    ghost(canvas, was, cleanCard);
+  });
+}
+
+/* R1/R2/R3 for a container of plain boxes with no lineage between them (the
+   Custom Layout preview's regions): `motion` "move" glides survivors, fades
+   newcomers in and ghosts the boxes that are gone; "swap" fades everything
+   in. A container that changed size (another canvas size, another scale)
+   swaps, since every box moved and gliding each one tells nothing. `clean`
+   strips the caller's chrome from a ghost. Drags pass no motion (R5). */
+export function playBoxes(container, snap, { selector, keyOf = el => el.id, motion, clean } = {}) {
+  if (!motion || !snap || reducedMotion()) return;
+  const rect = container.getBoundingClientRect();
+  if (snap.rect.width === 0 || rect.width === 0) return;
+
+  const boxes = Array.from(container.querySelectorAll(selector));
+  const resized = Math.abs(rect.width - snap.rect.width) > 0.5 || Math.abs(rect.height - snap.rect.height) > 0.5;
+  if (motion === "swap" || resized) {
+    boxes.forEach(el => fadeIn(el));
+    return;
+  }
+
+  const seen = new Set();
+  boxes.forEach(el => {
+    const key = keyOf(el);
+    seen.add(key);
+    const was = snap.items.get(key);
+    if (!was) { fadeIn(el); return; }
+    const r = el.getBoundingClientRect();
+    const now = { left: r.left - rect.left, top: r.top - rect.top, width: r.width, height: r.height };
+    if (!same(was, now)) glide(el, was);
+  });
+
+  snap.items.forEach((was, key) => {
+    if (!seen.has(key)) ghost(container, was, clean);
   });
 }
 
@@ -169,8 +214,12 @@ function originOf(id, items) {
 /* Strips every in-flight card animation so a measurement taken right after
    (a drag's snap targets, for one) sees settled geometry. */
 export function settleCanvas(canvas) {
-  canvas.querySelectorAll(".canvas-element.is-ghost").forEach(el => el.remove());
-  canvas.querySelectorAll(".canvas-element.is-moving, .canvas-element.m-enter--fade").forEach(el => {
+  settleBoxes(canvas, ".canvas-element");
+}
+
+export function settleBoxes(container, selector) {
+  container.querySelectorAll(`${selector}.is-ghost`).forEach(el => el.remove());
+  container.querySelectorAll(`${selector}.is-moving, ${selector}.m-enter--fade`).forEach(el => {
     el.classList.remove("is-moving", "m-enter--fade");
     if (el._motionFinal) {
       setBox(el, el._motionFinal);
@@ -192,12 +241,17 @@ function setBox(el, box) {
 }
 
 // Invert: put the card back where it was, let the browser see it there, then
-// ease it to the geometry renderLayout() just gave it.
+// ease it to the geometry renderLayout() just gave it. The start box lands
+// with transitions off: a box that always eases part of its geometry (the
+// preview's regions ease top/height for the reorder drag) would otherwise
+// start sliding toward it and never leave from it.
 function glide(el, was) {
   const final = { left: el.style.left, top: el.style.top, width: el.style.width, height: el.style.height };
   el._motionFinal = final;
+  el.style.transition = "none";
   setBox(el, was);
   void el.offsetWidth;
+  el.style.transition = "";
   el.classList.add("is-moving");
   Object.assign(el.style, final);
 
@@ -223,15 +277,21 @@ function fadeIn(el) {
 }
 
 // The rebuild detached the old node, so it can simply come back as its own
-// ghost — glyph, label and size intact. Its states (selected, locked) and
-// controls do not belong on something that no longer exists.
-function ghost(canvas, was) {
+// ghost — glyph, label and size intact. `clean` takes off whatever does not
+// belong on something that no longer exists (states, controls, and whatever
+// the next snapshot would find it by).
+function ghost(container, was, clean) {
   const el = was.el;
-  el.classList.remove("selected", "split-target-highlight", "width-locked", "height-locked", "is-moving");
+  el.classList.remove("is-moving");
+  if (clean) clean(el);
   el.classList.add("is-ghost");
   el.removeAttribute("id");   // nothing must find it, including the next snapshot
-  el.querySelectorAll(".element-controls").forEach(c => c.remove());
   setBox(el, was);
-  canvas.appendChild(el);
+  container.appendChild(el);
   leave(el, () => el.remove());
+}
+
+function cleanCard(el) {
+  el.classList.remove("selected", "split-target-highlight", "width-locked", "height-locked");
+  el.querySelectorAll(".element-controls").forEach(c => c.remove());
 }
