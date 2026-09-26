@@ -518,6 +518,19 @@ export function resolveDependencies(theme) {
 export const usableWidth = t => t.canvasWidth - 2 * t.margin;
 export const usableHeight = t => t.canvasHeight - 2 * t.margin;
 
+/**
+ * One finding for the editor's status panel: a short headline naming the
+ * problem, and a hint saying what to change. `key` is the stem under
+ * "editor.issue." whose .title and .hint hold the two texts.
+ */
+export function issue(severity, key, params) {
+  return {
+    severity,
+    title: t(`editor.issue.${key}.title`, params),
+    hint: t(`editor.issue.${key}.hint`, params)
+  };
+}
+
 // Problems worth telling the user about. Severity "error" blocks saving;
 // "warning" is advisory — the theme still works, it just squeezes something.
 export function validateTheme(theme) {
@@ -526,24 +539,24 @@ export function validateTheme(theme) {
   const uh = usableHeight(theme);
   const vertical = isVerticalPlacement(theme.placement);
 
-  if (uw < 200) issues.push({ severity: "error", text: t("editor.issue.usableWidth") });
-  if (uh < 200) issues.push({ severity: "error", text: t("editor.issue.usableHeight") });
+  if (uw < 200) issues.push(issue("error", "usableWidth"));
+  if (uh < 200) issues.push(issue("error", "usableHeight"));
 
   // Both of the next two warn about a field the *other* placement doesn't
   // show. Reporting them anyway would point the user at a control that isn't
   // on screen, so each is asked only of the layout it applies to.
   if (vertical && theme.minSlicerColumnWidth > uw - theme.minChartWidth - theme.gapKpiToCharts) {
-    issues.push({ severity: "warning", text: t("editor.issue.columnTooWide") });
+    issues.push(issue("warning", "columnTooWide"));
   }
 
   const perRowMin = theme.maxPerRow * theme.minSlicerWidth + (theme.maxPerRow - 1) * theme.gapSmall;
   if (!vertical && perRowMin > uw) {
-    issues.push({ severity: "warning", text: t("editor.issue.slicerRow", { count: theme.maxPerRow, need: perRowMin, available: uw }) });
+    issues.push(issue("warning", "slicerRow", { count: theme.maxPerRow, need: perRowMin, available: uw }));
   }
 
   const chartRowMin = theme.maxPerRow * theme.minChartWidth + (theme.maxPerRow - 1) * theme.gapSmall;
   if (chartRowMin > uw) {
-    issues.push({ severity: "warning", text: t("editor.issue.chartRow", { count: theme.maxPerRow }) });
+    issues.push(issue("warning", "chartRow", { count: theme.maxPerRow }));
   }
 
   // Vertical budget: header + slicer band + KPI band(s) + one chart row.
@@ -559,15 +572,15 @@ export function validateTheme(theme) {
     bandCount * (theme.kpiMinHeight + theme.gapKpiToCharts) +
     theme.minChartRowHeight;
   if (need > uh) {
-    issues.push({ severity: "warning", text: t("editor.issue.height", { need, available: uh }) });
+    issues.push(issue("warning", "height", { need, available: uh }));
   }
 
   if (theme.gapSmall > 0 && theme.step > theme.gapSmall) {
-    issues.push({ severity: "warning", text: t("editor.issue.step") });
+    issues.push(issue("warning", "step"));
   }
 
   if (kpiSections.length > 4) {
-    issues.push({ severity: "warning", text: t("editor.issue.manyBands", { count: kpiSections.length }) });
+    issues.push(issue("warning", "manyBands", { count: kpiSections.length }));
   }
 
   return issues;

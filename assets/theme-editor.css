@@ -880,50 +880,144 @@ body.theme-editor-reordering .theme-grip {
   font-weight: 600;
 }
 
-.theme-stage__issues {
+.theme-stage__status {
+  margin-top: 12px;
+}
+
+/* Summary line: "1 error · 2 warnings", or the quiet all-clear. */
+.theme-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+
+.theme-status__count {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.theme-status__note {
+  color: var(--error);
+}
+
+.theme-status--ok {
+  gap: 6px;
+  color: var(--ink-2);
+}
+
+.theme-status svg,
+.theme-issue svg,
+.theme-notice svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+.theme-status--ok svg {
+  color: var(--success);
+}
+
+.theme-issues {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin: 12px 0 0;
-  padding: 0;
-  max-height: 96px;
+  gap: 8px;
+  margin: 8px 0 0;
+  /* Room for the cards' 1px ring, which the scroll box would clip. */
+  padding: 1px;
+  max-height: 160px;
   overflow-y: auto;
   list-style: none;
 }
 
+/* A finding, dressed as a notification toast (.toast in style.css): tinted
+   face, a ring in the severity colour, the icon on a filled disc, the
+   headline in that colour and the fix beneath it. No shadow, width or
+   entrance motion: it sits in the page, not over it, and is rebuilt as the
+   user drags. --tone is the severity colour, --tint its background. */
 .theme-issue {
+  --tone: var(--warning);
+  --tint: var(--warning-bg);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px 12px;
+  border-radius: var(--r-md);
+  background: var(--tint);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tone) 35%, transparent);
+}
+
+.theme-issue--error {
+  --tone: var(--error);
+  --tint: var(--error-bg);
+}
+
+.theme-issue__badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--tone);
+  color: #fff;
+}
+
+.theme-issue__body {
+  flex: 1;
+  min-width: 0;
+  /* Centres a one-line headline on the 24px disc. */
+  padding-top: 1px;
+}
+
+.theme-issue__title {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  color: var(--tone);
+}
+
+.theme-issue__hint {
+  display: block;
+  margin-top: 1px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* Passing notices (imported, couldn't read): one line, then gone. */
+.theme-notice {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  margin: 12px 0 0;
+  padding: 6px 10px;
   border-radius: var(--r-sm);
   font-size: var(--fs-sm);
   font-weight: 500;
   line-height: 1.4;
 }
 
-.theme-issue::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
-}
-
-.theme-issue--ok {
+.theme-notice--ok {
   color: var(--success);
   background: var(--success-bg);
 }
 
-.theme-issue--warning {
-  color: var(--warning);
-  background: var(--warning-bg);
-}
-
-.theme-issue--error {
+.theme-notice--error {
   color: var(--error);
   background: var(--error-bg);
+}
+
+.theme-editor__name-box.is-invalid {
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px var(--error-bg);
 }
 
 /* One column, at the same breakpoint where the sidebar stacks above the

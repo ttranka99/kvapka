@@ -518,23 +518,44 @@ export default {
   "editor.stat.px": "{value} px",
 
   // --- Template editor: messages ----------------------------------------
-  "editor.ok": "Šablona je v pořádku.",
-  "editor.nameRequired": "Zadejte název šablony.",
+  "editor.nameRequired": "Pro uložení šablonu pojmenujte.",
   "editor.confirmDeleteTitle": "Smazat šablonu „{label}“?",
   "editor.confirmDelete": "Stránky, které ji používají, si ponechají její současné nastavení; nové stránky začnou na FULL HD nebo HD.",
   "editor.imported": "Načtena šablona „{label}\".",
-  "editor.readFailed": "Soubor se nepodařilo přečíst.",
+  "editor.readFailed": "Soubor se nepodařilo přečíst. Zkuste to znovu nebo vyberte jiný.",
 
-  // Checks shown under the preview.
-  "editor.issue.usableWidth": "Použitelná šířka je menší než 200 px, zmenšete okraj nebo zvětšete plátno.",
-  "editor.issue.usableHeight": "Použitelná výška je menší než 200 px, zmenšete okraj nebo zvětšete plátno.",
-  "editor.issue.columnTooWide": "Sloupec slicerů zabere téměř celou šířku, pro umístění grafu nezbyde minimální šířka.",
-  "editor.issue.slicerRow": "Řádek {count} slicerů potřebuje při minimální šířce {need} px. K dispozici je {available} px.",
-  "editor.issue.chartRow": "Řada {count} grafů se při nastavené minimální šířce do plátna nevejde.",
-  "editor.issue.height": "Hlavička, slicery a KPI potřebují {need} px na výšku, dostupných je {available} px, grafy se zmenší pod minimum.",
-  "editor.issue.step": "Krok mřížky je větší než mezera mezi prvky, rozměry mohou vycházet nepřesně.",
-  "editor.issue.manyBands": "Rozvržení má {count} pásů KPI, zvolené nastavení ztěžuje orientaci.",
-  "editor.issue.rowsTooSmall": "Při {rows} řadách vychází výška řady pod absolutní minimum {min} px.",
+  // Status panel under the preview: a summary line, then one headline + hint
+  // per check that fails.
+  "editor.status.ok": "Vše se vejde na plátno",
+  "editor.status.errors": { one: "{count} chyba", few: "{count} chyby", other: "{count} chyb" },
+  "editor.status.warnings": { one: "{count} upozornění", other: "{count} upozornění" },
+  "editor.status.saveBlocked": "Pro uložení opravte chyby",
+  "editor.issue.usableWidth.title": "Plátno je příliš úzké",
+  "editor.issue.usableWidth.hint": "Mezi okraji zbývá méně než 200 px. Zmenšete Okraj plátna nebo plátno rozšiřte.",
+  "editor.issue.usableHeight.title": "Plátno je příliš nízké",
+  "editor.issue.usableHeight.hint": "Mezi okraji zbývá méně než 200 px. Zmenšete Okraj plátna nebo plátno zvyšte.",
+  "editor.issue.columnTooWide.title": "Sloupec slicerů vytlačuje grafy",
+  "editor.issue.columnTooWide.hint": "Pro graf v minimální šířce nezbývá místo. Zužte sloupec nebo snižte Min. šířku grafu.",
+  "editor.issue.slicerRow.title": {
+    one: "{count} slicer se nevejde do řady",
+    few: "{count} slicery se nevejdou do jedné řady",
+    other: "{count} slicerů se nevejde do jedné řady"
+  },
+  "editor.issue.slicerRow.hint": "Potřebují {need} px, k dispozici je {available} px. Snižte Min. šířku sliceru nebo počet v řadě.",
+  "editor.issue.chartRow.title": {
+    one: "{count} graf se nevejde do řady",
+    few: "{count} grafy se nevejdou do jedné řady",
+    other: "{count} grafů se nevejde do jedné řady"
+  },
+  "editor.issue.chartRow.hint": "Snižte Min. šířku grafu nebo počet prvků v řadě.",
+  "editor.issue.height.title": "Grafy se nevejdou na výšku",
+  "editor.issue.height.hint": "Hlavička, slicery a KPI zaberou {need} z {available} px, grafy se proto zmenší pod svou minimální výšku.",
+  "editor.issue.step.title": "Krok mřížky je větší než mezery",
+  "editor.issue.step.hint": "Rozměry se budou zaokrouhlovat nerovnoměrně. Nastavte krok nejvýše na velikost nejmenší mezery.",
+  "editor.issue.manyBands.title": { one: "{count} pás KPI", few: "{count} pásy KPI", other: "{count} pásů KPI" },
+  "editor.issue.manyBands.hint": "V reportu s tolika pásy se špatně orientuje. Zvažte sloučení některých z nich.",
+  "editor.issue.rowsTooSmall.title": "Řady grafů jsou příliš nízké",
+  "editor.issue.rowsTooSmall.hint": "Při {rows} řadách klesne výška řady pod spodní hranici {min} px.",
 
   // --- Saving and importing templates -----------------------------------
   "themeStore.builtinOverwrite": "Vestavěnou šablonu nelze přepsat, uložte ji jako novou.",

@@ -19,6 +19,7 @@ import {
   resolveDependencies,
   cloneTheme,
   validateTheme,
+  issue,
   usableWidth,
   usableHeight,
   PLACEMENTS,
@@ -229,6 +230,7 @@ function buildHead() {
   name.setAttribute("aria-label", t("editor.name"));
   name.addEventListener("input", () => {
     draft.label = name.value;
+    if (name.value.trim()) markNameInvalid(false);
     renderMeta();
   });
   box.appendChild(name);
@@ -710,7 +712,18 @@ function buildStagePane() {
   stage.appendChild(frame);
 
   stage.appendChild(el("div", "theme-stage__readout"));
-  stage.appendChild(el("ul", "theme-stage__issues"));
+
+  // Passing notices (imported, couldn't read) get their own slot, so the
+  // findings below only ever describe the template itself.
+  const notice = el("div", "theme-stage__notice");
+  notice.setAttribute("role", "status");
+  stage.appendChild(notice);
+
+  // A polite live region. renderStatus() rebuilds it only when the findings
+  // change, so dragging a handle doesn't re-announce the list every frame.
+  const status = el("div", "theme-stage__status");
+  status.setAttribute("role", "status");
+  stage.appendChild(status);
 
   return stage;
 }
@@ -1619,24 +1632,54 @@ function renderReadout(g) {
 
   const issues = validateTheme(t);
   if (g.tooSmall) {
-    issues.push({
-      severity: "warning",
-      text: tr("editor.issue.rowsTooSmall", { rows: g.rowCount, min: t.hardMinChartHeight })
-    });
+    issues.push(issue("warning", "rowsTooSmall", { rows: g.rowCount, min: t.hardMinChartHeight }));
   }
 
-  const list = root.querySelector(".theme-stage__issues");
-  list.innerHTML = "";
-  if (issues.length === 0) {
-    const ok = el("li", "theme-issue theme-issue--ok", tr("editor.ok"));
-    list.appendChild(ok);
-  } else {
-    issues.forEach(issue => {
-      list.appendChild(el("li", `theme-issue theme-issue--${issue.severity}`, issue.text));
-    });
-  }
-
+  renderStatus(issues);
   root.querySelector(".theme-editor__head-actions .btn-primary").disabled = issues.some(i => i.severity === "error");
+}
+
+// All clear is one quiet line. Otherwise a count (which also says why Save
+// is off), then each finding as a headline with the fix beneath it.
+function renderStatus(issues) {
+  const status = root.querySelector(".theme-stage__status");
+  const key = JSON.stringify(issues);
+  if (status.dataset.key === key) return;
+  status.dataset.key = key;
+  status.innerHTML = "";
+
+  if (issues.length === 0) {
+    const ok = el("p", "theme-status theme-status--ok");
+    ok.appendChild(iconEl("check"));
+    ok.appendChild(el("span", null, tr("editor.status.ok")));
+    status.appendChild(ok);
+    return;
+  }
+
+  const errors = issues.filter(i => i.severity === "error").length;
+  const warnings = issues.length - errors;
+  const counts = [];
+  if (errors) counts.push(tr("editor.status.errors", { count: errors }));
+  if (warnings) counts.push(tr("editor.status.warnings", { count: warnings }));
+
+  const summary = el("p", "theme-status");
+  summary.appendChild(el("span", "theme-status__count", counts.join(" · ")));
+  if (errors) summary.appendChild(el("span", "theme-status__note", tr("editor.status.saveBlocked")));
+  status.appendChild(summary);
+
+  const list = el("ul", "theme-issues");
+  issues.forEach(({ severity, title, hint }) => {
+    const item = el("li", `theme-issue theme-issue--${severity}`);
+    const badge = el("span", "theme-issue__badge");
+    badge.appendChild(iconEl(severity));
+    item.appendChild(badge);
+    const body = el("div", "theme-issue__body");
+    body.appendChild(el("span", "theme-issue__title", title));
+    if (hint) body.appendChild(el("span", "theme-issue__hint", hint));
+    item.appendChild(body);
+    list.appendChild(item);
+  });
+  status.appendChild(list);
 }
 
 // --- Actions ------------------------------------------------------------
@@ -1649,6 +1692,7 @@ function handleSave() {
   const label = String(draft.label || "").trim();
   if (!label) {
     flash(t("editor.nameRequired"), "error");
+    markNameInvalid(true);
     root.querySelector("#theme-name").focus();
     return;
   }
@@ -1742,8 +1786,18 @@ function handleImportFile(event) {
 }
 
 function flash(text, severity) {
-  const list = root.querySelector(".theme-stage__issues");
-  const node = el("li", `theme-issue theme-issue--${severity === "ok" ? "ok" : "error"} m-reveal`, text);
-  list.prepend(node);
+  const kind = severity === "ok" ? "ok" : "error";
+  const node = el("p", `theme-notice theme-notice--${kind} m-reveal`);
+  node.appendChild(iconEl(kind === "ok" ? "check" : "error"));
+  node.appendChild(el("span", null, text));
+  // One notice at a time: a newer one replaces, never stacks.
+  root.querySelector(".theme-stage__notice").replaceChildren(node);
   setTimeout(() => leave(node, () => node.remove()), 4000);
+}
+
+function markNameInvalid(invalid) {
+  const name = root.querySelector("#theme-name");
+  name.closest(".theme-editor__name-box").classList.toggle("is-invalid", invalid);
+  if (invalid) name.setAttribute("aria-invalid", "true");
+  else name.removeAttribute("aria-invalid");
 }
