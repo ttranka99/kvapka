@@ -235,9 +235,15 @@ body.section-prvky .main {
   transform: none;
 }
 
+/* .collapsible-inner clips (style.css); widen the fold by the rows' -10px
+   bleed (.theme-field) so their rounded hover isn't cut into a rectangle. */
+.el-group > .collapsible {
+  margin-inline: -10px;
+}
+
 /* A folded group's rows fade as they close. */
 .el-group__body {
-  padding: 4px 0 2px;
+  padding: 4px 10px 2px;
   transition: opacity var(--slow) ease;
 }
 
@@ -276,11 +282,6 @@ body.section-prvky .main {
 -----------------------------------------------------*/
 .el-field {
   position: relative;
-}
-
-.el-field:hover,
-.el-field:focus-within {
-  background: var(--surface-2);
 }
 
 .el-field.is-linked,
@@ -695,7 +696,10 @@ body.section-prvky .main {
   margin: 0 20px;
   overflow: auto;
   border-radius: var(--r-md);
-  background: var(--sheet-dots), var(--surface-2);
+  /* #canvas's dot grid (style.css), scrolling with the mock as the sheet's
+     dots move with it — on the page grey, so a white mock stays visible. */
+  background: var(--sheet-dots), var(--bg);
+  background-attachment: local;
   box-shadow: inset 0 0 0 1px var(--line);
 }
 
@@ -813,7 +817,7 @@ body.section-prvky .main {
   position: relative;
   padding: 10px;
   border-radius: var(--r-md);
-  background: var(--sheet-dots), var(--surface-2);
+  background: var(--sheet-dots), var(--bg);
   box-shadow: inset 0 0 0 1px var(--line);
   transition: box-shadow var(--fast) ease;
 }

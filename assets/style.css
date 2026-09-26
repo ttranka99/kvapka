@@ -1536,10 +1536,11 @@ select {
 #canvas {
   position: relative;
   border-radius: 6px;
-  /* The dot grid marks the sheet as an artboard, not another white panel
-     beside the sidebar's card. The cards keep a solid surface over it. */
-  background: var(--sheet-dots), var(--surface);
-  box-shadow: 0 0 0 1px var(--line), var(--shadow-sheet);
+  /* The dot grid on the page grey marks the sheet as an artboard, not another
+     white panel beside the sidebar's card — the Elements stage's look. The
+     cards keep a solid surface over it. */
+  background: var(--sheet-dots), var(--bg);
+  box-shadow: inset 0 0 0 1px var(--line), var(--shadow-sheet);
   overflow: visible;
   /* No width/height transition: the scale is measured from this box on every
      render, so a mid-transition size would feed a wrong scale into the next.
