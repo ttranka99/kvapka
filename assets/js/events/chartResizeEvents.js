@@ -92,6 +92,12 @@ function findNearestSnapEdge(boundaryX, targets, tolerancePx) {
 // renderLayout() on every width change — any guide appended before that
 // render is gone by the time this runs again, so there's nothing stale to
 // remove first.
+//
+// The line is snapped to whole device pixels and is at least one device pixel
+// wide. A plain 1px line centred with a half-pixel shift is narrower than a
+// device pixel under browser zoom below 100% (e.g. 0.9 device px at 90%), and
+// whether it gets drawn at all then depends on where it happens to fall on
+// the pixel grid — so it would vanish at some snap positions and not others.
 function updateSnapGuide(screenLeftPx) {
   const canvas = document.getElementById("canvas");
   if (!canvas) return;
@@ -101,9 +107,15 @@ function updateSnapGuide(screenLeftPx) {
 
   if (screenLeftPx == null) return;
 
+  const dpr = window.devicePixelRatio || 1;
+  const canvasLeft = canvas.getBoundingClientRect().left;
+  const width = Math.max(1, Math.round(dpr)) / dpr;
+  const deviceLeft = Math.round((canvasLeft + screenLeftPx - width / 2) * dpr);
+
   const guide = document.createElement("div");
   guide.className = "chart-snap-guide";
-  guide.style.left = screenLeftPx + "px";
+  guide.style.left = (deviceLeft / dpr - canvasLeft) + "px";
+  guide.style.width = width + "px";
   canvas.appendChild(guide);
 }
 

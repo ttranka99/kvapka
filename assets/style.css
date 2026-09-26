@@ -1903,7 +1903,6 @@ body.is-resizing-chart .element-controls {
   bottom: 0;
   z-index: 50;
   width: 1px;
-  transform: translateX(-50%);
   background: repeating-linear-gradient(to bottom, var(--pink) 0 3px, transparent 3px 6px);
   pointer-events: none;
 }
