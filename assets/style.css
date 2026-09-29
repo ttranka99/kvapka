@@ -2747,14 +2747,6 @@ body.is-resizing-chart .element-controls {
   color: var(--ink);
 }
 
-.legal-todo {
-  padding: 0 4px;
-  border-radius: var(--r-sm);
-  background: var(--warning-bg);
-  color: var(--warning);
-  font-weight: 600;
-}
-
 /* Standalone pages: undo the fixed-height app shell, then one card under the
    app's own top bar. Both languages sit in the page; #en in the URL shows
    English. No script, so it works with JS off. */
