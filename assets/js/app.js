@@ -44,9 +44,8 @@ const slicersPerRowSelect = document.getElementById("slicers-per-row");
 const slicersPerRowField = document.getElementById("slicers-per-row-field");
 const kpisPerRowSelect = document.getElementById("kpis-per-row");
 
-// Appends a new slicer at the end of the list (used by the sidebar "Slicer" button).
-// Per-item insertion at an arbitrary index is handled separately by handleAddSlicer
-// in events/slicerEvents.js, used by the "+" controls on the canvas.
+// Appends a slicer (sidebar "Slicer" button). The canvas "+" controls insert
+// at an index via handleAddSlicer in events/slicerEvents.js.
 function addSlicer() {
   if (!canAddSlicer()) {
     addWarning(slicerLimitMessage(), "error");
@@ -60,23 +59,20 @@ function addSlicer() {
 addKpiBtn.addEventListener("click", () => handleAppendKpi(state.kpiBandIds()[0]));
 addSlicerBtn.addEventListener("click", addSlicer);
 
-// Splits the currently selected top-level chart into a vertical stack of
-// two charts. The button itself is only shown/hidden by setSelected() (see
-// updateSplitChartButtonVisibility in ui/selection.js) whenever the
-// selection is an unstacked, unlocked chart — so a click here can assume
-// state.selectedElement is exactly that.
+// Splits the selected top-level chart into a vertical stack of two. The
+// button is shown only for an unstacked, unlocked chart (setSelected(), see
+// updateSplitChartButtonVisibility in ui/selection.js), so a click can
+// assume state.selectedElement is one.
 addChartSplitBtn.addEventListener("click", () => {
   const match = /^chart-(\d+)-(\d+)$/.exec(state.selectedElement?.domId || "");
   if (!match) return;
   handleSplitChart(Number(match[1]), Number(match[2]));
 });
 
-// Hovering the split button previews its effect by tinting the chart it
-// would act on — the same light-red tint used for the reset/export buttons
-// (.split-target-highlight, see style.css) — so the user knows exactly
-// which chart is about to be split before clicking. Toggled directly on the
-// live DOM node rather than through a re-render, since hovering a sidebar
-// button doesn't itself change any state.
+// Hovering the split button tints the chart it would split
+// (.split-target-highlight in style.css, the same tint as the reset/export
+// buttons). Toggled on the DOM node directly, not by re-render, since
+// hovering changes no state.
 addChartSplitBtn.addEventListener("mouseenter", () => {
   const domId = state.selectedElement?.domId;
   const el = domId && document.getElementById(domId);
@@ -90,33 +86,28 @@ addChartSplitBtn.addEventListener("mouseleave", () => {
 
 function syncTemplateControls() {
   renderThemeSelector();
-  // Spelling out both halves of the split: what this page uses, and what a
-  // brand-new page would start on.
+  // States both: what this page uses, and what a new page starts on.
   scopeNote.textContent =
     t("template.scopeNote", { page: state.activeTheme.label, default: defaultThemeLabel() });
   syncTemplateSummary();
 }
 
-// The placement switch itself lives in themePicker.js (it picks a layout, so
-// it belongs with the other layout controls). What stays here is the sidebar
-// row that has to follow the active layout's shape: the vertical column is
-// always a single column, so a per-row limit has nothing to control there —
-// the row animates away via .collapsible rather than popping out of the panel.
+// The placement switch lives in themePicker.js, with the other layout
+// controls. This is the sidebar row that follows the layout's shape: the
+// vertical column is always one column, so a per-row limit does nothing
+// there. The row animates away via .collapsible.
 function syncSlicerRowVisibility() {
   const vertical = state.isVerticalSlicers();
   slicersPerRowField.classList.toggle("expanded", !vertical);
-  // A collapsed .collapsible is 0px tall but only overflow-hidden, so its
-  // contents stay in the tab order — disabling the select keeps keyboard
-  // focus from landing on a control nobody can see.
+  // A collapsed .collapsible is 0px tall but its contents stay in the tab
+  // order. Disabling the select keeps focus off an invisible control.
   slicersPerRowSelect.disabled = vertical;
 }
 
-// One "add KPI" button per band beyond the first — the header band's own
-// button is the static #add-kpi above. Rebuilt from scratch on every sync
-// since the number of bands can change (a theme switch, or a page's own
-// section reorder in a later stage), unlike the fixed set of controls
-// elsewhere in the sidebar. The first generated button keeps the id
-// "add-kpi-band2" so the existing two-band case stays addressable by it.
+// One "add KPI" button per band beyond the first (the header band uses the
+// static #add-kpi). Rebuilt on every sync because the band count can change
+// (theme switch or section reorder). The first generated button keeps the id
+// "add-kpi-band2" so the two-band case stays addressable by it.
 function syncKpiBandControls() {
   const extraIds = state.kpiBandIds().slice(1);
   addKpiBandsContainer.innerHTML = "";
@@ -139,11 +130,9 @@ function syncRowLimitControls() {
 function initRowLimitControls() {
   slicersPerRowSelect.addEventListener("change", () => {
     state.setMaxSlicers(slicersPerRowSelect.value);
-    // Only slicer widths and chart row heights can actually be invalidated
-    // by a slicers-per-row change (it can shift how much vertical space the
-    // slicer area takes, and therefore chartsHeight) — chart widths are
-    // unaffected since USABLE_WIDTH doesn't change, so their locks are left
-    // alone here.
+    // Only slicer widths and chart row heights can be invalidated (the
+    // slicer area's height changes chartsHeight). Chart widths are unaffected
+    // since USABLE_WIDTH doesn't change, so their locks stay.
     state.resetSlicerSizingLocks();
     state.resetChartRowHeightLocks();
     state.setWarnings([]);
@@ -155,7 +144,7 @@ function initRowLimitControls() {
 
   kpisPerRowSelect.addEventListener("change", () => {
     state.setMaxKpis(kpisPerRowSelect.value);
-    // Same reasoning as above, for KPIs.
+    // Same reasoning as above.
     state.resetKpiSizingLocks();
     state.resetChartRowHeightLocks();
     state.setWarnings([]);
@@ -166,8 +155,8 @@ function initRowLimitControls() {
   });
 }
 
-// `motion` is renderLayout's: a page or theme switch fades in ("swap"); an
-// undo / redo passes undefined, so the change plays back as movement.
+// `motion` is renderLayout's: a page or theme switch fades in ("swap"); undo /
+// redo passes undefined, so the change plays as movement.
 function refreshUIFromState({ motion = "swap" } = {}) {
   setSelected(null);
   // A new page opens the Šablona panel; one already worked on stays folded.
@@ -177,23 +166,23 @@ function refreshUIFromState({ motion = "swap" } = {}) {
   syncSlicerRowVisibility();
   syncKpiBandControls();
   syncRowLimitControls();
-  // Another page or another theme is new content, not the old content moved
-  // (see motion.js R3) — it fades in rather than morphing card by card.
+  // Another page or theme is new content, not moved content (see motion.js
+  // R3), so it fades in instead of morphing card by card.
   renderLayout({ motion });
   renderWarnings();
 }
 
 // The CS / EN switch in the top bar. The language changes in place: i18n.js
-// refills the static markup and each module carries over the text it holds;
-// what is left here is re-rendering the text-bearing parts of the sidebar and
-// canvas. Unlike refreshUIFromState it keeps the selection and the Šablona
-// fold, and the canvas relabels without replaying any motion.
+// refills the static markup and each module converts its own text. This file
+// re-renders the text parts of the sidebar and canvas. Unlike
+// refreshUIFromState it keeps the selection and the Šablona fold, and the
+// canvas relabels without motion.
 const localeSwitch = document.querySelector(".lang-switch");
 const localeButtons = localeSwitch.querySelectorAll("[data-locale]");
 
-// The sliding thumb (ui/thumb.js) follows .active. It only transitions once
-// it has landed, so a page that loads in English shows it already on EN
-// instead of sliding over from CS.
+// The sliding thumb (ui/thumb.js) follows .active. It transitions only after
+// landing, so a page loading in English starts on EN instead of sliding from
+// CS.
 function syncLocaleButtons() {
   localeButtons.forEach(button => {
     const active = button.dataset.locale === getLocale();
@@ -217,8 +206,8 @@ function initLocaleSwitch() {
     syncRowLimitControls();
     renderTabBar();
     renderLayout({ motion: false });
-    // The rebuilt canvas carries no selection mark; the selection itself
-    // survived (ui/selection.js relabelled it), so put the mark back.
+    // The rebuilt canvas has no selection mark, but the selection survived
+    // (ui/selection.js relabelled it). Put the mark back.
     const domId = state.selectedElement?.domId;
     if (domId) document.getElementById(domId)?.classList.add("selected");
     renderWarnings();
@@ -241,9 +230,9 @@ function start() {
   initTabsUI({ refreshUI: refreshUIFromState });
   initThemePicker({ refreshUI: refreshUIFromState });
   initElementsSection();
-  // Element styles are project data, autosaved like the pages once saved
-  // (a draft being edited is not). The canvas needs no render here: it is
-  // hidden while they are edited and re-rendered on the way back (rail.js).
+  // Element styles are project data, autosaved like pages once saved (not
+  // while a draft is edited). No render needed: the canvas is hidden during
+  // editing and re-rendered on return (rail.js).
   onStylesChange(info => { if (info.saved || info.replaced) scheduleSave(); });
   initRail({ openEditor: openActiveThemeEditor });
   initHelp();
@@ -267,19 +256,17 @@ function start() {
   initShortcuts({ openHelp });
   setSelected(null);
   initCanvasRefit();
-  // On a machine that blocks site data, say so up front rather than let the
-  // pages vanish on the next visit.
+  // If site data is blocked, say so now instead of losing pages next visit.
   if (!storageAvailable()) addWarning(t("session.storageUnavailable"), "info");
   // A first visit opens with the three steps, once the page has been drawn.
   requestAnimationFrame(() => maybeShowWelcome({ restored }));
 }
 
-// Refits the canvas the moment the workspace changes width — the same frame
-// a window drag, a snap, a scrollbar or the stacked breakpoint narrows it —
-// rather than 150ms after the last resize event, during which the previous,
-// wider sheet sat in the narrower page and pushed it out sideways. The
+// Refits the canvas in the same frame the workspace changes width (window
+// drag, snap, scrollbar, stacked breakpoint), not 150ms after the last
+// resize event, when the old wider sheet would push the page sideways. The
 // debounced resize stays for everything else (a height-only change matters
-// to the desktop fit) and as the whole story where ResizeObserver is missing.
+// to the desktop fit) and as the fallback without ResizeObserver.
 function initCanvasRefit() {
   window.addEventListener("resize", debounce(renderLayout, 150));
   const main = document.querySelector(".main");
@@ -289,9 +276,9 @@ function initCanvasRefit() {
   let lastHeight = main.clientHeight;
   let queued = false;
   new ResizeObserver(() => {
-    // Width always matters to the fit. Height matters on the desktop, where
-    // it only changes with the window; in the stacked layout it changes on
-    // every render (the sheet is part of it) and must not re-enter.
+    // Width always matters. Height matters on the desktop, where it changes
+    // only with the window; in the stacked layout it changes on every render
+    // (the sheet is part of it) and must not re-enter.
     // Zero means hidden behind another rail section; rail.js refits on return.
     const width = main.clientWidth;
     const height = main.clientHeight;
@@ -302,7 +289,7 @@ function initCanvasRefit() {
     lastHeight = height;
     queued = true;
     // Same frame, so the sheet follows the easing side panel (see .sidebar)
-    // frame by frame instead of jumping after it.
+    // instead of jumping after it.
     requestAnimationFrame(() => { queued = false; renderLayout(); });
   }).observe(main);
 }

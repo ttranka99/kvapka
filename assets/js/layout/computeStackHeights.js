@@ -8,12 +8,9 @@ export function stackMinHeight(count) {
   return count * state.MIN_CHART_ROW_HEIGHT + (count - 1) * state.GAP_SMALL;
 }
 
-// A row's effective minimum height is normally MIN_CHART_ROW_HEIGHT, but a
-// stacked cell inside it can raise that floor — either because it simply has
-// more sub-charts than fit in one MIN_CHART_ROW_HEIGHT, or because some of
-// its sub-charts are height-locked at a size that leaves less room for the
-// still-flexible ones (each of which still needs at least
-// MIN_CHART_ROW_HEIGHT of its own).
+// A row's minimum height is MIN_CHART_ROW_HEIGHT, unless a stack in it needs
+// more: locked sub-charts keep their height, and each unlocked one still
+// needs MIN_CHART_ROW_HEIGHT.
 export function rowEffectiveMinHeight(row) {
   let min = state.MIN_CHART_ROW_HEIGHT;
 
@@ -34,12 +31,10 @@ export function rowEffectiveMinHeight(row) {
   return min;
 }
 
-// Shrinks the unlocked stack entries (proportionally to their headroom above
-// HARD_MIN_CHART_HEIGHT) until their total fits within `remaining`. Mirrors
-// clampUnlockedRows() in computeChartRowHeights.js — needed because a row can
-// itself get shrunk below rowEffectiveMinHeight() (see that file) when the
-// canvas is too short, leaving less cellHeight than this stack's own
-// MIN_CHART_ROW_HEIGHT floors add up to.
+// Shrinks the entries at `unlockedIdx` until they fit in `remaining`, each by
+// its share of the headroom above HARD_MIN_CHART_HEIGHT. Mirrors
+// clampUnlockedRows() in computeChartRowHeights.js. Needed because a short
+// canvas can shrink a row below rowEffectiveMinHeight().
 function clampUnlockedStack(heights, unlockedIdx, remaining) {
   const unlockedSum = unlockedIdx.reduce((s, i) => s + heights[i], 0);
   const excess = unlockedSum - remaining;
@@ -56,14 +51,11 @@ function clampUnlockedStack(heights, unlockedIdx, remaining) {
   });
 }
 
-// Scales the given `indices`' heights proportionally so they sum to exactly
-// `target` (growing or shrinking as needed), flooring each at
-// HARD_MIN_CHART_HEIGHT. Used when every stack entry is locked: locked
-// heights are normally kept verbatim, but when the cell itself doesn't
-// match their sum (e.g. a sibling row was removed and this row grew) they
-// must be redistributed on-screen. This never writes back to the stored
-// `stack[i].height`, so the exact locked sizes return once the cell fits
-// them again.
+// Scales the heights at `indices` proportionally to sum to `target`, with
+// each at least HARD_MIN_CHART_HEIGHT. Used when every entry is locked but
+// the cell no longer matches their sum (e.g. a sibling row was removed).
+// Only the on-screen heights change, not `stack[i].height`, so the locked
+// sizes return once the cell fits them again.
 function fitHeightsTo(heights, indices, target) {
   const sum = indices.reduce((s, i) => s + heights[i], 0);
   if (sum <= 0 || sum === target) return;
@@ -80,15 +72,12 @@ function fitHeightsTo(heights, indices, target) {
   });
 }
 
-// Splits a cell's total height among its stacked sub-charts. Locked entries
-// keep their stored height untouched. Among the unlocked entries: if every
-// one of them already has a stored height (e.g. from a prior drag), they're
-// scaled proportionally to fill whatever room remains — this is what makes
-// a row-height change redistribute a stack's manually-dragged proportions
-// instead of resetting them. Otherwise (any unlocked entry is still "auto",
-// height: null) the remaining room is split evenly, same pattern as
-// computeChartRowHeights. Every returned height floors at
-// MIN_CHART_ROW_HEIGHT.
+// Splits a cell's height among its stacked sub-charts. Locked entries keep
+// their stored height. The unlocked ones share the rest:
+// - all have a stored height (e.g. from a drag): scaled proportionally, so a
+//   row-height change keeps the dragged proportions;
+// - any is "auto" (height: null): split evenly, as in computeChartRowHeights.
+// Each height is at least MIN_CHART_ROW_HEIGHT.
 export function computeStackHeights(stack, cellHeight) {
   const n = stack.length;
   const gaps = (n - 1) * state.GAP_SMALL;
@@ -108,10 +97,8 @@ export function computeStackHeights(stack, cellHeight) {
   const remaining = Math.max(0, available - lockedSum);
 
   if (unlockedIdx.length === 0) {
-    // Every entry is locked: their stored heights are honored verbatim
-    // whenever possible, but the cell must still be filled exactly, so
-    // scale them to fit `available` (grow or shrink) without touching the
-    // stored values.
+    // All locked: still fill the cell exactly, so scale to `available`
+    // (stored heights stay untouched).
     fitHeightsTo(heights, lockedIdx, available);
     return heights;
   }
@@ -141,9 +128,8 @@ export function computeStackHeights(stack, cellHeight) {
 
   clampUnlockedStack(heights, unlockedIdx, remaining);
 
-  // If the locked entries alone exceed the room left after the unlocked
-  // ones settled at their floor, the stack still overflows the cell —
-  // shrink the locked heights (on-screen only) to fit what's left.
+  // Locked entries can still overflow the cell once the unlocked ones are at
+  // their floor: shrink them too (on-screen only).
   const unlockedSum = unlockedIdx.reduce((s, i) => s + heights[i], 0);
   const lockedRemaining = available - unlockedSum;
   if (lockedSum > lockedRemaining) {

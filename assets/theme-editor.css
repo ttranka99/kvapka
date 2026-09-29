@@ -97,9 +97,9 @@ body.theme-editor-reordering .theme-handle {
   pointer-events: none;
 }
 
-/* A section of .app, not an overlay: it takes the sidebar + canvas's place
-   beside the rail exactly as #section-prvky does, so it needs no --topbar /
-   --rail offsets and the rail stays clickable at every width. */
+/* A section of .app, not an overlay. Like #section-prvky it takes the
+   sidebar + canvas's place beside the rail, so it needs no --topbar / --rail
+   offsets and the rail stays clickable at every width. */
 .theme-editor {
   flex: 1;
   min-width: 0;
@@ -129,9 +129,9 @@ body.theme-editor-open .main {
   box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
 }
 
-/* Top-aligned: the name input and the buttons are both 36px, so they share
-   a line, and when the actions wrap they stack beneath rather than
-   centring against it. 20px sides, like every pane below. */
+/* Top-aligned: the name input and buttons are both 36px, so they share a
+   line. When the actions wrap, they stack below instead of centring.
+   20px sides, like every pane below. */
 .theme-editor__head {
   display: flex;
   flex-wrap: wrap;
@@ -141,15 +141,15 @@ body.theme-editor-open .main {
   border-bottom: 1px solid var(--line);
 }
 
-/* The floor is what makes the head wrap instead of starving the name field:
-   with min-width: 0 the row always "fits" by shrinking this to nothing. */
+/* The floor makes the head wrap instead of starving the name field. With
+   min-width: 0 the row always "fits" by shrinking this to nothing. */
 .theme-editor__identity {
   flex: 1 1 220px;
   min-width: 220px;
 }
 
-/* The visible field: a bordered box holding the name and, at its end, the
-   pencil — the border shows where the editable area starts and stops. */
+/* The visible field: a bordered box holding the name and the pencil.
+   The border shows where the editable area starts and stops. */
 .theme-editor__name-box {
   display: flex;
   align-items: center;
@@ -207,7 +207,7 @@ body.theme-editor-open .main {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  /* May shrink (and wrap) — five nowrap buttons otherwise run off a phone. */
+  /* May shrink and wrap; five nowrap buttons would run off a phone. */
   min-width: 0;
 }
 
@@ -218,9 +218,9 @@ body.theme-editor-open .main {
 .theme-editor__body {
   flex: 1;
   display: grid;
-  /* The controls column is exactly the sidebar card's width (the sidebar
-     minus its left gutter), so switching between the Studio section and
-     this one keeps the left column in place instead of resizing it. */
+  /* The controls column is as wide as the sidebar card (sidebar minus its left
+     gutter). So switching between Studio and this section keeps the left
+     column in place. */
   grid-template-columns: calc(var(--sidebar) - var(--gutter)) minmax(0, 1fr);
   min-height: 0;
 }
@@ -232,8 +232,7 @@ body.theme-editor-open .main {
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
-  /* 20px sides, the same as .panel, so the content edges line up with the
-     sidebar's. */
+  /* 20px sides, like .panel, so content edges line up with the sidebar's. */
   padding: 16px 20px 20px;
   border-right: 1px solid var(--line);
 }
@@ -275,8 +274,8 @@ body.theme-editor-open .main {
   background: var(--surface-2);
 }
 
-/* A control a new placement adds fades in (themeEditor.js syncControlsPane);
-   .m-reveal's own transition would lose to the one above. */
+/* A control added by a new placement fades in (themeEditor.js
+   syncControlsPane). .m-reveal's own transition would lose to the one above. */
 .theme-field.m-reveal {
   transition: background var(--fast) ease, opacity var(--base) ease;
 }
@@ -435,9 +434,9 @@ body.theme-editor-open .main {
   background: none;
 }
 
-/* Where the slicers stand — the first row of the controls pane. The same
-   segmented control as the sidebar's "Slicery" switch, so the two sections
-   read as one. Disabled (all three options) once the layout is saved. */
+/* Where the slicers stand: the first row of the controls pane. Same
+   segmented control as the sidebar's "Slicery" switch. Disabled (all three
+   options) once the layout is saved. */
 .theme-editor__placement {
   margin-bottom: 20px;
 }
@@ -446,9 +445,8 @@ body.theme-editor-open .main {
   margin-top: 6px;
 }
 
-/* The per-band KPI list — one card per `kpi` section. A card reads like
-   the rest of the pane: a title row, then label-left / control-right rows
-   in the sidebar's .panel-row rhythm. */
+/* The per-band KPI list: one card per `kpi` section. A title row, then
+   label-left / control-right rows in the sidebar's .panel-row rhythm. */
 .theme-kpi-bands {
   margin-top: 8px;
 }
@@ -514,8 +512,8 @@ body.theme-editor-open .main {
   flex-shrink: 0;
 }
 
-/* Three options don't fit beside their label in a 200px column, so that
-   row stacks: label above, the toggle spanning the width beneath. */
+/* Three options don't fit beside their label in a 200px column. So the row
+   stacks: label above, toggle full width below. */
 .theme-kpi-band__row--stack {
   flex-direction: column;
   align-items: stretch;
@@ -598,10 +596,9 @@ body.theme-editor-open .main {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* A genuinely short window scrolls the stage rather than crushing the
-     preview toward renderPreview()'s 120px floor: 260px of frame is a
-     ~0.21 scale for a FULL HD canvas, the point where it stops being a
-     thumbnail. */
+  /* A really short window scrolls the stage instead of crushing the preview
+     toward renderPreview()'s 120px floor. 260px of frame is about 0.21 scale
+     for a FULL HD canvas, where it stops being more than a thumbnail. */
   min-height: 260px;
   padding: 16px;
   border-radius: var(--r-md);
@@ -624,10 +621,10 @@ body.theme-editor-open .main {
     top var(--base) var(--ease-in-out), height var(--base) var(--ease-in-out);
 }
 
-/* The preview is rebuilt from scratch on every render, so a discrete change
-   is replayed per region by data-key (motion.js playBoxes), exactly as the
-   Studio canvas replays its cards: a survivor glides from its old box, a
-   newcomer fades in, a region that is gone fades out as a ghost. */
+/* The preview is rebuilt on every render, so a discrete change is replayed
+   per region by data-key (motion.js playBoxes), as the Studio canvas does
+   with its cards. A survivor glides from its old box, a newcomer fades in,
+   a removed region fades out as a ghost. */
 .theme-region.is-moving {
   transition: box-shadow var(--fast) ease, opacity var(--base) ease,
     left var(--base) var(--ease-in-out), top var(--base) var(--ease-in-out),
@@ -644,8 +641,8 @@ body.theme-editor-open .main {
   pointer-events: none;
 }
 
-/* The lifted band tracks the cursor through an inline transform written
-   every frame — never animated, or it would lag the pointer. */
+/* The lifted band follows the cursor via an inline transform written every
+   frame. Never animate it, or it lags the pointer. */
 .theme-region--dragging {
   z-index: 30;
   box-shadow: 0 16px 40px -8px rgba(28, 33, 40, 0.4), 0 0 0 1.5px var(--pink);
@@ -673,7 +670,7 @@ body.theme-editor-open .main {
   pointer-events: none;
 }
 
-/* The four margin bands: a soft neutral tint, real elements so any inner
+/* The four margin bands: a soft neutral tint. Real elements, so any inner
    edge can be dragged. */
 .theme-region--margin {
   border-radius: 0;
@@ -975,12 +972,11 @@ body.theme-editor-reordering .theme-grip {
   list-style: none;
 }
 
-/* A finding, dressed as a notification toast (.toast in style.css): tinted
-   face, a ring in the severity colour, the icon on a filled disc, the
-   headline in that colour and the fix beneath it. No shadow or width: it
-   sits in the page, not over it. Only a finding that just appeared fades in
-   (.m-reveal, opacity only); the list is rebuilt as the user drags, and the
-   ones already there stay still. --tone is the severity colour, --tint its
+/* A finding, styled like a notification toast (.toast in style.css): tinted
+   face, ring in the severity colour, icon on a filled disc, headline in that
+   colour, the fix beneath. No shadow or width: it sits in the page, not over
+   it. Only a newly appeared finding fades in (.m-reveal, opacity only), since
+   the list is rebuilt during drags. --tone is the severity colour, --tint its
    background. */
 .theme-issue {
   --tone: var(--warning);
@@ -1064,13 +1060,13 @@ body.theme-editor-reordering .theme-grip {
   box-shadow: 0 0 0 3px var(--error-bg);
 }
 
-/* One column, at the same breakpoint where the sidebar stacks above the
-   canvas (style.css). fit-content(35%) is "as tall as the controls need, up to
-   35%" — on the track, not as a max-height on the item, because a
-   percentage max-height on a grid item is cyclic while its track is being
-   sized and gets ignored, handing the whole height to the controls. The
-   preview takes whatever is left, which for a 16:9 canvas is the difference
-   between a picture and a thumbnail. */
+/* One column, at the breakpoint where the sidebar stacks above the canvas
+   (style.css). fit-content(35%) means as tall as the controls need, up to 35%.
+   It goes on the track, not as a max-height on the item: a percentage
+   max-height on a grid item is cyclic while the track is sized, so it is
+   ignored and the controls get the whole height. The preview gets the rest,
+   which for a 16:9 canvas is the difference between a picture and a
+   thumbnail. */
 @media (max-width: 900px) {
   .theme-editor__body {
     grid-template-columns: minmax(0, 1fr);

@@ -1,16 +1,15 @@
 // assets/js/ui/projectMenu.js
 //
-// The "Project" menu in the top bar: start a new project, save the whole page
-// list as a .kvapka.json file, or open one. What goes into the file and what
-// is accepted back is state/projectFile.js; this is only the menu and the file
-// handling around it.
+// The "Project" menu in the top bar: start a new project, save all pages as a
+// .kvapka.json file, or open one. The file format is in state/projectFile.js;
+// this is only the menu and the file handling.
 //
-// New and Open both replace every page, so when there is work not yet saved
-// to a file they first ask whether to save it.
+// New and Open replace every page, so with unsaved work they ask about
+// saving first.
 //
-// Both halves stay on the device and work under a locked-down browser: saving
+// Everything stays on the device and works in a locked-down browser: saving
 // is a plain download link (no File System Access API, which policies often
-// disable), opening is a file picker read in memory. No request is made.
+// disable) and opening reads a picked file in memory. No request is made.
 
 import {
   buildProjectJson,
@@ -29,7 +28,7 @@ import { addWarning } from "./warnings.js";
 import { confirmDialog, choiceDialog } from "./dialog.js";
 import { t } from "../i18n/i18n.js";
 
-// Only the file's name is ever shown back, and only this much of it.
+// Only the file's name is shown back, cut to this length.
 const MAX_SHOWN_NAME = 80;
 
 let button;
@@ -88,8 +87,8 @@ export function saveProject() {
 
 /**
  * Before New or Open replaces every page: asks to save unsaved work first
- * (Save / Don't save / Cancel), and for New with nothing to lose still
- * confirms, since the pages go either way. Resolves whether to go ahead.
+ * (Save / Don't save / Cancel). New with nothing to lose still confirms,
+ * since the pages go either way. Resolves whether to go ahead.
  */
 async function readyToReplace(kind) {
   if (!hasUnsavedChanges()) {
@@ -118,12 +117,12 @@ async function readyToReplace(kind) {
 async function newProject() {
   if (!(await readyToReplace("new"))) return;
   resetTabs();
-  // The element styles belong to the project, so they start over too.
+  // Element styles belong to the project, so they reset too.
   replaceElementStyles(null);
-  // A blank project is the baseline again, whatever was saved before.
+  // The blank project becomes the saved baseline.
   forgetSaved();
-  // The rest of the app follows as it does on a page switch, and the render
-  // autosaves the blank project over the old session.
+  // The rest of the app follows as on a page switch. The render autosaves
+  // the blank project over the old session.
   renderTabBar();
   refreshUI();
   addWarning(t("project.started"), "info");
@@ -133,8 +132,8 @@ async function newProject() {
 const enabledItems = () => [newItem, saveItem, openItem].filter(item => !item.disabled);
 
 function open() {
-  // A page can't be swapped out from under the template editor: its draft
-  // belongs to the page that is live now.
+  // No page swap while the template editor is open: its draft belongs to
+  // the live page.
   const editorOpen = document.body.classList.contains("theme-editor-open");
   for (const item of [newItem, openItem]) {
     item.disabled = editorOpen;
@@ -161,9 +160,9 @@ function onMenuKeydown(e) {
     close(true);
     return;
   }
-  // Tabbing away closes the menu like a click elsewhere does. Done on the key
-  // rather than on focusout: Safari doesn't focus a clicked button, so a
-  // focusout close would hide the menu before the click on an item landed.
+  // Tabbing away closes the menu like a click elsewhere. Done on the key, not
+  // focusout: Safari doesn't focus a clicked button, so focusout would hide
+  // the menu before the click on an item landed.
   if (e.key === "Tab") {
     close();
     return;
@@ -184,7 +183,7 @@ async function handleFile() {
   fileInput.value = "";              // so picking the same file again still fires
   if (!file) return;
 
-  // Checked before reading, so an oversized file is never loaded at all.
+  // Checked before reading, so an oversized file is never loaded.
   if (file.size > MAX_PROJECT_BYTES) {
     addWarning(t("project.tooLarge"), "error");
     return;
@@ -204,8 +203,7 @@ async function handleFile() {
     return;
   }
 
-  // The new pages are in place; the rest of the app follows as it does on a
-  // page switch, and the render autosaves them.
+  // The rest of the app follows as on a page switch. The render autosaves.
   renderTabBar();
   refreshUI();
   addWarning(t("project.opened", { name: file.name.slice(0, MAX_SHOWN_NAME) }), "info");

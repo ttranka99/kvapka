@@ -7,15 +7,14 @@
 //   definition/pages/<pageHash>/page.json               one per tab
 //   definition/pages/<pageHash>/visuals/<hash>/visual.json
 //                                                       one per slicer, KPI and chart
-// Styling is visualTemplates.js with the project's element styles laid over
-// it (styleToPbir.js); positions come from the
-// same pure layout functions the renderer uses. The header/title element is
-// intentionally not exported.
 //
-// The layout functions read live module state, but only the active tab's
-// live state is current — other tabs' layouts live in their snapshots
-// (state/tabs.js). So each tab's snapshot is loaded into live state in turn
-// to compute its geometry, and the original live state is restored after.
+// Styling is visualTemplates.js plus the project's element styles
+// (styleToPbir.js). Positions come from the same pure layout functions the
+// renderer uses. The header/title element is intentionally not exported.
+//
+// The layout functions read live state, which is current only for the active
+// tab. Other tabs live in snapshots (state/tabs.js), so each snapshot is
+// loaded in turn to compute its geometry, then the live state is restored.
 
 import * as state from "../state/state.js";
 import { getTabs, getActiveTabIndex, captureSnapshot, loadSnapshot } from "../state/tabs.js";
@@ -54,9 +53,8 @@ function collectVisuals() {
   const kpiLayouts = kpiBandIds.map(id => computeKpiLayoutForBand(v, id).flat());
   const kpis = kpiLayouts.flat();
 
-  // The slicer/KPI layouts return [] when the row overflows the usable
-  // width — in that case the on-screen layout is invalid and so would be
-  // the export.
+  // The slicer/KPI layouts return [] when a row overflows the usable width.
+  // The on-screen layout is then invalid, and so would be the export.
   const anyKpiBandInvalid = kpiBandIds.some(
     (id, i) => state.getKpiBand(id).length > 0 && kpiLayouts[i].length === 0
   );
@@ -71,8 +69,8 @@ function collectVisuals() {
   ];
 }
 
-// The styling is the project's element styles (Customize Elements) over the
-// fixed templates — the same for every page, so it is built once per export.
+// Styling (element styles over the templates) is the same for every page, so
+// it is built once per export.
 function buildVisualJson({ kind, item }, n, visuals) {
   return {
     $schema: VISUAL_SCHEMA,
@@ -100,9 +98,8 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-// A refused or failed export is reported as an error toast, never a native
-// alert(): it matches the app, and a browser that suppresses dialogs would
-// otherwise swallow the reason silently.
+// A refused or failed export shows an error toast, never alert(), which a
+// browser may suppress and hide the reason.
 export function exportPowerBILayout() {
   const liveSnap = captureSnapshot(); // active tab's true current state
   let result;
@@ -112,14 +109,12 @@ export function exportPowerBILayout() {
     console.error("[export]", err);
     result = { error: t("export.failed") };
   } finally {
-    // Whatever happened, the page on screen goes back to the active tab's
-    // own state — never left on the snapshot of the page that failed.
+    // Always return to the active tab's state, not the failed page's.
     loadSnapshot(liveSnap);
   }
 
-  // The bell holds only the latest attempt's outcome. The same error again
-  // is kept rather than dropped and re-added, so its toast stays put (or
-  // comes back from the panel) instead of fading out under the new one.
+  // The bell holds only the latest attempt's outcome. The same error is kept,
+  // not dropped and re-added, so its toast doesn't fade out under a new one.
   const stale = state.warnings.filter(w => w !== result.error && isFrom(w, "export."));
   if (stale.length > 0) {
     state.setWarnings(state.warnings.filter(w => !stale.includes(w)));
@@ -131,15 +126,15 @@ export function exportPowerBILayout() {
     return;
   }
   downloadBlob(result.zip, result.filename);
-  // Getting the zip into Power BI is the step people get stuck on, so every
-  // export points at the guide. Under "export." like the errors, so only the
-  // latest outcome stays in the bell.
+  // People get stuck getting the zip into Power BI, so every export points at
+  // the guide. Under "export." like the errors, so only the latest outcome
+  // stays in the bell.
   addWarning(t("export.done", { file: result.filename }), "info");
 }
 
-// The zip for every page, or { error } naming the first page that can't be
-// exported. Loads each tab's snapshot into live state in turn; the caller
-// restores the live one.
+// The zip for every page, or { error } for the first page that can't be
+// exported. Loads each tab's snapshot in turn; the caller restores the live
+// one.
 function buildExport(liveSnap) {
   const tabs = getTabs();
   const activeIndex = getActiveTabIndex();
@@ -187,8 +182,8 @@ function buildExport(liveSnap) {
     });
   }
 
-  // pages.json registers every page — without it Power BI reports
-  // "ActivePageName not found" when a pasted page isn't listed.
+  // pages.json registers every page. Without it Power BI reports
+  // "ActivePageName not found" for a pasted page that isn't listed.
   const pages = {
     $schema: PAGES_SCHEMA,
     pageOrder,

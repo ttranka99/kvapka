@@ -9,8 +9,7 @@
 //
 // The rail only switches what is on screen; it owns no layout state. The
 // editor's own exits (Uložit, Zrušit, Escape, delete, import) report back
-// through its onClose hook (see themePicker.js), which is what keeps the rail
-// truthful when the editor closes itself.
+// through its onClose hook (see themePicker.js), so the rail stays in sync.
 
 import { closeThemeEditor } from "../theme/themeEditor.js";
 import { renderLayout } from "./renderLayout.js";
@@ -47,9 +46,8 @@ export function setActiveSection(section) {
   if (!buttons) return;
   lightSection(section);
 
-  // .main is display:none while another section is up, so any window resize
-  // that happened meanwhile measured nothing and left the canvas at a stale
-  // scale. Now that the Studio section is visible again, fit it for real.
+  // .main is display:none while another section is up, so resizes meanwhile
+  // measured nothing and left the canvas scale stale. Fit it now.
   if (section === "studio") renderLayout();
 }
 

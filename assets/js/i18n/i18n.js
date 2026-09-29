@@ -1,15 +1,14 @@
 // assets/js/i18n/i18n.js
 //
-// Every piece of UI text lives in a locale file (locales/<code>.js) keyed by
-// name; code asks for it with t("key"). Swapping the language is swapping the
-// dictionary, so a translation — or a rewrite of the Czech — never touches code.
+// All UI text lives in locale files (locales/<code>.js), keyed by name. Code
+// asks with t("key"). Switching language swaps the dictionary, so translating
+// or rewording never touches code.
 //
-// The language switches in place (setLocale): the static markup is refilled
-// here, and every module holding text it already produced — warnings keyed by
-// their own wording, the selected element's type, generated page names —
-// listens (onLocaleChange) and carries it over with the convert() it is
-// handed, which maps a finished string in the old language to the same string
-// in the new one.
+// The language switches in place (setLocale). The static markup is refilled
+// here. Modules holding text they already produced (warnings keyed by their
+// wording, the selected element's type, generated page names) listen with
+// onLocaleChange and use the convert() they get, which maps a finished string
+// in the old language to the same string in the new one.
 
 import cs from "./locales/cs.js";
 import en from "./locales/en.js";
@@ -26,9 +25,9 @@ function storedLocale() {
   }
 }
 
-// ?lang=en in the address gives each language its own URL (for search engines
-// and shared links). It wins for this visit but isn't saved, so a shared link
-// doesn't overwrite the visitor's own choice.
+// ?lang=en gives each language its own URL (for search engines and shared
+// links). It wins for this visit but isn't saved, so a shared link doesn't
+// overwrite the visitor's own choice.
 function urlLocale() {
   try {
     const code = new URLSearchParams(location.search).get("lang");
@@ -59,10 +58,9 @@ function lookup(key, from = dict) {
 export const has = key => lookup(key) !== undefined;
 
 /**
- * The text for `key`, with every {name} replaced by params.name. An entry may
- * be a plural set ({ one, few, many, other }); the form is chosen by
- * params.count. A missing key comes back as the key itself, so a gap shows on
- * screen instead of vanishing.
+ * The text for `key`, with each {name} replaced by params.name. An entry may
+ * be a plural set ({ one, few, many, other }), chosen by params.count. A
+ * missing key returns the key itself, so the gap is visible.
  */
 export function t(key, params) {
   let entry = lookup(key);
@@ -79,10 +77,9 @@ export function t(key, params) {
 
 // --- Matching finished text back to its key ----------------------------
 //
-// A template read as a pattern for the text it produces: the literal parts
-// must match exactly, each {placeholder} captures whatever stands in its
-// place. One matcher per plural form. Cached per dictionary, since the same
-// key reads differently in each language.
+// A template read as a pattern for the text it produces. Literal parts must
+// match exactly; each {placeholder} captures what stands in its place. One
+// matcher per plural form, cached per dictionary (a key differs per language).
 
 const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const matcherCache = new WeakMap();
@@ -96,8 +93,8 @@ function matchersFor(key, from) {
     byKey.set(key, forms.map(form => {
       const names = [...form.matchAll(/\{(\w+)\}/g)].map(m => m[1]);
       const source = form.split(/\{\w+\}/).map(escape).join("(.*?)");
-      // The literal text a match accounts for: the longest wins when several
-      // templates fit, so "{value} px" never claims a whole sentence.
+      // The literal text a match covers. The longest wins when several fit, so
+      // "{value} px" never claims a whole sentence.
       const literal = form.replace(/\{\w+\}/g, "").length;
       return { re: new RegExp(`^${source}$`, "s"), names, literal };
     }));
@@ -122,8 +119,8 @@ function parse(text, from) {
 
 /**
  * Whether `text` was produced by any key under `prefix` (e.g. "warnings.kpi.").
- * Lets code clear a whole family of warnings without matching on wording
- * that a rewrite of the locale file could change.
+ * Lets code clear a family of warnings without matching wording that a
+ * locale rewrite could change.
  */
 export function isFrom(text, prefix) {
   return Object.keys(dict).some(key =>
@@ -136,12 +133,11 @@ export function isFrom(text, prefix) {
 // element's text; data-i18n-<attr> fills that attribute.
 const ATTRS = ["title", "aria-label", "placeholder", "content"];
 
-// A data-i18n element that also carries data-i18n-stable holds its text in
-// every language at once, one <span lang> each, stacked in a single grid cell
-// (style.css). The cell is sized by the longest translation, so switching
-// only changes which span shows — the box, and everything beside it, stays
-// exactly where it was. The hidden ones are aria-hidden, so a screen reader
-// reads only the active language.
+// A data-i18n element with data-i18n-stable holds its text in every language,
+// one <span lang> each, stacked in one grid cell (style.css). The longest
+// translation sizes the cell, so switching only changes which span shows and
+// nothing shifts. Hidden spans are aria-hidden, so screen readers read only
+// the active language.
 function fillStable(node) {
   const key = node.dataset.i18n;
   if (node.dataset.i18nStableKey !== key) {
@@ -171,16 +167,16 @@ function localeUrl(href) {
   return url.href;
 }
 
-// Keeps the address bar, the canonical link and the Open Graph URL/locale on
-// the active language, so a copied link or a crawler lands on the same one.
-// The canonical is the active language's hreflang URL (index.html), so the
-// site's address is written in one place only.
+// Keeps the address bar, canonical link and Open Graph URL/locale on the
+// active language, so a copied link or a crawler lands on the same one. The
+// canonical is the active language's hreflang URL (index.html), so the site
+// address is written in one place.
 function syncLocaleUrl() {
   try {
     const next = localeUrl(location.href);
     if (next !== location.href) history.replaceState(history.state, "", next);
   } catch {
-    // A sandboxed frame may refuse replaceState; the language still switches.
+    // A sandboxed frame may refuse replaceState. The language still switches.
   }
   const own = document.querySelector(`link[rel="alternate"][hreflang="${locale}"]`);
   if (own) {
@@ -227,9 +223,9 @@ export function setLocale(code) {
   if (!LOCALES[code] || code === locale) return;
 
   const from = dict;
-  // Text that no key produced (a page name the user typed, a theme label)
-  // comes back unchanged. A param may itself be finished text — a warning
-  // quoted inside another — so params are carried over the same way.
+  // Text no key produced (a typed page name, a theme label) comes back
+  // unchanged. A param may itself be finished text (a warning quoted inside
+  // another), so params are converted the same way.
   const convert = text => {
     if (typeof text !== "string") return text;
     const hit = parse(text, from);
@@ -246,7 +242,7 @@ export function setLocale(code) {
   try {
     localStorage.setItem(STORAGE_KEY, code);
   } catch {
-    // Not remembered for next time; this session still switches.
+    // Not remembered for next time, but this session still switches.
   }
 
   applyStaticText();

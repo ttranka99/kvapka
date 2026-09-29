@@ -2,10 +2,8 @@ import * as state from "../state/state.js";
 import { rowEffectiveMinHeight } from "./computeStackHeights.js";
 import { distributeInSteps, snapToStep } from "./sizeStep.js";
 
-// Shrinks the unlocked rows' heights (proportionally to how much headroom
-// each has above HARD_MIN_CHART_HEIGHT) until their total no longer exceeds
-// `remaining`. Locked rows are never touched — the user explicitly fixed
-// those sizes.
+// Shrinks the rows at `unlockedIndices` until they fit in `remaining`, each by
+// its share of the headroom above HARD_MIN_CHART_HEIGHT.
 function clampUnlockedRows(result, unlockedIndices, remaining) {
   const unlockedSum = unlockedIndices.reduce((s, i) => s + result[i], 0);
   const excess = unlockedSum - remaining;
@@ -27,11 +25,9 @@ export function computeChartRowHeights(v) {
   const n = rows.length;
   if (n === 0) return [];
 
-  // chartRowGapCount accounts for every chart group's own internal gaps
-  // (rows within a group are always GAP_SMALL apart) minus the boundary gaps
-  // between groups, which computeVerticalLayout already counted once as
-  // part of its own boundary walk. Fall back to the old n-1 assumption
-  // (a single, unbroken block of rows) if it's ever missing.
+  // chartRowGapCount counts the gaps inside chart groups only. The gaps
+  // between groups are already counted by computeVerticalLayout. Falls back
+  // to n - 1 (one unbroken block) if missing.
   const totalGaps = (v.chartRowGapCount ?? n - 1) * state.GAP_SMALL;
   const lockedSum = rows
     .filter(r => r.locked)
@@ -49,9 +45,8 @@ export function computeChartRowHeights(v) {
   const target = Math.max(0, v.chartsHeight - totalGaps);
 
   if (m === 0) {
-    // Every row is locked: stored heights are honored verbatim whenever
-    // possible, but the canvas must still be filled exactly, so scale them
-    // to fit `target` (grow or shrink) without touching the stored values.
+    // Every row is locked. The canvas must still be filled exactly, so scale
+    // the heights to `target` without changing the stored values.
     rows.forEach((r, i) => {
       result[i] = r.height ?? rowEffectiveMinHeight(r);
     });
@@ -84,9 +79,8 @@ export function computeChartRowHeights(v) {
 
   clampUnlockedRows(result, unlockedIndices, remaining);
 
-  // If the locked rows alone exceed the room left after the unlocked ones
-  // settled at their floor, the layout still overflows the canvas —
-  // shrink the locked heights (on-screen only) to fit what's left.
+  // If the locked rows still overflow once the unlocked ones are at their
+  // floor, shrink the locked heights (on-screen only) to fit.
   const unlockedSum = unlockedIndices.reduce((s, i) => s + result[i], 0);
   const lockedTarget = Math.max(0, target - unlockedSum);
   if (lockedSum > lockedTarget) {

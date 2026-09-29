@@ -1,26 +1,25 @@
 // assets/js/elements/elementsSection.js
 //
-// The rail's "Customize Elements" section: the styles of slicers, KPI cards
-// and charts, for every page of the project and for the Power BI export.
+// The rail's "Customize Elements" section: styles of slicers, KPI cards and
+// charts, for every page and for the Power BI export.
 //
-// Controls on the left and a live mock on the right, like the layout editor
-// (theme/themeEditor.js), and the two are one object: hovering a control
-// outlines the part of the mock it changes, hovering a part of the mock
-// lights its controls. Every edit shows as it happens — a slider writes CSS
-// variables on the mock each frame (elementPreview.js applyStyles) and draws
-// a guide explaining the value (the radius arcs, the padding bands, the
-// text-size rulers…). "Highlight changes" marks everything that differs from
-// the defaults, and holding "Compare" shows the defaults in place.
+// Controls on the left, a live mock on the right, like the layout editor
+// (theme/themeEditor.js). They are linked: hovering a control outlines its
+// part of the mock, and hovering a part lights its controls. A slider writes
+// CSS variables on the mock each frame (elementPreview.js applyStyles) and
+// draws a guide for the value (radius arcs, padding bands, text rulers...).
+// "Highlight changes" marks everything that differs from the defaults, and
+// holding "Compare" shows the defaults.
 //
-// Edits go into a draft (elementStyles.js): Save & Apply hands it to the
-// project (canvas, export, project file), Discard drops it, and leaving the
-// section with one unsaved asks which. The draft has its own undo history:
-// while this section is open, the top bar's undo / redo and Ctrl+Z / Ctrl+Y
-// act on it (state/history.js setHistoryDelegate).
+// Edits go into a draft (elementStyles.js). Save & Apply hands it to the
+// project (canvas, export, project file), Discard drops it, and leaving with
+// unsaved edits asks which. The draft has its own undo history: while this
+// section is open, the top bar's undo / redo and Ctrl+Z / Ctrl+Y act on it
+// (state/history.js setHistoryDelegate).
 //
-// Motion follows ui/motion.js: a discrete change (a switch, a choice, a
-// reset, undo) eases the mock to its new look; a drag never does, it follows
-// the pointer frame by frame (R5).
+// Motion follows ui/motion.js. A discrete change (switch, choice, reset, undo)
+// eases the mock to its new look. A drag never eases; it follows the pointer
+// frame by frame (R5).
 
 import {
   ELEMENT_TYPES,
@@ -99,8 +98,8 @@ export function initElementsSection() {
   onStylesChange(info => {
     if (!root.firstChild) return;
     if (info.all) {
-      // Undo, redo, reset, discard, a project opened: everything may have
-      // moved, so the values are re-read and the mock eases to them.
+      // Undo, redo, reset, discard, project opened: anything may have
+      // changed, so re-read the values and ease the mock to them.
       tween();
       syncAll();
     } else if (info.type) {
@@ -128,8 +127,8 @@ export function initElementsSection() {
 }
 
 /**
- * Before the rail leaves this section: with an unsaved draft, asks whether to
- * save it, discard it or stay. Resolves whether to go ahead.
+ * Before the rail leaves this section: with an unsaved draft, asks to save,
+ * discard or stay. Resolves whether to go ahead.
  */
 export async function confirmLeaveElements() {
   commitStyles();
@@ -184,8 +183,8 @@ function build() {
 }
 
 function buildHead() {
-  // The layout editor's head: what is being edited on the left, the commit
-  // buttons at the right end, Save & Apply last (theme/themeEditor.js).
+  // Like the layout editor's head: what is edited on the left, commit buttons
+  // on the right, Save & Apply last (theme/themeEditor.js).
   const head = el("div", "elements__head");
 
   const heading = el("div", "elements__heading");
@@ -218,8 +217,8 @@ function buildHead() {
   discard.addEventListener("click", () => discardDraft());
   actions.appendChild(discard);
 
-  // Unsaved edits show as a dot on the button that saves them (and on the
-  // rail and the type tabs) rather than as a line of text.
+  // Unsaved edits show as a dot on the save button (and on the rail and the
+  // type tabs), not as text.
   const saveBtn = el("button", "btn btn-primary elements__save");
   saveBtn.type = "button";
   saveBtn.appendChild(el("span", null, t("elements.save")));
@@ -251,13 +250,13 @@ function toolButton(iconSvg, label, className) {
   return b;
 }
 
-// The zoom levels − and + step through; "Fit" fills the viewport.
+// The zoom levels − and + step through. "Fit" fills the viewport.
 const ZOOM_STEPS = [0.5, 0.75, 1, 1.5, 2];
 
 function buildStage() {
   const stage = el("div", "elements__stage");
 
-  // The layout editor's stage toolbar: a label, then its tools on the right.
+  // Like the layout editor's stage toolbar: a label, tools on the right.
   const toolbar = el("div", "elements__toolbar");
   toolbar.appendChild(el("span", "elements__toolbar-label", t("elements.preview")));
   const tools = el("div", "elements__tools");
@@ -318,8 +317,8 @@ function buildStage() {
   return stage;
 }
 
-// The zoom, where most apps keep it: a small floating pill in the preview's
-// bottom-right corner. − / + step, the percentage (or the fit icon) fits.
+// The zoom: a small floating pill in the preview's bottom-right corner.
+// − / + step it; the percentage (or the fit icon) fits.
 function buildZoomControl() {
   const pill = el("div", "elements__zoom");
   pill.setAttribute("role", "group");
@@ -372,8 +371,8 @@ function selectType(type, { force = false } = {}) {
     button.classList.toggle("is-active", button.dataset.type === type);
   });
 
-  // Another type is new content, not the old one changed (motion.js R3): the
-  // old mock fades out as the new one comes in, and the controls cascade in.
+  // Another type is new content, not a changed one (motion.js R3): the old
+  // mock fades out as the new one comes in, and the controls cascade in.
   buildControls({ animate: !force });
   buildMock({ animate: !force });
   syncAll();
@@ -406,8 +405,8 @@ function buildMock({ animate = false } = {}) {
   stageFrame.appendChild(contentOutline());
 }
 
-// The zoom is a transform on the box holding the mock, so the mock itself
-// always keeps Power BI's px. "Fit" fills the viewport, between 50 and 200 %.
+// Zoom is a transform on the box holding the mock, so the mock keeps Power
+// BI's px. "Fit" fills the viewport, between 50 and 200 %.
 function fitZoom() {
   if (!stageFrame) return;
   const viewport = root.querySelector(".elements__viewport");
@@ -415,8 +414,7 @@ function fitZoom() {
   const [w, h] = frameSize(activeType, values());
   let zoom = zoomMode;
   if (zoomMode === "fit") {
-    // Room for the guides' tags and the shadow around the box, and for the
-    // zoom pill under it.
+    // Room for the guides' tags, the shadow and the zoom pill.
     const available = Math.min((viewport.clientWidth - 96) / w, (viewport.clientHeight - 136) / h);
     zoom = Math.max(0.5, Math.min(2, Math.floor(available * 20) / 20 || 1));
   }
@@ -438,8 +436,8 @@ function currentZoom() {
   return Number(box.style.getPropertyValue("--zoom")) || 1;
 }
 
-// Drag the pink dot on the bottom-right corner to round the corners: the dot
-// sits on the arc, and the radius follows it along the diagonal.
+// Drag the pink dot on the bottom-right corner to set the radius. The dot
+// sits on the arc; the radius follows it along the diagonal.
 function radiusHandle() {
   const handle = el("span", "el-handle el-handle--radius");
   handle.title = t("elements.handleRadius");
@@ -471,9 +469,9 @@ function radiusHandle() {
   return handle;
 }
 
-// The content box, outlined on hover, with a grip in the middle of each edge:
-// drag one to set that side's padding (every side while linked). The striped
-// padding bands and the value show while dragging.
+// The content box, outlined on hover, with a grip mid-edge. Drag a grip to
+// set that side's padding (all sides while linked). Striped padding bands and
+// the value show while dragging.
 function contentOutline() {
   const outline = el("div", "el-content");
   PADDING_SIDES.forEach(side => outline.appendChild(paddingGrip(side)));
@@ -521,8 +519,8 @@ function paddingGrip(side) {
 
 // --- Controls -----------------------------------------------------------------
 
-// A fold that eases open and shut: the app's .collapsible grid-rows pattern
-// (style.css), holding `content`.
+// A fold that eases open and shut, using the .collapsible grid-rows pattern
+// (style.css). Holds `content`.
 function collapsible(content, expanded) {
   const outer = el("div", "collapsible" + (expanded ? " expanded" : ""));
   const inner = el("div", "collapsible-inner");
@@ -628,8 +626,8 @@ function buildField(field) {
   }
 }
 
-// A value changed from a control: the mock follows (through onStylesChange)
-// and the guide explains it.
+// A value changed from a control. The mock follows (via onStylesChange) and
+// the guide explains it.
 function edit(field, value, transient = false) {
   setField(activeType, field.key, value, { transient });
   showGuide(stageFrame, field, values(), field.part);
@@ -667,8 +665,8 @@ function numberField(field, { labelText, onValue } = {}) {
   range.addEventListener("change", () => {
     row.classList.remove("is-live");
     commitStyles();
-    // The slider is pointer-only; left focused, it would count as a text
-    // field and keep Ctrl+Z from undoing the drag it just made.
+    // The slider is pointer-only. If it kept focus it would count as a text
+    // field and Ctrl+Z couldn't undo the drag.
     range.blur();
   });
   number.addEventListener("input", () => {
@@ -687,7 +685,7 @@ function numberField(field, { labelText, onValue } = {}) {
     update: value => {
       range.value = String(value);
       if (document.activeElement !== number) number.value = String(value);
-      // The filled part of the track, so the slider reads as a level.
+      // The filled part of the track.
       const pct = ((value - field.min) / (field.max - field.min)) * 100;
       range.style.setProperty("--fill", `${pct}%`);
     }
@@ -740,8 +738,8 @@ function enumField(field) {
   return row;
 }
 
-// The nine directions a Power BI shadow preset throws the shadow, as a 3×3
-// pad: the square stands for the visual, each dot for where its shadow falls.
+// The nine shadow directions of a Power BI preset, as a 3×3 pad. The square
+// is the visual; each dot is where its shadow falls.
 function presetField(field) {
   const row = fieldRow(field);
   const pad = el("div", "el-preset");
@@ -794,8 +792,8 @@ function fontField(field) {
   return row;
 }
 
-// A swatch that opens, in place, the report theme's colors (with a shade)
-// and a custom color. Theme colors follow the report theme in Power BI.
+// A swatch that opens, in place, the theme colors (with a shade) and a custom
+// color. Theme colors follow the report theme in Power BI.
 function colorField(field) {
   const row = fieldRow(field);
   row.classList.add("el-field--color");
@@ -873,7 +871,7 @@ function colorField(field) {
   customRow.appendChild(hexInput);
   panel.appendChild(customRow);
   const fold = collapsible(panel, false);
-  // Folded, the panel's controls stay out of the tab order.
+  // Folded controls stay out of the tab order.
   panel.inert = true;
   row.appendChild(fold);
 
@@ -906,8 +904,8 @@ function colorField(field) {
   return row;
 }
 
-// Slot 0 and 1 are the theme's background and text colors, the rest its
-// data colors — named the way Power BI's own color picker lists them.
+// Slots 0 and 1 are the background and text colors, the rest data colors,
+// named as in Power BI's color picker.
 function slotName(id) {
   if (id === 0) return t("elements.color.background");
   if (id === 1) return t("elements.color.foreground");
@@ -922,8 +920,8 @@ function colorText(value) {
   return t(percent > 0 ? "elements.color.lighter" : "elements.color.darker", { name, value: Math.abs(percent) });
 }
 
-// Padding: one value for every side while linked (the usual case), the four
-// sides when unlinked. Linked starts as "the four are equal".
+// Padding: one value for all sides while linked, four when unlinked. Starts
+// linked if the four sides are equal.
 function isPaddingLinked() {
   if (!(activeType in paddingLinked)) {
     const v = values();
@@ -973,7 +971,7 @@ function buildPadding(fields) {
   };
   link.addEventListener("click", () => {
     paddingLinked[activeType] = !isPaddingLinked();
-    // Linking evens the sides out to the top value, as one step.
+    // Linking sets every side to the top value, as one step.
     if (paddingLinked[activeType]) setPadding(values()["padding.top"], PADDING_SIDES, false);
     sync();
   });
@@ -1006,8 +1004,8 @@ function syncField(type, key) {
   syncGroups();
 }
 
-// A group whose show switch is off dims its fields: they still apply the
-// moment it is switched back on.
+// A group whose show switch is off dims its fields. They apply again as soon
+// as it is switched on.
 function syncGroups() {
   groupsFor(activeType).forEach(group => {
     if (!group.showKey) return;
@@ -1037,9 +1035,9 @@ function syncHead() {
   });
 }
 
-// The pink dot and reset button on every changed control, the dot on each
-// group holding one, and — with "Highlight changes" on — the glow on every
-// part of the mock that no longer looks like the default.
+// Marks changes: a pink dot and reset button on each changed control, a dot
+// on each group holding one, and, with "Highlight changes" on, a glow on every
+// mock part that differs from the default.
 function syncChangeMarks() {
   if (!stageFrame) return;
   const changed = new Set(changedKeys(getDraftStyles(), activeType));
@@ -1062,14 +1060,14 @@ function syncChangeMarks() {
   stageFrame.querySelectorAll("[data-part]").forEach(node => {
     node.classList.toggle("is-changed", changedParts.has(node.dataset.part));
   });
-  // Border, shadow and padding have no node of their own: they mark the box.
+  // Border, shadow and padding have no node, so they mark the box.
   ["border", "shadow", "padding"].forEach(p => stageFrame.classList.toggle(`changed-${p}`, changedParts.has(p)));
 }
 
 // --- Highlight, compare, motion ---------------------------------------------------
 
 function setHighlight(part, from) {
-  // A handle drag passes over the mock's parts; they are not what is edited.
+  // A handle drag passes over parts of the mock, but they aren't the edit.
   if (stageFrame?.classList.contains("is-dragging") && part !== null) return;
   if (part === highlightedPart) return;
   highlightedPart = part;
@@ -1078,8 +1076,8 @@ function setHighlight(part, from) {
     node.classList.toggle("is-linked", !!part && node.dataset.part === part);
   });
   ["border", "shadow", "padding"].forEach(p => stageFrame.classList.toggle(`lit-${p}`, part === p));
-  // Only a hover over the mock lights the controls; a hovered control is
-  // already lit by its own :hover.
+  // Only a hover over the mock lights controls; a hovered control already
+  // has its own :hover.
   root.querySelectorAll(".el-field[data-part]").forEach(row => {
     row.classList.toggle("is-linked", from === "mock" && !!part && row.dataset.part === part);
   });
@@ -1102,8 +1100,8 @@ function endCompare() {
   applyStyles(stageFrame, activeType, values());
 }
 
-// Discrete jumps (compare, undo, reset) ease; a slider drag never does — it
-// has to follow the thumb frame by frame (motion.js R5).
+// Discrete jumps (compare, undo, reset) ease. A slider drag never does; it
+// must follow the thumb frame by frame (motion.js R5).
 let tweenTimer = null;
 function tween() {
   if (!stageFrame) return;

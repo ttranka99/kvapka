@@ -1,10 +1,9 @@
 // assets/js/ui/switch.js
 //
-// The app's one on/off control: a pill with a thumb that slides across,
-// pink when on. Used wherever a setting is simply on or off — the Customize
-// Elements fields and group heads, the layout editor's KPI band "Second
-// Row" — so the same choice never looks two ways. Styled in style.css
-// (.switch).
+// The app's one on/off control: a pill with a sliding thumb, pink when on.
+// Used for every plain on/off setting (Customize Elements fields and group
+// heads, the KPI band "Second Row") so it always looks the same. Styled in
+// style.css (.switch).
 
 /**
  * @param {object} options
@@ -28,7 +27,7 @@ export function createSwitch({ label, onToggle, id }) {
   node.appendChild(thumb);
 
   node.addEventListener("click", e => {
-    // A switch in a clickable row or head must not also fire the row.
+    // A switch inside a clickable row must not also trigger the row.
     e.stopPropagation();
     onToggle(node.getAttribute("aria-checked") !== "true");
   });

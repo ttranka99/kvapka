@@ -3,16 +3,14 @@ import { computeChartGroups } from "./chartGroups.js";
 import { computeChartRowHeights } from "./computeChartRowHeights.js";
 import { walkSections, contentBoxFor as contentBoxForTheme } from "./sectionWalker.js";
 
-// Thin wrapper kept at its old signature — slicerColumnResizeEvents.js calls
-// this with a width not yet committed, mid-drag, so it needs the box for a
-// hypothetical column width without touching state.SLICER_COLUMN_WIDTH.
+// slicerColumnResizeEvents.js calls this mid-drag with a column width that
+// isn't committed yet, so it must not touch state.SLICER_COLUMN_WIDTH.
 export function contentBoxFor(columnWidth, side) {
   return contentBoxForTheme(state.activeTheme, columnWidth, side);
 }
 
-// Feeds sectionWalker.js the live state and keeps emitting exactly the
-// fields it emitted before the walk was extracted — every solver and
-// renderer downstream reads this shape as-is.
+// Feeds the live state to sectionWalker.js. The solvers and renderers
+// downstream read the returned shape as-is.
 export function computeVerticalLayout() {
   const slicers = state.getSlicers();
   const chartRows = state.getChartRows();

@@ -1,20 +1,18 @@
 // assets/js/ui/help.js
 //
-// Help, opened from the rail's ? button or the ? key: how the app works in
-// three steps, how to bring the export into Power BI (the step people get
-// stuck on), and the keyboard shortcuts. Plus the welcome a first visit opens
-// with — the same three steps, once.
+// Help, opened from the rail's ? button or the ? key: the three steps, how to
+// bring the export into Power BI (where people get stuck) and the keyboard
+// shortcuts. Also the welcome shown once on a first visit (the same steps).
 //
 // Both are built on every open, so they are always in the current language.
-// The text comes from the locale files; a `backticked` part of a string is
-// shown as code (a file or folder name).
+// Text comes from the locale files; a `backticked` part is shown as code.
 
 import { openModal, makeButton } from "./dialog.js";
 import { SHORTCUTS } from "./shortcuts.js";
 import { storageAvailable } from "../state/persist.js";
 import { t } from "../i18n/i18n.js";
 
-// Set once the welcome has been shown, so it never opens again.
+// Set once the welcome has been shown.
 const WELCOME_KEY = "kvapka-onboarded-v1";
 
 const STEPS = ["help.step1", "help.step2", "help.step3"];
@@ -172,13 +170,13 @@ function markWelcomeSeen() {
 }
 
 /**
- * Opens the welcome on a first visit: nothing was restored from an earlier
- * one and it hasn't been shown before. Where the browser keeps no data it
- * stays closed, since it would otherwise greet every visit.
+ * Opens the welcome on a first visit: nothing was restored and it hasn't been
+ * shown before. It stays closed where the browser keeps no data, or it would
+ * show on every visit.
  */
 export function maybeShowWelcome({ restored }) {
   if (restored || !storageAvailable() || welcomeSeen()) return;
-  // Marked on open, not on close, so a reload mid-welcome doesn't repeat it.
+  // Marked on open, so a reload mid-welcome doesn't repeat it.
   markWelcomeSeen();
 
   const titleId = "welcome-title";

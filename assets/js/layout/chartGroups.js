@@ -1,14 +1,11 @@
 // assets/js/layout/chartGroups.js
 //
-// Splits the theme's ordered `charts` sections across the chart rows that
-// actually exist. A section with a fixed `rows` count claims that many rows
-// (in author order, clamped by whatever's left); the one section with
-// `rows: null` — normalizeTheme() in themeModel.js guarantees there's always
-// exactly one — absorbs everything nobody else claimed, including zero.
+// Splits the theme's `charts` sections across the chart rows that exist.
+// A section with a fixed `rows` count claims that many rows, in order and
+// capped by what's left. The one section with `rows: null` (guaranteed by
+// normalizeTheme() in themeModel.js) takes the rest, possibly zero.
 //
-// Pure and side-effect free: computeVerticalLayout() calls it during its
-// measure pass to know how many active chart groups it's placing, and again
-// (implicitly, via the returned groups) once rows are solved to lay them out.
+// Pure. computeVerticalLayout() uses it to count active chart groups.
 
 export function computeChartGroups(sections, totalRows) {
   const chartsSections = sections.filter(s => s.type === "charts");
@@ -19,8 +16,7 @@ export function computeChartGroups(sections, totalRows) {
 
   chartsSections.forEach((s, i) => {
     if (s.rows === null) {
-      // Filled in below, once every fixed-count section has claimed its
-      // share — the open-ended group only knows what's left afterward.
+      // Filled in below, after the fixed-count sections have claimed rows.
       nullIndex = i;
       return;
     }

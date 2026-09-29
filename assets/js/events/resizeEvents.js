@@ -29,10 +29,7 @@ function isHeightEditable(kind) {
   return kind === "chartRow" || kind === "stackChart";
 }
 
-// Applies a new width for the given selected element. Same validation/commit
-// rules as before, just parameterized on `info`/`val` instead of reading
-// state.selectedElement/inputWidth.value directly, so the single Apply
-// button can drive it.
+// Validates and applies a new width for the selected element `info`.
 function applyWidthValue(info, val) {
   // Typed values land on the same 5px grid the layout solvers use.
   if (!isNaN(val)) val = snapToStep(val);
@@ -44,8 +41,7 @@ function applyWidthValue(info, val) {
   }
 
   if (info.kind === "slicer") {
-    // Vertical slicers have no individual width (isWidthEditable already
-    // rules this out) — their width is the column's.
+    // Vertical slicers share the column width (see isWidthEditable).
     if (state.isVerticalSlicers()) return;
 
     const s = info.stateRef;
@@ -103,8 +99,7 @@ function applyWidthValue(info, val) {
   }
 }
 
-// Applies a new height for the given selected element. Same validation/commit
-// rules as before, parameterized on `info`/`val`.
+// Validates and applies a new height for the selected element `info`.
 function applyHeightValue(info, val) {
   if (!isNaN(val)) val = snapToStep(val);
 
@@ -115,8 +110,8 @@ function applyHeightValue(info, val) {
       return;
     }
 
-    // Locking this slicer at the typed height leaves the rest sharing what is
-    // left, so it only holds if they all still clear their own minimum.
+    // The other slicers share the remaining height, so this only holds if
+    // they all still meet their minimum.
     const s = info.stateRef;
     const originalHeight = s.height;
     const originalLocked = s.locked;
@@ -258,9 +253,8 @@ function applyHeightValue(info, val) {
   }
 }
 
-// Resyncs the selection panel to the element's fresh geometry after an
-// Apply attempt, preserving any field that's still pending (e.g. one that
-// failed validation) instead of resetting it like a fresh selection would.
+// Resyncs the selection panel after an Apply attempt. Fields still pending
+// (e.g. one that failed validation) are kept, unlike on a fresh selection.
 function refreshSelectedElementPreservingPending() {
   const info = state.selectedElement;
   if (!info) return;
@@ -276,8 +270,7 @@ function refreshSelectedElementPreservingPending() {
   }
 }
 
-// Apply — single button, drives whichever of width/height are dirty for the
-// current selection.
+// Apply: one button that applies whichever of width/height changed.
 export function handleApplySelection() {
   const info = state.selectedElement;
   if (!info) return;
@@ -291,8 +284,8 @@ export function handleApplySelection() {
   if (heightDirty) applyHeightValue(info, getPendingHeight());
 
   refreshSelectedElementPreservingPending();
-  // Only when a value actually landed (a rejected one warned instead):
-  // the card is now locked to it, point at it.
+  // Only if a value landed (a rejected one warns instead): the card is now
+  // locked to it.
   const now = state.selectedElement;
   if (now && (now.width !== info.width || now.height !== info.height)) flash(info.domId);
 }

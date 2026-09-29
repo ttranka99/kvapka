@@ -1,17 +1,15 @@
 // assets/js/state/persist.js
 //
-// Keeps the report's pages between visits, so a refresh, a closed tab or a
-// crash doesn't throw a design away. The whole page list is written to
-// localStorage shortly after every change (ui/renderLayout.js and ui/tabs.js
-// call scheduleSave) and read back once at start.
+// Keeps the report's pages between visits, so a refresh, closed tab or crash
+// doesn't lose a design. The page list is written to localStorage shortly
+// after every change (ui/renderLayout.js and ui/tabs.js call scheduleSave)
+// and read back once at start.
 //
-// Nothing here leaves the device: no request, no cookie, no telemetry — the
-// data stays in this browser, under this site's origin.
+// Nothing leaves the device: no request, cookie or telemetry.
 //
-// localStorage can be unavailable on locked-down machines (a policy blocking
-// site data, private windows, some file:// setups). Every access is guarded,
-// so the app keeps working without autosave, and storageAvailable() lets the
-// caller tell the user their work won't be kept.
+// localStorage can be unavailable (site-data policy, private windows, some
+// file:// setups). Every access is guarded, so the app works without
+// autosave, and storageAvailable() lets the caller warn the user.
 //
 // Two open copies of the app share one session; the last one to save wins.
 
@@ -20,8 +18,8 @@ import { serializeTabs, restoreTabs } from "./tabs.js";
 const STORAGE_KEY = "kvapka-session-v1";
 const PROBE_KEY = "kvapka-probe";
 const SAVE_DELAY_MS = 300;
-// A real session is a few tens of KB; anything far past that is not one this
-// app wrote and isn't worth parsing.
+// A real session is a few tens of KB. Anything much larger wasn't written by
+// this app, so it isn't parsed.
 const MAX_STORED_LENGTH = 1024 * 1024;
 
 let timer = null;
@@ -87,8 +85,8 @@ export function storageAvailable() {
   }
 }
 
-// A save still waiting on its delay is written straight away when the page
-// is hidden or closed, so the last edit before leaving isn't lost.
+// A pending save is written at once when the page is hidden or closed, so
+// the last edit isn't lost.
 export function initSessionPersistence() {
   const flush = () => { if (timer !== null) writeSession(); };
   window.addEventListener("pagehide", flush);

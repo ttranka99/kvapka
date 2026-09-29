@@ -1,10 +1,8 @@
 // assets/js/ui/icon.js
 //
 // The only way JS puts an icon on screen. Every glyph lives in the inline
-// sprite at the top of index.html (<symbol id="i-…">); this returns the
-// <use> that references one, so no module carries its own copy of a path —
-// which is how the close "×" ended up defined three times at two different
-// stroke weights, and how two buttons ended up with a text "+" instead.
+// sprite at the top of index.html (<symbol id="i-…">). This returns the <use>
+// that references one, so no module keeps its own copy of a path.
 
 /**
  * Markup for one sprite icon, e.g. icon("plus") → <use href="#i-plus">.

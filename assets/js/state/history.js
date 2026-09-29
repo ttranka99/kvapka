@@ -1,16 +1,15 @@
 // assets/js/state/history.js
 //
-// Undo / redo for the page being edited. Each page keeps its own history of
-// snapshots (state/tabs.js captureSnapshot), recorded after every render that
-// actually changed something — renderLayout() calls noteChange(), the same
-// place it asks for an autosave.
+// Undo / redo for the page being edited. Each page keeps its own snapshots
+// (state/tabs.js captureSnapshot), recorded after every render that changed
+// something: renderLayout() calls noteChange() where it asks for an autosave.
 //
-// History lives in memory only: it is never stored, sent or read from a file,
-// so everything it restores is a snapshot this session captured itself.
+// Memory only: never stored, sent or read from a file, so everything it
+// restores was captured by this session.
 //
-// Entries are keyed by the page's tab object. A closed page's history goes
-// with it, and a restored session or an opened project (which builds new tab
-// objects) starts every page with a clean history.
+// Keyed by the page's tab object. Closing a page drops its history. A
+// restored session or opened project builds new tab objects, so every page
+// starts clean.
 
 import { captureSnapshot, loadSnapshot, getTabs, getActiveTabIndex } from "./tabs.js";
 import { isTextField, letterOf } from "../ui/keys.js";
@@ -28,14 +27,14 @@ let redoBtn = null;
 
 const activeTab = () => getTabs()[getActiveTabIndex()];
 
-// While a section with a history of its own is on screen (Customize
-// Elements: project-wide styles, not page state), the undo / redo buttons and
-// keys act on that instead of the page. See setHistoryDelegate().
+// While a section with its own history is on screen (Customize Elements:
+// project-wide styles, not page state), undo / redo act on that instead.
+// See setHistoryDelegate().
 let delegate = null;
 const delegated = () => delegate !== null && delegate.active();
 
-// Notifications are about the moment they were raised, not the page, so they
-// never make a step of their own and are not brought back by one.
+// Warnings belong to the moment they were raised, not the page. They never
+// make a step and undo doesn't bring them back.
 const serialize = () => JSON.stringify({ ...captureSnapshot(), warnings: undefined });
 
 function historyFor(tab, snapshot) {
@@ -47,10 +46,9 @@ function historyFor(tab, snapshot) {
   return h;
 }
 
-// Records the live page if it differs from the last recorded state. A page
-// seen for the first time only takes its baseline. A page changed while it
-// was in the background (a theme applied to all pages) gets that change as
-// one step when it comes back.
+// Records the live page if it differs from the last recorded state. A new
+// page only sets its baseline. A page changed in the background (a theme
+// applied to all pages) records that as one step when it comes back.
 function commit() {
   commitQueued = false;
   if (gestureActive) return;   // the gesture's end commits
@@ -74,8 +72,8 @@ export function noteChange() {
   queueMicrotask(commit);
 }
 
-// The template editor's draft belongs to the page that is live now (the same
-// rule as the project menu's "Open"), and a drag owns the page until it ends.
+// The template editor's draft belongs to the live page (same rule as the
+// project menu's "Open"), and a drag owns the page until it ends.
 const blocked = () => gestureActive || document.body.classList.contains("theme-editor-open");
 
 function step(from, to) {
@@ -88,8 +86,8 @@ function step(from, to) {
   snap.warnings = [];
   loadSnapshot(snap);
   refreshUI();
-  // Taken after the render, so the render's own commit finds nothing new and
-  // leaves the redo stack alone.
+  // Taken after the render, so its own commit finds nothing new and keeps the
+  // redo stack.
   h.current = serialize();
   syncButtons();
 }
@@ -145,8 +143,8 @@ export function isGestureActive() {
 function onKeydown(e) {
   if (e.defaultPrevented || e.isComposing) return;
   if (!(e.ctrlKey || e.metaKey)) return;
-  // AltGr is Ctrl+Alt on Windows; on Czech and other European layouts it
-  // types characters, and must never undo.
+  // AltGr is Ctrl+Alt on Windows and types characters on Czech and other
+  // European layouts. It must never undo.
   if (e.altKey) return;
   // Text fields keep their own native undo.
   if (isTextField(e.target) || isTextField(document.activeElement)) return;

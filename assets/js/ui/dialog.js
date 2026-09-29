@@ -1,14 +1,12 @@
 // assets/js/ui/dialog.js
 //
-// The app's own modals: a confirm dialog in place of window.confirm() —
-// styled like the rest of the app, translated, and not subject to a browser's
-// "prevent this page from creating additional dialogs" switch or a policy
-// that silences native dialogs (where confirm() quietly returns false) — and
-// the shell it is built on, which other modals (ui/about.js) share.
+// The app's own modals: a confirm dialog replacing window.confirm() (which
+// can't be styled or translated, and can be blocked by the browser, where it
+// quietly returns false), plus the shell other modals share (ui/about.js).
 //
 // Built on <dialog>.showModal(): the browser keeps focus inside, makes the
-// page behind it inert and puts it in the top layer above every z-index. All
-// text goes in through textContent — a template's name is user input.
+// page behind it inert and puts it above every z-index. All text goes in
+// through textContent, because a template's name is user input.
 
 import { leave } from "./motion.js";
 import { t } from "../i18n/i18n.js";
@@ -16,10 +14,9 @@ import { t } from "../i18n/i18n.js";
 let current = null;
 
 /**
- * Shows `card` in a modal. Escape, a click on the backdrop or another modal
- * opening over it all close it; so does calling the returned close(). Every
- * way out ends in onClose(value) exactly once — value is whatever close()
- * was given, or undefined for a dismissal.
+ * Shows `card` in a modal. Escape, a backdrop click, another modal opening
+ * or the returned close() all close it. Every way out calls onClose(value)
+ * exactly once: the value passed to close(), or undefined for a dismissal.
  *
  * labelledBy / describedBy: ids of elements inside the card.
  * initialFocus: the element focused on open (the dialog itself otherwise).
@@ -37,8 +34,8 @@ export function openModal({ card, labelledBy, describedBy, role, initialFocus, c
   if (describedBy) dialog.setAttribute("aria-describedby", describedBy);
   if (role) dialog.setAttribute("role", role);
 
-  // The card is a child, so the <dialog> box itself is only the backdrop's
-  // hit area (see the click handler below).
+  // The card is a child, so the <dialog> itself is only the backdrop's hit
+  // area (see the click handler below).
   dialog.appendChild(card);
 
   let closed = false;
@@ -49,18 +46,18 @@ export function openModal({ card, labelledBy, describedBy, role, initialFocus, c
     leave(dialog, () => {
       if (dialog.open) dialog.close();
       dialog.remove();
-      // Back to where the user was, unless that element went away meanwhile
-      // or another modal took over. Only now: while the dialog is still
-      // modal the page behind it is inert and focus() would be ignored, and
-      // close() itself refocuses whatever was focused before showModal().
+      // Restore focus unless that element is gone or another modal took over.
+      // Must happen now: while the dialog is modal the page is inert and
+      // focus() is ignored, and close() itself refocuses whatever had focus
+      // before showModal().
       if (!current && returnFocus && returnFocus.isConnected && typeof returnFocus.focus === "function") returnFocus.focus();
     });
     if (onClose) onClose(value);
   };
   current = { dialog, close: () => close() };
 
-  // A modal answers its own keys: nothing behind it (the template editor's
-  // Escape-to-close, the undo shortcuts) may react while it is open.
+  // Nothing behind a modal (template editor Escape, undo shortcuts) may
+  // react to keys while it is open.
   dialog.addEventListener("keydown", e => {
     e.stopPropagation();
     if (e.key === "Escape") {
@@ -68,15 +65,14 @@ export function openModal({ card, labelledBy, describedBy, role, initialFocus, c
       close();
     }
   });
-  // Escape reaching the dialog some other way (a close request from the
-  // browser or assistive tech) is still a dismissal.
+  // A close request from the browser or assistive tech is a dismissal too.
   dialog.addEventListener("cancel", e => {
     e.preventDefault();
     close();
   });
-  // A click on the backdrop lands on the <dialog> itself; one inside the
-  // card lands on a child. The press has to start there too, so selecting
-  // the text and releasing outside the card doesn't dismiss it.
+  // A backdrop click targets the <dialog> itself; a click in the card targets
+  // a child. The press must start on the backdrop too, so selecting text and
+  // releasing outside the card doesn't dismiss it.
   let pressedBackdrop = false;
   dialog.addEventListener("pointerdown", e => { pressedBackdrop = e.target === dialog; });
   dialog.addEventListener("click", e => {
@@ -92,12 +88,11 @@ export function openModal({ card, labelledBy, describedBy, role, initialFocus, c
 }
 
 /**
- * Asks a yes/no question. Resolves true only when the confirm button is
- * pressed; Escape, Cancel, a click on the backdrop or another dialog opening
- * over it all resolve false.
+ * Asks a yes/no question. Resolves true only if the confirm button is
+ * pressed; Escape, Cancel, a backdrop click or another dialog resolve false.
  *
- * danger: styles the confirm button as destructive and puts the initial
- * focus on Cancel, so a stray Enter never deletes anything.
+ * danger: styles the confirm button as destructive and focuses Cancel first,
+ * so a stray Enter never deletes anything.
  */
 export async function confirmDialog({ title, message, confirmLabel, cancelLabel = t("dialog.cancel"), danger = false }) {
   const answer = await choiceDialog({
@@ -111,13 +106,13 @@ export async function confirmDialog({ title, message, confirmLabel, cancelLabel 
 
 /**
  * Asks a question with several answers besides Cancel, e.g. "Save" / "Don't
- * save". Resolves the pressed choice's value; Escape, Cancel, a click on the
- * backdrop or another dialog opening over it all resolve null.
+ * save". Resolves the pressed choice's value; Escape, Cancel, a backdrop
+ * click or another dialog resolve null.
  *
  * choices: [{ label, value, primary?, danger? }], shown after Cancel in this
- * order. With any danger choice the dialog is an alertdialog and the initial
- * focus is on Cancel, so a stray Enter never throws work away; otherwise it
- * is on the primary choice.
+ * order. With a danger choice the dialog is an alertdialog and Cancel is
+ * focused first, so a stray Enter never throws work away. Otherwise the
+ * primary choice is focused.
  */
 export function choiceDialog({ title, message, choices, cancelLabel = t("dialog.cancel") }) {
   return new Promise(resolve => {

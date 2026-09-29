@@ -1,12 +1,10 @@
 // assets/js/events/stackEvents.js
 //
-// Vertical chart stacking: an unlocked, unstacked top-level chart cell can be
-// split into a vertical stack of charts (one nesting level only — the
-// sub-charts themselves can never be split again). Sub-charts share the
-// cell's width but each get their own height, get/lose entries via +/-, and
-// can be individually height-locked. All of it stays bound by the row's own
-// height (see computeStackHeights.js's rowEffectiveMinHeight, consumed by
-// computeChartRowHeights/canAddChart/row-height dragging/inline editing).
+// Vertical chart stacking: an unlocked, unstacked chart cell can be split
+// into a vertical stack (one level only, sub-charts can't be split again).
+// Sub-charts share the cell's width, have their own heights, are added or
+// removed with +/-, and can be height-locked one by one. The row's height
+// still bounds them (see rowEffectiveMinHeight in computeStackHeights.js).
 import * as state from "../state/state.js";
 import { setSelected } from "../ui/selection.js";
 import { addWarning } from "../ui/warnings.js";
@@ -19,11 +17,8 @@ import { flash, flashAll } from "../ui/motion.js";
 import { renderWarnings } from "../ui/warnings.js";
 import { t } from "../i18n/i18n.js";
 
-// Computes row heights against a simulated set of chartRows rather than live
-// state, mirroring the same swap-in/swap-out trick canAddChart.js uses —
-// computeChartRowHeights always reads the live module-level state.chartRows,
-// so a not-yet-committed change has to be staged there temporarily to see
-// what its row heights *would* be.
+// Row heights for a simulated `rows`. computeChartRowHeights reads the live
+// state.chartRows, so `rows` is swapped in temporarily (as in canAddChart.js).
 function computeHeightsForRows(rows, v) {
   const original = state.chartRows;
   state.setChartRows(rows);
@@ -32,11 +27,9 @@ function computeHeightsForRows(rows, v) {
   return heights;
 }
 
-// Whether the sidebar "Graf" split button should be offered for the current
-// selection: only for a top-level chart cell that isn't already a stack and
-// isn't width-locked (a locked cell's width can't shrink to make room for
-// the split visually distinguishing two charts, and more importantly
-// splitting is a structural change that should start from a flexible cell).
+// Whether the sidebar "Graf" split button is offered: only for a chart cell
+// that isn't a stack and isn't width-locked, since splitting is a structural
+// change that should start from a flexible cell.
 export function canSplitChart(rowIndex, itemIndex) {
   const item = state.chartRows[rowIndex]?.items?.[itemIndex];
   return !!item && !item.stack && !item.locked;
@@ -73,15 +66,10 @@ export function handleAddStackChart(rowIndex, itemIndex, stackIndex) {
   const stack = rowsCopy[rowIndex]?.items?.[itemIndex]?.stack;
   if (!stack) return;
 
-  // The row's *current* height (before this add is staged) is what the new
-  // sub-chart actually has to fit into. Computing it from the *simulated*
-  // rows instead (as handleAddStackChart used to) is wrong: an unlocked
-  // row's height auto-floors at rowEffectiveMinHeight(row), which already
-  // accounts for the just-added sub-chart, so "rowHeight" would silently
-  // grow to match "needed" and this check could never fire — the row would
-  // just overflow instead of the add being rejected. A row-height-locked row
-  // doesn't have this problem (its height is fixed regardless), but reading
-  // the *current* height is correct for both cases either way.
+  // Use the row's current height (before this add), not the simulated one.
+  // An unlocked row floors at rowEffectiveMinHeight(row), which already
+  // includes the new sub-chart, so the simulated height would grow to match
+  // "needed" and the check below could never fail.
   const v = computeVerticalLayout();
   const currentRowHeight = computeChartRowHeights(v)[rowIndex];
 
@@ -104,9 +92,8 @@ export function handleAddStackChart(rowIndex, itemIndex, stackIndex) {
   const totalHeight = heights.reduce((s, h) => s + h, 0) + totalGaps;
 
   if (needed > currentRowHeight || totalHeight > v.chartsHeight) {
-    // When every existing sub-chart is locked, nothing can shrink to make
-    // room — the real blocker is the locks, so say that instead of
-    // claiming the charts would be too small.
+    // If all existing sub-charts are locked, the locks are the blocker, so
+    // say that instead of "too small".
     addWarning(
       allExistingLocked
         ? t("warnings.chart.stackAllLocked")
@@ -151,14 +138,11 @@ export function handleRemoveStackChart(rowIndex, itemIndex, stackIndex) {
     if (!s.locked) s.height = null;
   });
 
-  // Re-sync the cell's derived width lock now that a sub-chart is gone —
-  // it's only locked while at least one remaining sub-chart still is.
+  // The cell's width lock is derived: locked while any sub-chart is.
   item.locked = stack.some(s => s.locked);
 
-  // A stack that's down to a single chart is no longer a stack — it reverts
-  // to a normal chart cell (plain width/lock controls, no stack controls).
-  // The remaining entry is guaranteed unlocked here (the checks above refuse
-  // removal otherwise), so the cell reverts fully unlocked too.
+  // A single remaining chart is a normal cell again. It is always unlocked
+  // here (the checks above refuse the removal otherwise).
   if (stack.length === 1) {
     delete item.stack;
   }
@@ -167,9 +151,8 @@ export function handleRemoveStackChart(rowIndex, itemIndex, stackIndex) {
   state.setWarnings([]);
   renderLayout();
 
-  // The selected sub-chart's index may now point at a different chart (or
-  // nothing at all) after the splice — clear the selection rather than risk
-  // showing stale/mismatched geometry for this cell.
+  // After the splice the selected index may point at another chart or none,
+  // so clear the selection.
   const selected = state.selectedElement;
   if (selected?.kind === "stackChart" && selected.rowIndex === rowIndex && selected.itemIndex === itemIndex) {
     setSelected(null);
@@ -178,16 +161,13 @@ export function handleRemoveStackChart(rowIndex, itemIndex, stackIndex) {
   renderWarnings();
 }
 
-// Toggle height-lock for a single sub-chart. Locking freezes its current
-// computed height so it's excluded from auto-redistribution; unlocking keeps
-// the current height in place (no visible jump) until a structural change
-// (add/remove) or a row-height change redistributes it — mirrors
-// handleToggleChartLock's width-lock semantics in chartEvents.js.
+// Toggles the height lock of one sub-chart. Locking freezes its current
+// height. Unlocking keeps the height until an add/remove or a row-height
+// change redistributes it. Mirrors handleToggleChartLock in chartEvents.js.
 //
-// The cell's own width lock (item.locked) is *derived* from its sub-charts
-// rather than toggled directly, since a stacked cell has no width-lock
-// control of its own: the column is width-locked while any sub-chart is
-// locked, and only unlocking every sub-chart frees the column's width again.
+// The cell's width lock (item.locked) is derived, since a stacked cell has no
+// width-lock control: the column is locked while any sub-chart is, and freed
+// only when all are unlocked.
 export function handleToggleStackLock(rowIndex, itemIndex, stackIndex) {
   const item = state.chartRows[rowIndex]?.items?.[itemIndex];
   const entry = item?.stack?.[stackIndex];
@@ -241,9 +221,8 @@ export function handleSelectStackChart(rowIndex, itemIndex, stackIndex, domId, o
   }, opts);
 }
 
-// Re-syncs the selection panel to a sub-chart's current geometry mid-drag or
-// after an Apply attempt — the stack counterpart of
-// refreshSelectedChartAfterResize in chartEvents.js.
+// Re-syncs the selection panel to the selected sub-chart mid-drag or after
+// Apply. Stack counterpart of refreshSelectedChartAfterResize (chartEvents.js).
 export function refreshSelectedStackChartAfterEdit(preservePending = false) {
   const selected = state.selectedElement;
   if (!selected || selected.kind !== "stackChart" || !selected.domId) return;

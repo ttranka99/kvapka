@@ -8,22 +8,19 @@ import { t, onLocaleChange } from "../i18n/i18n.js";
 const STATUS_ICON = { info: "info", warning: "warning", error: "error" };
 
 // Higher is more serious. The bell takes the colour of the most serious
-// notification it is showing, so an error is never dressed as info.
+// notification, so an error never looks like info.
 const SEVERITY = { info: 0, warning: 1, error: 2 };
 
-// How long a notification stays as an active on-screen toast before it is
-// moved into the bell's notification panel.
+// How long a toast stays on screen before it moves into the bell's panel.
 const TIMEOUT_MS = 5000;
 
-// Per-message metadata that state.warnings (a plain array of strings) does
-// not carry: which type/color/icon it is, and whether its 5s toast timeout
-// has already elapsed (movedToPanel). Keyed by the warning message text,
-// same as the DOM id hashing below, so it stays in sync with state.warnings
-// without needing to change the shape of state.warnings itself.
+// Per-message metadata that state.warnings (a plain array of strings) can't
+// hold: its type/color/icon, and whether its toast timeout has elapsed
+// (movedToPanel). Keyed by the message text, like the DOM ids below.
 const meta = new Map();
 
-// Deterministic DOM-safe id derived from the warning text, so a toast can be
-// matched, kept, or removed on re-render without needing separate id tracking.
+// A DOM-safe id derived from the warning text, so a toast can be matched on
+// re-render without separate id tracking.
 function toastId(msg) {
   let hash = 0;
   for (let i = 0; i < msg.length; i++) {
@@ -32,8 +29,8 @@ function toastId(msg) {
   return `toast-${Math.abs(hash)}`;
 }
 
-// Marks a message as having arrived in the panel, where it stays until the
-// underlying condition resolves and its caller clears it from state.warnings.
+// Moves a message into the panel, where it stays until its caller clears it
+// from state.warnings.
 function moveToPanel(msg) {
   const m = meta.get(msg);
   if (!m) return;
@@ -48,18 +45,14 @@ function startTimeout(msg) {
   }, TIMEOUT_MS);
 }
 
-// type: "info" | "warning" | "error". Defaults to "warning" so existing call
-// sites that don't pass a type keep working unchanged.
+// type: "info" | "warning" | "error". Defaults to "warning".
 //
-// Callers that represent a *persistent condition* (e.g. "second row is over
-// the limit") are expected to call this again on every render for as long as
-// the condition holds, and to actively clear the same message from
-// state.warnings once the condition stops holding (see computeSlicersLayout.js
-// / computeKpiLayout.js). Because of that, the same message can legitimately
-// recur after having already faded into the panel — e.g. the condition
-// becomes true, false, then true again. That recurrence must re-surface the
-// toast rather than being silently ignored just because the message string
-// is still sitting in state.warnings from its first occurrence.
+// A persistent condition (e.g. "second row is over the limit") calls this on
+// every render while it holds, and clears the message from state.warnings
+// when it stops (see computeSlicersLayout.js / computeKpiLayout.js). So the
+// same message can recur after it already moved into the panel (true, false,
+// true again). The recurrence must bring the toast back, even though the
+// string is still in state.warnings from before.
 export function addWarning(msg, type = "warning") {
   if (!state.warnings.includes(msg)) {
     state.setWarnings([...state.warnings, msg]);
@@ -69,9 +62,8 @@ export function addWarning(msg, type = "warning") {
     return;
   }
 
-  // Message is still present. If it had already faded into the panel, this
-  // call means the underlying condition has recurred — bring it back as an
-  // active toast and restart its countdown.
+  // Already present. If it had moved into the panel, the condition has
+  // recurred: bring it back as a toast and restart its countdown.
   const m = meta.get(msg);
   if (m && m.movedToPanel) {
     clearTimeout(m.timerId);
@@ -84,10 +76,9 @@ export function addWarning(msg, type = "warning") {
   }
 }
 
-// One swing of the bell glyph each time a toast surfaces, so the eye is
-// drawn to where the notification will go once its toast has timed out.
-// Removing and re-adding the class restarts the animation when toasts
-// arrive in quick succession.
+// One swing of the bell each time a toast surfaces, to draw the eye to where
+// it will go. Removing and re-adding the class restarts the animation when
+// toasts arrive in quick succession.
 function ringBell() {
   const bell = document.getElementById("notification-bell");
   if (!bell) return;
@@ -96,10 +87,9 @@ function ringBell() {
   bell.classList.add("ringing");
 }
 
-// A language switch re-keys every warning under its translated wording. Each
-// keeps its type and whether it is still a toast or already in the panel; a
-// toast keeps the rest of its countdown, and its element on screen is
-// retitled in place rather than faded out and rebuilt.
+// A language switch re-keys every warning under its translated text. Each
+// keeps its type and toast/panel state. A toast keeps the rest of its
+// countdown and is retitled in place, not rebuilt.
 onLocaleChange(convert => {
   const now = Date.now();
   const next = new Map();
@@ -123,12 +113,12 @@ onLocaleChange(convert => {
   renderWarnings();
 });
 
-// Keeps `meta` in sync with `state.warnings`, which is the single source of
-// truth for which warnings currently exist (mutated directly in some places
-// via state.setWarnings()). Called at the top of every renderWarnings() pass.
+// Keeps `meta` in sync with `state.warnings`, the single source of truth for
+// which warnings exist (some code sets it directly via state.setWarnings()).
+// Called at the top of every renderWarnings() pass.
 function syncMeta() {
-  // Drop metadata for resolved (removed) warnings and cancel their timers,
-  // so a resolved issue disappears from both the toast area and the panel.
+  // Drop metadata and timers for resolved warnings, so they leave both the
+  // toast area and the panel.
   for (const msg of Array.from(meta.keys())) {
     if (!state.warnings.includes(msg)) {
       clearTimeout(meta.get(msg).timerId);
@@ -136,10 +126,9 @@ function syncMeta() {
     }
   }
 
-  // Anything present in state.warnings without metadata (e.g. set via a
-  // direct state.setWarnings() call rather than addWarning()) gets sane
-  // defaults, already marked as expired so it appears straight in the panel
-  // instead of popping up as a fresh toast with a new 5s timer.
+  // A warning with no metadata (set via state.setWarnings(), not
+  // addWarning()) gets defaults and goes straight to the panel, not a fresh
+  // toast with a new timer.
   state.warnings.forEach(msg => {
     if (!meta.has(msg)) {
       meta.set(msg, { type: "warning", addedAt: Date.now(), movedToPanel: true, timerId: null });
@@ -147,10 +136,10 @@ function syncMeta() {
   });
 }
 
-// A card tinted by type, with the type named above the message and a bar
-// along the bottom that runs down over the toast's remaining time, so it is
-// clear the toast will go to the bell rather than simply vanish. Errors are
-// announced straight away (role="alert"); the rest wait their turn.
+// A card tinted by type, with the type above the message and a bottom bar
+// that runs down over the toast's remaining time, showing it will go to the
+// bell and not just vanish. Errors are announced at once (role="alert");
+// the rest wait their turn.
 function buildToast(msg, type, addedAt) {
   const toast = document.createElement("div");
   toast.id = toastId(msg);
@@ -186,10 +175,9 @@ function buildPanelItem(msg, type) {
   return item;
 }
 
-// Toasts persist until the underlying warning is resolved (i.e. no longer
-// present in state.warnings), OR until TIMEOUT_MS elapses, at which point
-// they move into the bell's panel instead of disappearing. There's no manual
-// close control by design.
+// A toast stays until its warning is resolved (gone from state.warnings) or
+// TIMEOUT_MS passes, when it moves into the bell's panel. There is
+// deliberately no close button.
 function renderToasts() {
   const container = document.getElementById("toast-container");
   if (!container) return;
@@ -210,10 +198,9 @@ function renderToasts() {
   });
 }
 
-// Immediately moves every currently-active toast into the panel (instead of
-// waiting for its 5s timeout), so opening the panel doesn't leave the same
-// notification showing in both places at once. Called when the bell's panel
-// is opened.
+// Moves every active toast into the panel at once, so opening the panel
+// doesn't show the same notification in both places. Called when the panel
+// opens.
 function collapseActiveToastsToPanel() {
   let changed = false;
   meta.forEach((m, msg) => {
@@ -226,9 +213,8 @@ function collapseActiveToastsToPanel() {
   if (changed) renderWarnings();
 }
 
-// Whether at least one warning is currently showing as an active toast (as
-// opposed to already sitting quietly in the panel). Used to keep the bell
-// icon highlighted for as long as there's something new on screen.
+// Whether any warning is showing as an active toast (not yet in the panel).
+// Keeps the bell highlighted while something new is on screen.
 function hasActiveToast() {
   return state.warnings.some(msg => !meta.get(msg)?.movedToPanel);
 }
@@ -244,11 +230,9 @@ function topSeverity(msgs) {
 }
 
 // Shows the count badge on the bell, coloured by the most serious
-// notification in the panel, and fills the bell itself (via "pulse-active")
-// in the colour of the most serious active toast for as long as at least one
-// is on screen — reverting automatically once every toast has either
-// resolved or moved into the panel. The bell SVG itself is never modified —
-// only these classes and attributes are set.
+// notification in the panel. While a toast is on screen it also fills the
+// bell ("pulse-active") in the colour of the most serious active toast. The
+// bell SVG is never modified, only these classes and attributes.
 function renderBell() {
   const bell = document.getElementById("notification-bell");
   if (!bell) return;
@@ -261,8 +245,8 @@ function renderBell() {
 
   const badge = bell.querySelector(".notification-badge");
   if (badge) {
-    // Keeps the last count and colour while the badge fades out, so it
-    // doesn't blank or turn grey on its way out.
+    // Keep the last count and colour while the badge fades out, so it
+    // doesn't blank or turn grey.
     if (count > 0) {
       badge.textContent = count > 9 ? "9+" : String(count);
       badge.dataset.severity = topSeverity(state.warnings);
@@ -270,11 +254,10 @@ function renderBell() {
   }
 }
 
-// Rebuilds the full notification list shown inside the bell's panel. Unlike
-// the toast area, the panel always lists every current warning (both the
-// ones still visible as toasts and the ones that already timed out), so
-// nothing is ever lost before it's resolved — and since resolved warnings are
-// removed from state.warnings by the caller, they disappear from here too.
+// Rebuilds the notification list in the bell's panel. Unlike the toast area,
+// it lists every current warning (toasts and timed-out ones), so nothing is
+// lost before it's resolved. Resolved ones leave when the caller clears them
+// from state.warnings.
 function renderPanel() {
   const list = document.getElementById("notification-list");
   if (!list) return;
@@ -300,11 +283,10 @@ export function renderWarnings() {
   renderPanel();
 }
 
-// Wires up the bell button (toggle panel open/closed) and closes the panel
-// when clicking anywhere outside it. Runs once at module load, since the
-// bell and panel are persistent DOM elements (not rebuilt by renderLayout).
-// The "menu-open" class on the bell keeps its hover-style chrome (rounded
-// background) visible for as long as the panel stays open, not just on hover.
+// Wires the bell button (toggles the panel) and closes the panel on a click
+// outside it. Runs once at module load, since the bell and panel aren't
+// rebuilt by renderLayout. The "menu-open" class keeps the bell's hover
+// chrome (rounded background) visible while the panel is open.
 function initBell() {
   const bell = document.getElementById("notification-bell");
   const panel = document.getElementById("notification-panel");

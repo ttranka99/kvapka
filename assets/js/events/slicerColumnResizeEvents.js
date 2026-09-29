@@ -5,24 +5,21 @@ import { addWarning } from "../ui/warnings.js";
 import { refreshSelectedSlicerAfterEdit } from "./slicerEvents.js";
 import { t } from "../i18n/i18n.js";
 
-// Dragging the vertical slicer column's right edge resizes the whole column
-// at once — every slicer in it shares that one width. Widening it takes the
-// space from the KPI/chart content box to its right, so the drag is only
-// committed while the unlocked visuals there can absorb it.
+// Dragging the vertical slicer column's edge resizes the whole column (all
+// slicers share one width). Widening takes space from the KPI/chart content
+// box, so it only applies while the unlocked visuals there can absorb it.
 
 let activeResize = null;
 
-// Smallest width the KPI/chart content box can be squeezed to at a given
-// column width. Charts have a real minimum; KPIs only have the 50px floor
-// the Apply button enforces (there's no MIN_KPI_WIDTH constant).
+// KPIs have no MIN_KPI_WIDTH constant in state, so use the 50px floor that
+// the Apply button enforces.
 const MIN_KPI_WIDTH = 50;
 
-// Mirrors canAddChart's horizontal test — same "a stored width is reserved
-// space whether or not it's still locked" rule — but as pure arithmetic
-// against a hypothetical content width. canAddChart itself is deliberately
-// not reused here: it swaps state.chartRows in and out and calls
-// setWarnings([]) to run a real solve, which would strobe the warning panel
-// on every pointermove of the drag.
+// Whether the content box still fits at `contentWidth`. Mirrors canAddChart's
+// horizontal test (a stored width is reserved even if unlocked) as plain
+// arithmetic. canAddChart isn't reused because it swaps state.chartRows and
+// calls setWarnings([]), which would flicker the warning panel on every
+// pointermove.
 function contentFits(contentWidth) {
   for (const row of state.chartRows) {
     const gaps = (row.items.length - 1) * state.GAP_SMALL;
@@ -32,11 +29,8 @@ function contentFits(contentWidth) {
     if (fixedSum + freeCount * state.MIN_CHART_WIDTH + gaps > contentWidth) return false;
   }
 
-  // Every KPI band is one or two rows competing for the same width — a
-  // header-style band (allowSecondRow) splits at MAX_KPIS exactly as
-  // computeKpiLayout does, any other band is a single row. A column wide
-  // enough for the header band can still leave a later band without room,
-  // so all of them belong in the same test.
+  // Every KPI band must fit. A band with allowSecondRow splits at MAX_KPIS,
+  // as in computeKpiLayout; any other band is one row.
   const kpiRows = [];
   for (const id of state.kpiBandIds()) {
     const cards = state.getKpiBand(id);
@@ -79,19 +73,15 @@ function finishResize() {
     );
   }
 
-  // No setWarnings([]) here, for the same reason chartResizeEvents avoids it:
-  // the layout solvers own the warning lifecycle and clearing the array would
-  // make every still-true condition look brand new on the next render.
+  // No setWarnings([]) here, see finishResize() in chartResizeEvents.js.
   activeResize = null;
 }
 
 function handlePointerMove(event) {
   if (!activeResize) return;
 
-  // The handle sits on the column's outer edge — its rightmost edge on the
-  // left, its leftmost on the right — so a rightward drag grows the column
-  // on the left but shrinks it on the right. Flipping the delta's sign here
-  // is the only side-awareness this function needs.
+  // The handle is on the column's outer edge, so a rightward drag grows the
+  // column on the left side and shrinks it on the right. Flip the sign.
   const dir = state.SLICER_SIDE === "right" ? -1 : 1;
   const delta = dir * Math.round((event.clientX - activeResize.startX) / state.EFFECTIVE_SCALE);
   let width = snapToStep(activeResize.startWidth + delta);
@@ -102,8 +92,8 @@ function handlePointerMove(event) {
 
   if (width === state.SLICER_COLUMN_WIDTH) return;
 
-  // Shrinking always frees space, so only growth can be refused. Flag it so
-  // a single warning is raised when the drag ends rather than one per tick.
+  // Only growth can be refused. Flag it so one warning is raised when the
+  // drag ends, not one per tick.
   if (width > state.SLICER_COLUMN_WIDTH && !contentFits(contentBoxFor(width, state.SLICER_SIDE).contentWidth)) {
     activeResize.blocked = true;
     return;
@@ -140,8 +130,7 @@ export function attachSlicerColumnResizeHandle(handle, onResize) {
     window.addEventListener("pointerup", activeResize.upHandler);
     window.addEventListener("pointercancel", activeResize.upHandler);
     document.body.style.cursor = "ew-resize";
-    // Same rationale as the chart width drag: #canvas is rebuilt on every
-    // tick, so hover controls would otherwise flicker for the whole drag.
+    // Hides hover controls during the drag, as in the chart width drag.
     document.body.classList.add("is-resizing-chart");
   });
 }

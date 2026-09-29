@@ -41,27 +41,25 @@ import { resolveColor, rgba, shadowCss } from "../elements/elementStyleModel.js"
 
 const canvas = document.getElementById("canvas");
 
-// The canvas is fully destroyed and rebuilt on every render (see project
-// notes), so a button clicked by the user does not survive its own click —
-// a brand new one is created in its place, right under the still-resting
-// cursor. Tracking the last known pointer position lets a freshly-created
-// button detect "the cursor is already on top of me" and suppress its hover
-// state until the user actually moves the mouse away and back, instead of
-// flashing straight to the hover-preview icon the instant it's created.
+// The canvas is rebuilt on every render, so a clicked button is replaced by a
+// new one under the resting cursor. Tracking the last pointer position lets
+// a new button see that the cursor is already on it and suppress its hover
+// state until the mouse leaves and returns, instead of flashing straight to
+// the hover-preview icon.
 let lastPointer = { x: -Infinity, y: -Infinity };
 window.addEventListener("pointermove", (e) => {
   lastPointer = { x: e.clientX, y: e.clientY };
 });
 
-// Clicking the empty canvas background deselects the current element.
-// Registered once here (not inside renderLayout) since the #canvas element
-// itself persists across renders — only its children are cleared and rebuilt.
+// Clicking the empty canvas background deselects. Registered once here, not
+// in renderLayout, because #canvas persists across renders (only its
+// children are rebuilt).
 canvas.addEventListener("click", () => setSelected(null));
 
-// The project's element styles (Customize Elements), drawn lightly on the
-// card: its corner radius, background, border and shadow, at the canvas
-// scale. style.css reads the variables, falling back to the plain card; the
-// selection and hover rings still draw over them.
+// The project's element styles (Customize Elements) drawn lightly on the
+// card: corner radius, background, border and shadow, at canvas scale.
+// style.css reads the variables and falls back to the plain card. Selection
+// and hover rings still draw over them.
 function styleCard(el, type) {
   const v = getElementStyles()[type];
   const s = state.EFFECTIVE_SCALE;
@@ -70,8 +68,8 @@ function styleCard(el, type) {
     el.style.setProperty("--el-bg", rgba(resolveColor(v["background.color"]), 1 - v["background.transparency"] / 100));
   }
   if (v["border.show"]) {
-    // A border that matches the sheet (the default white one) would vanish;
-    // the plain card's line keeps the card readable then.
+    // A border matching the sheet (the default white) would vanish, so the
+    // plain card's line stays.
     const color = resolveColor(v["border.color"]);
     if (color !== "#FFFFFF") el.style.setProperty("--el-ring", `inset 0 0 0 ${Math.max(1, v["border.width"] * s)}px ${color}`);
   }
@@ -84,13 +82,13 @@ function scale(v) {
   return v * state.EFFECTIVE_SCALE;
 }
 
-// The one place a lock becomes visible. Every kind of lock (a chart width,
-// a row height, a slicer or KPI value set by Apply) goes through here, so
-// the card, its lock button and the inspector all read the same state:
+// The one place a lock becomes visible. Every kind of lock (chart width, row
+// height, a slicer or KPI value set by Apply) goes through here, so the card,
+// its lock button and the inspector show the same state:
 //   .is-locked + data-lock="width" | "height" | "both"  — for CSS/inspector
 //   .width-locked / .height-locked                      — the dashed outline
-// The always-on mark is the card's own lock button (.icon-btn.is-on), which
-// the CSS keeps visible on a locked card and slides aside on hover.
+// The always-on mark is the card's lock button (.icon-btn.is-on), which the
+// CSS keeps visible on a locked card and slides aside on hover.
 function markLocked(el, width, height) {
   if (!width && !height) return;
   el.classList.add("is-locked");
@@ -99,13 +97,12 @@ function markLocked(el, width, height) {
   el.dataset.lock = width && height ? "both" : width ? "width" : "height";
 }
 
-// Every card's lock/× cluster lives in the top-right corner, so all kinds
-// read as one design. A card too short for that (a slicer bar on a small
-// window) centres the cluster instead: below this rendered height a corner
-// placement leaves less than a button's height beneath it and looks pinned
-// rather than placed. Decided here, from the real rendered height, rather
-// than by a container query — size containment would make every card a
-// stacking context and put the × under the resize handles.
+// Every card's lock/× cluster sits in the top-right corner. A card too short
+// for that (a slicer bar on a small window) centres the cluster instead:
+// below this rendered height a corner placement leaves less than a button's
+// height beneath it. Decided here from the real rendered height, not a
+// container query, because size containment would make every card a stacking
+// context and put the × under the resize handles.
 const COMPACT_HEIGHT = 48;
 
 function placeControls(el, renderedHeight) {
@@ -126,11 +123,10 @@ function buildLockButton(locked, onClick, lockedTitle, unlockedTitle) {
   return lockBtn;
 }
 
-// Scales the canvas to fully fit the available space of the .main content
-// area — both width and height — instead of capping at the base SCALE. This
-// lets the canvas grow on large windows and shrink on small ones, so the
-// window can always show the whole layout with no scrollbars. Floors at 0.12
-// so extremely small windows still render something usable.
+// Fits the canvas to the .main content area (width and height) instead of
+// capping at the base SCALE, so it grows on large windows and shrinks on
+// small ones with no scrollbars. Floors at 0.12 so tiny windows still render
+// something usable.
 function computeEffectiveScale() {
   const main = document.querySelector(".main");
   const wrapper = document.getElementById("canvas-wrapper");
@@ -141,43 +137,39 @@ function computeEffectiveScale() {
   const paddingX = parseFloat(mainStyles.paddingLeft || 0) + parseFloat(mainStyles.paddingRight || 0);
   const wrapperPaddingX = parseFloat(wrapperStyles.paddingLeft || 0) + parseFloat(wrapperStyles.paddingRight || 0);
 
-  // Below the responsive breakpoint (see the .app media query in style.css)
-  // the sidebar panels stack above the canvas instead of sitting beside it.
+  // Below the responsive breakpoint (.app media query in style.css) the
+  // sidebar panels stack above the canvas.
   const stacked = getComputedStyle(document.querySelector(".app")).flexDirection === "column";
 
   // main.clientWidth is unreliable once stacked: with flex-direction:column,
-  // .main's cross-axis (width) stretch can end up driven by its own content
-  // instead of the viewport — and that content is the canvas we're about to
-  // size, creating a circular dependency where a stale large canvas width
-  // keeps measuring a stale large "available" width forever. The document
-  // root's clientWidth reflects the true viewport (minus scrollbar) and
-  // isn't affected by that, so use it as the width basis while stacked.
+  // .main's width can be driven by its content, which is the canvas we are
+  // about to size. That is circular: a stale wide canvas keeps measuring a
+  // stale wide "available" width. The document root's clientWidth is the true
+  // viewport (minus scrollbar), so use it while stacked.
   const availableWidth = stacked
     ? document.documentElement.clientWidth - paddingX - wrapperPaddingX
     : main.clientWidth - paddingX - wrapperPaddingX;
 
-  // Nothing to measure (e.g. .main is display:none while another rail section
-  // is up) — keep the last fitted scale rather than snapping to the base one.
+  // Nothing to measure (e.g. .main is display:none while another rail
+  // section is up): keep the last fitted scale, don't snap to the base one.
   if (availableWidth <= 0) return state.EFFECTIVE_SCALE || state.SCALE;
   const fitScaleW = availableWidth / state.CANVAS_WIDTH;
 
-  // Fitting by height too in the stacked layout would starve the canvas
-  // down to almost nothing (the canvas-wrapper's top position is pushed far
-  // down the page by the stacked panels above it), so fit by width only and
-  // let the page scroll vertically to reach it.
+  // Fitting by height when stacked would shrink the canvas to almost nothing
+  // (the stacked panels push the wrapper far down the page). Fit by width
+  // only and let the page scroll.
   if (stacked) return Math.max(0.12, fitScaleW);
 
   const wrapperPaddingY = parseFloat(wrapperStyles.paddingTop || 0) + parseFloat(wrapperStyles.paddingBottom || 0);
   const wrapperBorderY = parseFloat(wrapperStyles.borderTopWidth || 0) + parseFloat(wrapperStyles.borderBottomWidth || 0);
-  // .main is the scroll container in this layout (the shell itself is locked
-  // to the viewport), so the room left for the canvas is .main's own height
-  // minus everything stacked above the wrapper inside it. Measuring the
-  // wrapper's rect against .main's rect alone would be scroll-dependent: once
-  // an overflowing render made .main scrollable, a re-render while scrolled
-  // would see a shrunken/negative availableHeight and the scale would collapse
-  // toward the 0.12 floor. Adding scrollTop converts to a content-relative
-  // offset, so the result is the room the wrapper would have at scrollTop 0
-  // regardless of where .main happens to be scrolled right now.
+  // .main is the scroll container here (the shell is locked to the
+  // viewport), so the room for the canvas is .main's height minus everything
+  // above the wrapper inside it. Comparing the wrapper's rect to .main's rect
+  // alone depends on scroll: once an overflowing render made .main
+  // scrollable, a re-render while scrolled would see a small or negative
+  // availableHeight and the scale would collapse toward the 0.12 floor.
+  // Adding scrollTop gives the room the wrapper would have at scrollTop 0,
+  // wherever .main is scrolled.
   const wrapperTopInMain = wrapper.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
   const mainPaddingBottom = parseFloat(mainStyles.paddingBottom || 0);
   const availableHeight = main.clientHeight - wrapperTopInMain - wrapperPaddingY - wrapperBorderY - mainPaddingBottom;
@@ -191,29 +183,26 @@ function clearCanvas() {
   while (canvas.firstChild) canvas.removeChild(canvas.firstChild);
 }
 
-// Appends a hover-activated "+" control at an element edge or gap, replacing
-// the old always-visible arrow/add buttons. Three pieces, always appended in
-// this order so the CSS adjacent-sibling selectors (canvas-add-zone:hover +
-// canvas-add-btn, canvas-add-btn:hover + canvas-add-scope) can reveal the
-// button on hovering its trigger and the scope preview on hovering the
-// button itself:
-//   1. `zone` (optional) — an invisible hover-trigger strip; omitted when an
-//      existing resize handle already occupies that exact spot, in which
-//      case the handle itself (already in the DOM immediately before this
-//      call) serves as the hover trigger instead.
+// Appends a hover-activated "+" control at an element edge or gap. Three
+// pieces, always in this order so the CSS adjacent-sibling selectors
+// (canvas-add-zone:hover + canvas-add-btn, canvas-add-btn:hover +
+// canvas-add-scope) can reveal the button on hovering its trigger and the
+// scope preview on hovering the button:
+//   1. `zone` (optional): an invisible hover-trigger strip. Omitted when a
+//      resize handle already occupies that spot (it is in the DOM right
+//      before this call and acts as the trigger).
 //   2. the circular "+" button.
-//   3. the scope preview — an invisible rect matching the element the new one
-//      will be placed next to, drawn only as a solid bar along `scope.edge`
-//      (the side it will appear on).
+//   3. the scope preview: an invisible rect matching the element the new one
+//      goes next to, drawn only as a solid bar along `scope.edge` (the side
+//      it will appear on).
 //
 // The zone/button (input layer) and the scope preview (visual layer) are
-// deliberately independent: a caller may nudge its hover zone away from a
-// boundary to keep it from colliding with another control's zone, while the
-// preview still draws on the real insertion edge. Positional nudges must
-// therefore never be folded into `scope`.
+// independent. A caller may nudge its hover zone off a boundary to avoid
+// another control's zone while the preview still draws on the real insertion
+// edge. So never fold positional nudges into `scope`.
 //
-// All coordinates are final canvas-relative px (already scaled/adjusted by
-// the caller), matching how every other #canvas child is positioned.
+// Coordinates are final canvas-relative px (already scaled by the caller),
+// like every other #canvas child.
 function appendEdgeAddControl({ zone, btnPos, scope, onClick, title }) {
   if (zone) {
     const zoneEl = document.createElement("div");
@@ -232,8 +221,7 @@ function appendEdgeAddControl({ zone, btnPos, scope, onClick, title }) {
   btn.title = title;
   btn.style.left = btnPos.x + "px";
   btn.style.top = btnPos.y + "px";
-  // Never let a "+" click be mistaken for the start of a drag on the resize
-  // strip it sits on top of.
+  // A "+" click must not start a drag on the resize strip beneath it.
   btn.addEventListener("pointerdown", (e) => e.stopPropagation());
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -251,21 +239,20 @@ function appendEdgeAddControl({ zone, btnPos, scope, onClick, title }) {
 }
 
 // `opts.motion`: undefined replays the change as movement (motion.js R1/R2),
-// "swap" fades the new content in without morphing (R3, page/theme switch),
-// false rebuilds silently. Called with a resize Event from app.js, which
-// reads as undefined — the size gate inside playCanvas() skips it anyway.
+// "swap" fades the new content in (R3, page/theme switch), false rebuilds
+// silently. app.js passes a resize Event, which reads as undefined; the size
+// gate in playCanvas() skips it anyway.
 export function renderLayout(opts) {
   const before = snapshotCanvas(canvas);
   state.setEffectiveScale(computeEffectiveScale());
   clearCanvas();
-  // Floored so fractional scale math can never round the rendered box up
-  // past the available space computeEffectiveScale() just measured.
+  // Floored so fractional scale math can't round the box up past the space
+  // computeEffectiveScale() measured.
   canvas.style.width = Math.floor(scale(state.CANVAS_WIDTH)) + "px";
   canvas.style.height = Math.floor(scale(state.CANVAS_HEIGHT)) + "px";
-  // Drives every generic element label's font-size (assets/style.css
-  // .canvas-element-label) so slicer/KPI/chart names scale with the canvas
-  // instead of staying a fixed size as the window grows or shrinks. Reproduces
-  // the previous fixed 10px at the base SCALE, clamped so it stays legible.
+  // Drives the font-size of every generic element label (.canvas-element-label
+  // in assets/style.css), so names scale with the canvas. It is 10px at the
+  // base SCALE, clamped to stay legible.
   const labelFontSize = Math.max(6, Math.min(16, 10 * (state.EFFECTIVE_SCALE / state.SCALE)));
   canvas.style.setProperty("--label-font-size", labelFontSize + "px");
 
@@ -283,9 +270,9 @@ export function renderLayout(opts) {
   const titleLabel = document.createElement("div");
   titleLabel.className = "canvas-element-label";
   titleLabel.textContent = t("canvas.header", { width: state.USABLE_WIDTH, height: state.TITLE_HEIGHT });
-  // Scale like every other element label, but also cap by the title box's own
-  // height (which shrinks with the template, e.g. HD) so at extreme zoom-out
-  // the text never grows taller than the box and spills outside it.
+  // Scales like other labels, but is also capped by the title box's height
+  // (which shrinks with the template, e.g. HD), so at extreme zoom-out the
+  // text can't outgrow the box.
   const titleFontSize = Math.min(labelFontSize, Math.max(6, scale(state.TITLE_HEIGHT) * 0.45));
   titleLabel.style.fontSize = titleFontSize + "px";
   title.appendChild(titleLabel);
@@ -329,8 +316,8 @@ export function renderLayout(opts) {
       const controls = document.createElement("div");
       controls.className = "element-controls";
 
-      // A horizontal slicer locks its width, a vertical one its height —
-      // the one dimension it owns (the other is the row's / the column's).
+      // A horizontal slicer locks its width, a vertical one its height: the
+      // one dimension it owns (the other comes from the row or column).
       markLocked(el, !verticalSlicers && item.stateRef.locked, verticalSlicers && item.stateRef.locked);
       const slicerLockBtn = buildLockButton(
         item.stateRef.locked,
@@ -361,9 +348,8 @@ export function renderLayout(opts) {
       // Must run after the button is in the document (see the helper).
       if (slicerLockBtn) suppressHoverIfCursorOver(slicerLockBtn);
 
-      // Hover "+" — the only way to add another slicer. It follows the
-      // direction the slicers grow in: the right edge in a row, the bottom
-      // edge in the vertical column.
+      // Hover "+" is the only way to add another slicer. It sits on the edge
+      // the slicers grow toward: right in a row, bottom in a vertical column.
       appendEdgeAddControl({
         zone: verticalSlicers
           ? {
@@ -394,10 +380,9 @@ export function renderLayout(opts) {
     });
   });
 
-  // Every KPI band renders through the same pass — bands past the first
-  // differ only in where they sit (inside the chart area, typically) and in
-  // the list their items come from, which computeKpiLayoutForBand has
-  // already resolved.
+  // Every KPI band renders in the same pass. Bands past the first differ only
+  // in position (typically inside the chart area) and in their item list,
+  // which computeKpiLayoutForBand has already resolved.
   const kpiRows = state.kpiBandIds().flatMap(id => computeKpiLayoutForBand(v, id));
 
   kpiRows.forEach(row => {
@@ -416,11 +401,10 @@ export function renderLayout(opts) {
 
       const label = document.createElement("div");
       label.className = "canvas-element-label";
-      // Band 2 numbering restarts at 1 — it is its own row of cards, not a
-      // continuation of the header band's.
+      // Numbering restarts at 1 in each band.
       label.textContent = t("canvas.kpi", { n: item.index + 1 });
       el.appendChild(label);
-      // One flag covers both values; which one it holds says what is locked.
+      // One flag covers both values. Which values are set says what is locked.
       markLocked(el, item.stateRef.locked && item.stateRef.width != null, item.stateRef.locked && item.stateRef.height != null);
       el.dataset.kpi = `${item.bandId}:${item.index}`;
 
@@ -454,7 +438,7 @@ export function renderLayout(opts) {
 
       canvas.appendChild(el);
 
-      // Right-edge hover "+" — the only way to add another KPI now.
+      // Right-edge hover "+" is the only way to add another KPI.
       appendEdgeAddControl({
         zone: {
           left: scale(item.x + item.width) - 8,
@@ -478,12 +462,10 @@ export function renderLayout(opts) {
 
   const chartsLayout = computeChartsLayout(v);
 
-  // Suppresses a freshly-(re)created icon button's hover-preview swap if the
-  // cursor already happens to be resting on top of it (see the lock button's
-  // original comment above chartsLayout.forEach below for the full
-  // rationale) — shared by the cell width-lock button and every per-stack
-  // height-lock button, since #canvas is torn down/rebuilt for all of them
-  // alike. Must run after the button is attached to the document.
+  // Suppresses a new icon button's hover-preview swap if the cursor already
+  // rests on it (see the lock button comment in the chart loop below).
+  // Shared by the cell width-lock button and every stack height-lock button.
+  // Must run after the button is attached to the document.
   function suppressHoverIfCursorOver(btn) {
     const rect = btn.getBoundingClientRect();
     const cursorIsOver =
@@ -503,12 +485,10 @@ export function renderLayout(opts) {
       const chartStateItem = state.chartRows[rowIndex].items[i];
 
       if (chartStateItem.stack && chartStateItem.stack.length >= 2) {
-        // Invisible geometry anchor at the cell's full x/y/width/height,
-        // kept at the plain `chart-${rowIndex}-${i}` id so the existing
-        // chart-width and row-height resize-handle passes below (which look
-        // up charts by that id to read their real rendered rects) keep
-        // working unchanged for stacked cells too — they only ever need the
-        // cell's outer box, never its internal split.
+        // Invisible anchor at the cell's full box, with the plain
+        // `chart-${rowIndex}-${i}` id. The chart-width and row-height handle
+        // passes below look charts up by that id, and only need the cell's
+        // outer box, so they work unchanged for stacked cells.
         const anchor = document.createElement("div");
         anchor.id = domId;
         anchor.style.position = "absolute";
@@ -528,10 +508,9 @@ export function renderLayout(opts) {
           el.id = subDomId;
           el.className = "canvas-element chart";
           styleCard(el, "chart");
-          // A sub-chart's locked visual reflects only its own lock state —
-          // the cell's item.locked is *derived* from the sub-charts (see
-          // handleToggleStackLock in stackEvents.js), so mirroring it here
-          // too would just double-apply the same lock as a second class.
+          // Use only the sub-chart's own lock. The cell's item.locked is
+          // derived from the sub-charts (see handleToggleStackLock in
+          // stackEvents.js), so mirroring it would double-apply the lock.
           markLocked(el, false, stackEntry.locked);
           el.style.left = scale(sub.x) + "px";
           el.style.top = scale(sub.y) + "px";
@@ -547,10 +526,9 @@ export function renderLayout(opts) {
           const controls = document.createElement("div");
           controls.className = "element-controls";
 
-          // Only lock and remove live in the top-right cluster now — adding
-          // a chart (left/right/row-below) or another stacked chart is done
-          // via the hover "+" on the relevant edge instead (see the
-          // add-control passes after all elements/handles exist below).
+          // The top-right cluster has only lock and remove. Adding a chart or
+          // stacked chart uses the hover "+" on the relevant edge (see the
+          // add-control passes below).
           const stackLockBtn = buildLockButton(
             stackEntry.locked,
             () => handleToggleStackLock(rowIndex, i, s),
@@ -582,17 +560,14 @@ export function renderLayout(opts) {
           suppressHoverIfCursorOver(stackLockBtn);
         });
 
-        // Bottom-edge hover "+" for the stack — adds another stacked chart
-        // in this column. The zone/button are placed a few px above the row
-        // boundary itself (rather than centered on it) so the hover zone
-        // doesn't overlap the full-width row-add "+"/row-resize-handle
-        // sitting on that same boundary. That nudge stays in the input layer
-        // only: the scope preview below covers the last sub-chart and draws
-        // its bar on the sub-chart's real bottom edge, so it never crosses
-        // the sub-chart's label and never implies the wrong insertion point.
-        // It also reads as unmistakably different from the row-add preview
-        // that shares this Y — a one-column bar here, a full-row-width one
-        // there.
+        // Bottom-edge hover "+" that adds another stacked chart to this
+        // column. The zone/button sit a few px above the row boundary, not on
+        // it, so they don't overlap the full-width row-add "+" / row-resize
+        // handle on that boundary. The nudge is input-layer only: the scope
+        // preview covers the last sub-chart and draws its bar on that
+        // sub-chart's real bottom edge, so it doesn't cross the label or show
+        // the wrong insertion point. It is also clearly different from the
+        // row-add preview at the same Y (a one-column bar, not full width).
         const lastSub = item.subCharts[item.subCharts.length - 1];
         const stackBtnY = scale(item.y + item.height) - 10;
         appendEdgeAddControl({
@@ -621,7 +596,7 @@ export function renderLayout(opts) {
       el.id = domId;
       el.className = "canvas-element chart";
       styleCard(el, "chart");
-      // Width is the chart's own lock; height is the row's (set by Apply).
+      // Width is the chart's own lock. Height is the row's (set by Apply).
       markLocked(el, chartStateItem.locked, state.chartRows[rowIndex].locked);
       el.style.left = scale(item.x) + "px";
       el.style.top = scale(item.y) + "px";
@@ -637,21 +612,17 @@ export function renderLayout(opts) {
       const controls = document.createElement("div");
       controls.className = "element-controls";
 
-      // Only lock and remove live in the top-right cluster now — adding a
-      // chart (left/right/row-below) is done via the hover "+" on the
-      // relevant edge instead (see the add-control passes after all
-      // elements/handles exist below).
+      // The top-right cluster has only lock and remove. Adding a chart uses
+      // the hover "+" on the relevant edge (see the add-control passes below).
 
-      // Lock/unlock the chart's width. Locking freezes its current width so
-      // it's excluded from auto-redistribution when siblings are added or
-      // removed; height stays independently auto-sized unless the row's
-      // height is separately locked via the sidebar height editor.
+      // Lock/unlock the chart's width. Locking freezes the current width so
+      // sibling add/remove doesn't redistribute it. Height stays auto unless
+      // the row's height is locked via the sidebar height editor.
       //
-      // The button shows its *current state* by default, and swaps to a
-      // preview of what clicking will do on hover (unlocked -> shows lock
-      // icon on hover; locked -> shows unlock icon on hover). Both icons are
-      // always in the DOM and toggled via CSS (.icon-btn:hover), so no
-      // JS/re-render is needed just to preview the hover state.
+      // The button shows the current state and swaps to a preview of the
+      // click on hover (unlocked shows the lock icon, locked the unlock
+      // icon). Both icons are always in the DOM and toggled by CSS
+      // (.icon-btn:hover), so no re-render is needed.
       const rowLocked = state.chartRows[rowIndex].locked;
       const lockBtn = buildLockButton(
         chartStateItem.locked || rowLocked,
@@ -673,13 +644,10 @@ export function renderLayout(opts) {
       controls.appendChild(removeBtn);
       el.appendChild(controls);
 
-      // The resize handle for this pair (if any) is created in a dedicated
-      // pass after every chart in this render exists in the DOM — see
-      // below. It's appended directly to #canvas as a sibling of the chart
-      // elements, not as a child of this one; nesting it inside a chart div
-      // meant every position fix had to also account for that chart's own
-      // border/padding box-model, which is exactly where earlier attempts
-      // kept breaking.
+      // The resize handle for this pair is created in a later pass, once
+      // every chart exists in the DOM. It is a direct child of #canvas, not
+      // of the chart div, so its position doesn't have to account for the
+      // chart's border/padding.
 
       el.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -689,26 +657,23 @@ export function renderLayout(opts) {
 
       canvas.appendChild(el);
 
-      // If the cursor is already sitting on the lock button the instant it's
-      // (re)created — e.g. right after the user clicked it and the whole
-      // canvas re-rendered underneath the still-resting cursor — suppress
-      // its hover-preview icon swap until the cursor actually leaves and
-      // comes back. Otherwise the icon flips to the "opposite" state
-      // immediately, which reads as if the click did nothing (see
-      // .icon-btn.suppress-hover in style.css). Must run after canvas.append
-      // -Child(el) above: getBoundingClientRect() on a button that isn't yet
-      // attached to the document always returns a zero-sized rect.
+      // If the cursor is already on the lock button when it is (re)created
+      // (e.g. right after a click re-rendered the canvas), suppress the
+      // hover-preview icon swap until the cursor leaves and returns.
+      // Otherwise the icon flips to the opposite state at once and the click
+      // looks like it did nothing (see .icon-btn.suppress-hover in
+      // style.css). Must run after canvas.appendChild(el) above:
+      // getBoundingClientRect() on a detached button returns a zero rect.
       suppressHoverIfCursorOver(lockBtn);
     });
   });
 
-  // Horizontal drag handles (+ hover "+" add-controls) between adjacent
-  // charts within a vertical stack — the stack counterpart of the
-  // chart-width/row-height passes below. The drag handle itself is skipped
-  // for a pair when either neighbor is height-locked (nothing left to
-  // redistribute the drag into), but the add-control still appears either
-  // way — adding a stacked chart there doesn't depend on either neighbor's
-  // lock state — via its own hover zone when no handle exists to serve as one.
+  // Horizontal drag handles (and hover "+" add-controls) between adjacent
+  // charts in a vertical stack. The stack counterpart of the chart-width and
+  // row-height passes below. The drag handle is skipped for a pair when
+  // either neighbor is height-locked (nothing to redistribute into). The
+  // add-control appears regardless of locks, with its own hover zone when no
+  // handle exists to serve as one.
   chartsLayout.forEach((row, rowIndex) => {
     row.forEach((item, i) => {
       if (!item.subCharts) return;
@@ -743,7 +708,7 @@ export function renderLayout(opts) {
         appendEdgeAddControl({
           zone: handle ? null : { left, top: top - 7, width, height: 14 },
           btnPos: { x: left + width / 2, y: top },
-          // Scoped to the sub-chart above the gap — the new chart lands
+          // Scoped to the sub-chart above the gap: the new chart lands
           // directly below it.
           scope: {
             left,
@@ -759,18 +724,16 @@ export function renderLayout(opts) {
     });
   });
 
-  // Create each row's resize handles as direct children of #canvas — the
-  // exact same coordinate system already used successfully for the snap
-  // guide line — instead of nesting them inside a chart div. Positioned
-  // using each pair's ACTUAL rendered bounding boxes (relative to canvas),
-  // which requires every chart element above to already exist in the DOM,
-  // hence this running as its own pass afterward rather than inline in the
-  // loop above.
+  // Each row's resize handles are direct children of #canvas (the same
+  // coordinate system as the snap guide), not nested in a chart div. They are
+  // positioned from each pair's rendered bounding boxes relative to the
+  // canvas, so every chart must already be in the DOM. Hence a separate pass
+  // after the loop above.
   const canvasRect = canvas.getBoundingClientRect();
 
-  // The vertical column's right-edge drag handle. One handle for the whole
-  // column (all its slicers share a width), spanning it top to bottom, and
-  // positioned from real rendered rects like every other handle.
+  // The vertical column's right-edge drag handle: one for the whole column
+  // (its slicers share a width), spanning top to bottom, positioned from real
+  // rendered rects like the other handles.
   if (v.hasColumn) {
     const firstEl = document.getElementById("slicer-1");
     const lastEl = document.getElementById(`slicer-${state.slicers.length}`);
@@ -793,9 +756,9 @@ export function renderLayout(opts) {
 
   chartsLayout.forEach((row, rowIndex) => {
     row.forEach((item, i) => {
-      // Left edge of the first chart in the row — a "+" here adds a chart to
-      // its left. There's nothing to its left to drag against, so this
-      // always gets its own hover zone rather than reusing a resize handle.
+      // Left edge of the first chart: a "+" here adds a chart to its left.
+      // There is nothing to drag against, so it always gets its own hover
+      // zone, not a resize handle.
       if (i === 0) {
         const el = document.getElementById(`chart-${rowIndex}-0`);
         if (el) {
@@ -812,9 +775,9 @@ export function renderLayout(opts) {
         }
       }
 
-      // Right edge of the last chart in the row — same idea, mirrored. Note
-      // a single-chart row hits both this branch and the one above for the
-      // same chart, correctly showing a "+" on each of its two edges.
+      // Right edge of the last chart: the same, mirrored. A single-chart row
+      // hits both branches for the same chart and correctly gets a "+" on each
+      // edge.
       if (i === row.length - 1) {
         const el = document.getElementById(`chart-${rowIndex}-${i}`);
         if (el) {
@@ -849,9 +812,8 @@ export function renderLayout(opts) {
 
       const handle = document.createElement("div");
       handle.className = "chart-resize-handle";
-      // Relative to #canvas, exactly like every other canvas child (title,
-      // slicers, KPIs, charts, the snap guide) — no chart-parent border or
-      // padding to account for, since this is no longer nested inside one.
+      // Relative to #canvas like every other canvas child, so no chart
+      // border or padding to account for.
       handle.style.left = (midScreen - canvasRect.left) + "px";
       handle.style.top = (currentRect.top - canvasRect.top) + "px";
       handle.style.height = currentRect.height + "px";
@@ -859,13 +821,13 @@ export function renderLayout(opts) {
       attachChartResizeHandle(handle, rowIndex, i, renderLayout);
       canvas.appendChild(handle);
 
-      // Single shared "+" for the gap between these two charts — reuses the
-      // resize handle above as its hover trigger (see appendEdgeAddControl).
+      // One shared "+" for the gap between the two charts, using the resize
+      // handle above as its hover trigger (see appendEdgeAddControl).
       appendEdgeAddControl({
         zone: null,
         btnPos: { x: midScreen - canvasRect.left, y: (currentRect.top + currentRect.bottom) / 2 - canvasRect.top },
-        // Scoped to the chart left of the gap — the new chart lands to its
-        // right, pushing the rest of the row along.
+        // Scoped to the chart left of the gap: the new chart lands to its
+        // right and pushes the rest of the row along.
         scope: {
           left: currentRect.left - canvasRect.left,
           top: currentRect.top - canvasRect.top,
@@ -879,14 +841,11 @@ export function renderLayout(opts) {
     });
   });
 
-  // Row-height resize handles: one per adjacent pair of chart rows, only
-  // when a second row actually exists (chartsLayout.length - 1 iterations —
-  // zero if there's only one row, which naturally skips creating any handle
-  // at all). Same canvas-sibling + real-DOM-rect approach as the chart-width
-  // handles above, just on the vertical axis: the handle spans the full
-  // usable width (grab anywhere along the row boundary) and is centered
-  // *horizontally* within that span via the grip dots in its CSS, matching
-  // how the chart-width handle's grip is centered within its own strip.
+  // Row-height resize handles: one per adjacent pair of chart rows
+  // (chartsLayout.length - 1, so none for a single row). Same canvas-sibling
+  // and real-DOM-rect approach as the chart-width handles, on the vertical
+  // axis. The handle spans the full usable width, and its CSS centres the
+  // grip dots horizontally, like the chart-width handle's grip.
   for (let rowIndex = 0; rowIndex < chartsLayout.length - 1; rowIndex++) {
     const rowA = chartsLayout[rowIndex];
     const rowB = chartsLayout[rowIndex + 1];
@@ -902,11 +861,10 @@ export function renderLayout(opts) {
 
     const rowHandle = document.createElement("div");
     rowHandle.className = "row-resize-handle";
-    // The content box, not the whole canvas: a chart row boundary is a
-    // boundary between charts, so in a vertical layout it must stop where the
-    // charts do rather than running through the slicer column beside them.
-    // Horizontally contentLeft/contentWidth are exactly MARGIN/USABLE_WIDTH,
-    // so this is the same handle it has always been.
+    // The content box, not the whole canvas: a row boundary lies between
+    // charts, so in a vertical layout it must stop where the charts do, not
+    // run through the slicer column. In the default layout contentLeft /
+    // contentWidth equal MARGIN / USABLE_WIDTH.
     rowHandle.style.left = scale(v.contentLeft) + "px";
     rowHandle.style.width = scale(v.contentWidth) + "px";
     rowHandle.style.top = (midScreenY - canvasRect.top) + "px";
@@ -914,11 +872,9 @@ export function renderLayout(opts) {
     attachRowResizeHandle(rowHandle, rowIndex, renderLayout);
     canvas.appendChild(rowHandle);
 
-    // If a stacked cell in the row above sits roughly centered on the row's
-    // overall horizontal midpoint, that cell's own bottom-edge "+" (added
-    // while rendering it, above) would land almost exactly on top of this
-    // row-add "+" — nudge this one aside so both stay independently
-    // clickable instead of overlapping.
+    // If a stacked cell in the row above is roughly centred on the row's
+    // midpoint, its bottom-edge "+" (added above) would sit almost on top of
+    // this row-add "+". Nudge this one aside so both stay clickable.
     const rowCenterX = v.contentLeft + v.contentWidth / 2;
     const hasCenteredStack = rowA.some(cell =>
       cell.subCharts && Math.abs((cell.x + cell.width / 2) - rowCenterX) * state.EFFECTIVE_SCALE < 32
@@ -928,10 +884,9 @@ export function renderLayout(opts) {
     appendEdgeAddControl({
       zone: null,
       btnPos: { x: btnX, y: midScreenY - canvasRect.top },
-      // Scoped to the whole row band above the boundary, which is what
-      // distinguishes this preview from a stacked cell's bottom-edge "+"
-      // sharing the same boundary — that one's bar spans a single column,
-      // this one the entire row.
+      // Scoped to the whole row above the boundary. That distinguishes it
+      // from a stacked cell's bottom-edge "+" on the same boundary, whose bar
+      // spans one column.
       scope: {
         left: scale(v.contentLeft),
         top: aRect.top - canvasRect.top,
@@ -944,10 +899,9 @@ export function renderLayout(opts) {
     });
   }
 
-  // Bottom edge of the last row — same "+"/full-width-line affordance as the
-  // row boundaries above, adding a new row after the very last one. No drag
-  // handle exists here (nothing below to drag against), so it gets its own
-  // hover zone.
+  // Bottom edge of the last row: the same "+" / full-width line as the row
+  // boundaries above, adding a row after the last one. There is nothing below
+  // to drag against, so it gets its own hover zone.
   const lastRowIndex = chartsLayout.length - 1;
   if (lastRowIndex >= 0 && chartsLayout[lastRowIndex].length) {
     const el = document.getElementById(`chart-${lastRowIndex}-0`);
@@ -972,12 +926,11 @@ export function renderLayout(opts) {
 
   renderWarnings();
   syncSelectionLockState();
-  // Last: the handle and "+" passes above measured the cards at their final
-  // geometry, and a card mid-glide must not feed them a moving box.
+  // Last: the handle and "+" passes above measured the cards at final
+  // geometry, so a card mid-glide must not give them a moving box.
   playCanvas(canvas, before, opts);
-  // Every change to a page ends in a render, so this is the one place that
-  // keeps the stored session current (state/persist.js) and records the
-  // change for undo (state/history.js).
+  // Every page change ends in a render, so this is the one place that saves
+  // the session (state/persist.js) and records undo (state/history.js).
   scheduleSave();
   noteChange();
 }

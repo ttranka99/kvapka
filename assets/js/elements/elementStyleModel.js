@@ -1,26 +1,23 @@
 // assets/js/elements/elementStyleModel.js
 //
-// What the "Customize Elements" section can change about each kind of
-// exported visual, and what it starts at. Like FIELDS in theme/themeModel.js,
-// the table below is the single source of truth: the section renders its
-// controls from it, the preview reads it, the export maps it onto PBIR
-// objects (export/styleToPbir.js) and normalizeElementStyles() clamps against
-// it.
+// What Customize Elements can change on each exported visual, and the
+// defaults. Like FIELDS in theme/themeModel.js, this table is the single
+// source of truth: it drives the controls, the preview, the export
+// (export/styleToPbir.js) and the clamping in normalizeElementStyles().
 //
-// Styles are one set per element type (slicer / KPI card / chart), shared by
-// every page of the project. A field's key is its PBIR address,
-// "<object>.<property>" — "border.radius" is visual.visualContainerObjects
-// .border[0].properties.radius — so the export needs no second mapping.
-// Every name here was checked against Microsoft's report theme schema
-// (reportThemeSchema-2.157.json: commonCards, visual-slicer, visual-card).
+// One style set per element type (slicer / KPI card / chart), shared by every
+// page. A field's key is its PBIR address, "<object>.<property>", e.g.
+// "border.radius" is visual.visualContainerObjects.border[0].properties.radius.
+// So the export needs no second mapping. Names were checked against
+// Microsoft's report theme schema (reportThemeSchema-2.157.json: commonCards,
+// visual-slicer, visual-card).
 //
-// The defaults are exactly what export/visualTemplates.js has always
-// exported, and Power BI's own defaults for everything the templates leave
-// out, so a project nobody customized exports the same files as before.
+// Defaults match what export/visualTemplates.js always exported, plus Power
+// BI's own defaults for anything the templates leave out. An uncustomized
+// project therefore exports the same files as before.
 //
-// Colors are either a fixed hex value or a slot of the report's Power BI
-// theme with a shade — { mode: "hex", hex } or { mode: "theme", id, percent }
-// — the same ThemeDataColor the templates have always used.
+// A color is a fixed hex or a theme slot with a shade: { mode: "hex", hex } or
+// { mode: "theme", id, percent } (the ThemeDataColor the templates use).
 
 import { t } from "../i18n/i18n.js";
 
@@ -29,7 +26,7 @@ export const ELEMENT_TYPES = ["slicer", "kpi", "chart"];
 // The PBIR objects that live on the visual container rather than the visual.
 export const CONTAINER_OBJECTS = ["background", "border", "dropShadow", "padding", "title", "visualHeader", "visualTooltip"];
 
-// Power BI's built-in fonts, and the CSS stack the preview draws each with.
+// Power BI's built-in fonts, with the CSS stack the preview uses for each.
 export const FONTS = {
   "Segoe UI": "'Segoe UI', system-ui, sans-serif",
   "Segoe UI Semibold": "'Segoe UI Semibold', 'Segoe UI', system-ui, sans-serif",
@@ -49,9 +46,9 @@ export const FONTS = {
   "Verdana": "Verdana, sans-serif"
 };
 
-// The report theme's color slots as the preview draws them: Power BI's
-// default theme. ColorId 0 is the background, 1 the foreground, 2+ the data
-// colors. In Power BI they follow whatever theme the report uses.
+// The theme color slots as the preview draws them (Power BI's default theme).
+// ColorId 0 is the background, 1 the foreground, 2+ the data colors. In
+// Power BI they follow the report's own theme.
 export const THEME_COLORS = [
   "#FFFFFF", "#252423", "#118DFF", "#12239E", "#E66C37",
   "#6B007B", "#E044A7", "#744EC2", "#D9B300", "#D64550"
@@ -64,8 +61,8 @@ const hex = value => ({ mode: "hex", hex: value });
 
 // --- Field builders --------------------------------------------------------
 //
-// part — the region of the preview the field changes, so hovering either
-//        side lights the other up.
+// part  — the preview region the field changes; hovering either side
+//         highlights the other.
 // group — the collapsible group in the controls pane.
 
 const num = (key, group, part, min, max, step, unit, def) => ({ key, group, part, kind: "number", min, max, step, unit, default: def });
@@ -169,7 +166,7 @@ export const FIELDS = {
 };
 
 // The controls pane's groups, in order. `showKey` is the group's on/off
-// switch, drawn in its head rather than as a row of its own.
+// switch, drawn in its head, not as a row.
 export const GROUPS = [
   { id: "style", showKey: null },
   { id: "header", showKey: "header.show" },
@@ -254,10 +251,10 @@ export function normalizeValue(field, raw) {
 }
 
 /**
- * Rebuilds a stored or opened style set field by field from the table, the
- * same allow-list stance as sanitizeSnapshot() in state/tabs.js: unknown
- * types and keys are dropped, bad values fall back to the default, and a
- * missing set (an older project file) is simply the defaults.
+ * Rebuilds a stored style set field by field from the table, allow-list style
+ * like sanitizeSnapshot() in state/tabs.js. Unknown types and keys are
+ * dropped, bad values fall back to the default, and a missing set (older
+ * project file) gives the defaults.
  */
 export function normalizeElementStyles(raw) {
   const src = isObject(raw) ? raw : {};

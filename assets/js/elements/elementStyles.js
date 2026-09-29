@@ -3,18 +3,16 @@
 // The project's element styles: one set per element type, shared by every
 // page. Two copies are kept:
 //
-//   saved — the project's styles. state/tabs.js writes them into the
-//           autosave and project files; the exporter and the canvas read
-//           them. Only a project opened / started / restored, or a Save in
-//           the Customize Elements section, changes them.
+//   saved — the project's styles. state/tabs.js writes them to the autosave
+//           and project files; the exporter and canvas read them. Changed
+//           only by opening / starting / restoring a project, or by Save.
 //   draft — what the section edits and previews. Save & Apply copies it to
 //           `saved`; Discard copies `saved` back over it.
 //
-// The draft has an undo history of its own. Page history (state/history.js)
-// is per page, but these styles belong to the whole project, so undoing a
-// radius change must not depend on which page happens to be open. A slider
-// drag is one step: every frame of it is a "transient" change that only
-// updates the preview, and the drag's end commits it.
+// The draft has its own undo history. Page history (state/history.js) is per
+// page, but these styles are project-wide, so undo must not depend on the
+// open page. A slider drag is one step: each frame is a "transient" change
+// that only updates the preview, and the drag's end commits it.
 
 import {
   ELEMENT_TYPES,

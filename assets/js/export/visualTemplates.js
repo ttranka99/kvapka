@@ -1,10 +1,9 @@
 // assets/js/export/visualTemplates.js
 //
 // Styling templates for exported Power BI visuals, copied verbatim from the
-// reference PBIR export in assets/demo/visuals/. Only the reusable styling
-// (`visual` block) is kept — `name` and `position` are generated per export,
-// and data-specific values (like the demo card's 'Profit' title text) are
-// stripped so the templates work universally.
+// reference PBIR export in assets/demo/visuals/. Only the reusable `visual`
+// block is kept. `name` and `position` are generated per export, and
+// data-specific values (like the demo card's 'Profit' title) are stripped.
 
 export const VISUAL_SCHEMA =
   "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json";
@@ -157,8 +156,9 @@ export const KPI_TEMPLATE = {
   drillFilterOtherVisuals: true
 };
 
-// From assets/demo/visuals/383880213297d2b27fe5 (lineChart) — used for all
-// charts; users swap the visual type in Power BI, container styling carries over.
+// From assets/demo/visuals/383880213297d2b27fe5 (lineChart). Used for all
+// charts; users can swap the visual type in Power BI and the container
+// styling carries over.
 export const CHART_TEMPLATE = {
   visualType: "lineChart",
   visualContainerObjects: {

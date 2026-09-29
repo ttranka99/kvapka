@@ -38,8 +38,7 @@ export function initState() {
     //
     state.setSlicers(initialSlicers);
     // KPI bands are seeded by applyTheme() (see reconcileKpiBands in
-    // state.js), which loadDefaults() in state/tabs.js always calls right
-    // before this — so there's nothing left for initState to do for them.
+    // state.js), which loadDefaults() in state/tabs.js calls just before this.
     state.setChartRows(initialChartRows);
     state.setWarnings(initialWarnings);
 }

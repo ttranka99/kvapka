@@ -11,10 +11,9 @@ import {
 } from "../layout/computeSlicerColumnHeights.js";
 import { t, isFrom } from "../i18n/i18n.js";
 
-// Whether one more slicer can be added. In vertical mode the cap isn't a
-// count at all — it's whether the column still has room for every slicer at
-// its minimum height, after the unlocked ones shrink back down to make way.
-// Shared with app.js's sidebar "Slicer" button so both entry points agree.
+// Whether one more slicer can be added. In vertical mode there is no count
+// cap: the column must have room for every slicer at its minimum height.
+// Shared with app.js's sidebar "Slicer" button.
 export function canAddSlicer() {
   if (state.isVerticalSlicers()) {
     const v = computeVerticalLayout();
@@ -46,11 +45,9 @@ export function handleAddSlicer(globalIndex) {
   renderLayout();
 }
 
-// Freezes (or releases) the one dimension a slicer owns — its height in a
-// vertical column, its width in a horizontal row — so the fill/shrink rules
-// redistribute around it instead of resizing it. Locking captures the value
-// the solver is currently showing — same freeze-on-lock behaviour as a chart
-// row, so the element doesn't jump the moment it's locked.
+// Freezes (or releases) the one dimension a slicer owns: height in a
+// vertical column, width in a horizontal row. Locking captures the solver's
+// current value, so the slicer doesn't jump.
 export function handleToggleSlicerLock(globalIndex) {
   const s = state.slicers[globalIndex - 1];
   if (!s) return;
@@ -103,12 +100,10 @@ export function handleSelectSlicer(item, domId, opts = {}) {
   }, opts);
 }
 
-// Re-syncs the selection panel to a slicer's current geometry after an edit
-// (e.g. after the Apply button changes its width and neighboring slicers
-// redistribute). Mirrors refreshSelectedChartAfterResize in chartEvents.js:
-// finds the freshly computed layout item for the currently-selected slicer
-// by stateRef (its position in the row can't have shifted, since applying a
-// width never adds/removes slicers) and re-selects it.
+// Re-syncs the selection panel to the selected slicer after an edit (e.g.
+// Apply changes its width and neighbors redistribute). Mirrors
+// refreshSelectedChartAfterResize in chartEvents.js. Finds the slicer by
+// stateRef, since an edit never adds or removes slicers.
 export function refreshSelectedSlicerAfterEdit(preservePending = false) {
   const selected = state.selectedElement;
   if (!selected || selected.kind !== "slicer" || !selected.domId) return;

@@ -1,15 +1,13 @@
 // assets/js/theme/themeStore.js
 //
-// Where custom themes live between sessions. localStorage is the right home
-// for them: the app is a static site with no backend, and a theme is a few
-// hundred bytes of JSON that belongs to one person on one machine. Sharing
-// a theme with someone else is a deliberate act, and that is what the
-// export/import pair below is for — a downloadable .json file, the same
-// shape as what is stored here.
+// Where custom themes live between sessions. They go in localStorage: the app
+// is a static site with no backend, and a theme is a few hundred bytes of
+// JSON for one person on one machine. Sharing is deliberate, through the
+// export/import pair below (a .json file in the same shape as stored here).
 //
-// Everything read back out goes through normalizeTheme() first, so a hand-
-// edited file, a theme saved by an older build, or a corrupted entry can
-// never reach the layout solvers in a shape they do not expect.
+// Everything read back goes through normalizeTheme() first. A hand-edited
+// file, an older build's theme or a corrupted entry can't reach the layout
+// solvers in an unexpected shape.
 
 import {
   normalizeTheme,
@@ -24,10 +22,9 @@ import { t } from "../i18n/i18n.js";
 const STORAGE_KEY = "kvapka-themes-v1";
 const DEFAULT_KEY = "kvapka-default-theme-v1";
 
-// localStorage throws outright in a few real situations (Safari private
-// mode, a browser set to block site data, and the file:// origin in some
-// builds). None of them should take the app down — the themes simply do not
-// persist for that session.
+// localStorage can throw (Safari private mode, blocked site data, file://
+// origin in some builds). That must not take the app down; the themes just
+// don't persist for that session.
 function readRaw() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -68,18 +65,17 @@ export function getAllThemes() {
   return [...BUILTIN_THEMES.map(cloneTheme), ...customThemes().map(cloneTheme)];
 }
 
-/** Every layout of one placement — what the sidebar's chip list shows, since
- *  the placement switch above it decides which shape is on screen. */
+/** Every layout of one placement: the sidebar's chip list, since the
+ *  placement switch above it decides which shape is shown. */
 export function themesForPlacement(placement) {
   return getAllThemes().filter(t => t.placement === placement);
 }
 
 /**
- * The placements at least one layout exists for, in PLACEMENTS order. The
- * sidebar disables the rest: with no family link between a horizontal layout
- * and its vertical counterpart, "switch to vertical" can only mean "show me
- * the vertical layouts", and offering that when none exist would be a dead
- * control. Nothing is ever created implicitly to fill the gap.
+ * The placements that have at least one layout, in PLACEMENTS order. The
+ * sidebar disables the rest. Layouts of different placements aren't linked,
+ * so "switch to vertical" only means "show the vertical layouts", which is
+ * pointless when none exist. Nothing is created implicitly.
  */
 export function availablePlacements() {
   const present = new Set(getAllThemes().map(t => t.placement));
@@ -97,11 +93,10 @@ export function themeExists(id) {
   return getTheme(id) !== null;
 }
 
-// Ids are generated from the label so an exported file is recognisable, with
-// a numeric suffix when that collides — a user may well want "Dashboard" and
-// "Dashboard 2" side by side. `reserved` holds ids that are taken although no
-// stored theme has them: a deleted theme still in use by a page must not
-// hand its id to a new one, or saving that one would retarget those pages.
+// Ids come from the label so an exported file is recognisable, with a numeric
+// suffix on a collision ("Dashboard", "Dashboard 2"). `reserved` holds ids
+// taken although no stored theme has them: a deleted theme still used by a
+// page must not hand its id to a new one, or saving would retarget that page.
 export function makeThemeId(label, reserved = []) {
   const slug = String(label)
     .normalize("NFD").replace(/[̀-ͯ]/g, "")   // strip Czech diacritics
@@ -117,9 +112,9 @@ export function makeThemeId(label, reserved = []) {
 }
 
 /**
- * Inserts or replaces a custom theme. Built-in ids are protected: saving over
- * FULL_HD or HD would leave the user no way back to a known-good baseline, so
- * the caller is expected to have offered "save as new" instead.
+ * Inserts or replaces a custom theme. Built-in ids are protected: overwriting
+ * FULL_HD or HD would remove the known-good baseline, so the caller should
+ * offer "save as new" instead.
  * @returns {{ ok: boolean, theme?: object, error?: string }}
  */
 export function saveTheme(theme) {
@@ -135,9 +130,9 @@ export function saveTheme(theme) {
   else list.push(normalized);
 
   if (!persist()) {
-    // Roll the in-memory list back so what the UI shows matches what survives
-    // a reload — a theme that silently vanishes on refresh is worse than one
-    // that visibly failed to save.
+    // Roll the in-memory list back so the UI matches what survives a reload.
+    // A theme that silently vanishes on refresh is worse than a visible save
+    // failure.
     cache = null;
     return { ok: false, error: t("themeStore.saveFailed") };
   }
@@ -162,9 +157,8 @@ export function deleteTheme(id) {
 
 // --- The global default -----------------------------------------------
 //
-// The theme a brand-new page starts on. Pages may each override it (see the
-// scope switch in ui/themePicker.js), which is exactly the global-vs-per-page
-// split: this value is the global rule, a page's own themeId is the override.
+// The theme a new page starts on. This is the global rule; a page's own
+// themeId overrides it (see the scope switch in ui/themePicker.js).
 
 export function getDefaultThemeId() {
   try {
@@ -188,15 +182,14 @@ export function setDefaultThemeId(id) {
 
 // --- File interchange --------------------------------------------------
 
-/** One theme as pretty JSON — the shape parseThemeFile reads back. */
+/** One theme as pretty JSON, in the shape parseThemeFile reads. */
 export function exportThemeJson(theme) {
   return JSON.stringify({ ...cloneTheme(theme), schema: THEME_SCHEMA, builtin: false }, null, 2);
 }
 
 /**
- * Parses an exported file back into themes. Accepts three shapes so a user
- * can hand back whatever they were given: one theme object, a bare array, or
- * the `{ schema, themes: [...] }` collection wrapper.
+ * Parses an exported file back into themes. Accepts one theme object, a bare
+ * array, or the `{ schema, themes: [...] }` collection wrapper.
  * @returns {{ ok: boolean, themes?: object[], error?: string }}
  */
 export function parseThemeFile(text) {
@@ -222,8 +215,8 @@ export function parseThemeFile(text) {
 }
 
 /**
- * Imports parsed themes, giving each a fresh id when its own already exists,
- * so an import never silently overwrites a theme the user still relies on.
+ * Imports parsed themes. A theme whose id already exists gets a fresh one, so
+ * an import never overwrites a theme in use.
  * `reserved` is passed on to makeThemeId().
  * @returns {{ ok: boolean, imported: object[], error?: string }}
  */

@@ -6,9 +6,8 @@ import { t } from "../i18n/i18n.js";
 const MANUAL_WIDTH_SUM_ERROR = () => t("warnings.slicer.manualWidthSum");
 const TIGHT_FIT_WARNING = () => t("warnings.slicer.tightFit");
 
-// Tracks which conditions this module has already surfaced a notification
-// for, independent of the toast's own 5s panel-timeout — see the identical
-// comment in computeKpiLayout.js / computeSlicersLayout.js.
+// Conditions already reported, tracked apart from the toast's 5s timeout.
+// Same as in computeKpiLayout.js / computeSlicersLayout.js.
 const activeConditions = new Set();
 
 function syncWarning(condition, msg, type) {
@@ -54,14 +53,13 @@ export function computeSlicerRowWidths(rowSlicers) {
 
   syncWarning(remaining < m * state.MIN_SLICER_WIDTH, TIGHT_FIT_WARNING(), "warning");
 
-  // Symmetric distribution when nothing is locked — same rule as KPI rows
-  // (computeKpiLayout.js) and chart rows, so a slicer row and a KPI row with
-  // the same element count line up column for column.
+  // Symmetric when nothing is locked, as in KPI rows (computeKpiLayout.js)
+  // and chart rows, so rows with the same count line up column for column.
   if (m === n) {
     return distributeInSteps(remaining, n);
   }
 
-  // Default logic for all other cases
+  // Some locked: share the rest left to right.
   const shares = distributeInSteps(remaining, m, false);
   let next = 0;
   return rowSlicers.map(s => (s.locked ? s.width : shares[next++]));

@@ -9,12 +9,12 @@
 //   Arrow keys        select the nearest element in that direction
 //   ?                 open Help
 //
-// Every action goes through the same function as its button (or, for Delete,
-// the card's own ×), so locks, warnings, autosave and undo behave the same
-// whichever way it was triggered. SHORTCUTS below is what the Help modal
-// lists, kept next to the handler so the two can't drift apart.
+// Every action calls the same function as its button (for Delete, the card's
+// own ×), so locks, warnings, autosave and undo behave the same either way.
+// SHORTCUTS below is what the Help modal lists. It sits next to the handler
+// so the two can't drift apart.
 //
-// Modals answer their own keys (ui/dialog.js stops propagation), so nothing
+// Modals handle their own keys (ui/dialog.js stops propagation), so nothing
 // here fires while one is open.
 
 import * as state from "../state/state.js";
@@ -41,8 +41,7 @@ export const SHORTCUTS = [
   { keys: [["?"]], text: "help.keys.help" },
 ];
 
-// The cards on the canvas, without the fading copies motion.js leaves behind
-// for a removed one.
+// The cards on the canvas, minus the fading ghosts motion.js leaves.
 const CARDS = "#canvas .canvas-element:not(.is-ghost)";
 
 const ARROWS = {
@@ -59,15 +58,15 @@ export function initShortcuts(options) {
   document.addEventListener("keydown", onKeydown);
 }
 
-// The canvas is on screen: not behind the template editor or the rail's
+// The canvas is visible: not covered by the template editor or the rail's
 // Customize Elements section.
 const canvasShown = () =>
   !document.body.classList.contains("theme-editor-open") && !document.body.classList.contains("section-prvky");
 
 function onKeydown(e) {
   if (e.defaultPrevented || e.isComposing || isGestureActive()) return;
-  // AltGr is Ctrl+Alt on Windows; on Czech and other European layouts it
-  // types characters, and must never trigger anything.
+  // AltGr is Ctrl+Alt on Windows and types characters on European layouts,
+  // so it must never trigger a shortcut.
   if (e.altKey) return;
 
   if (e.ctrlKey || e.metaKey) {
@@ -97,8 +96,8 @@ function onKeydown(e) {
     e.preventDefault();
     setSelected(null);
   } else if (ARROWS[e.key]) {
-    // Only while nothing else holds the focus: a focused button group or
-    // menu may use the arrows itself.
+    // Only if nothing else has focus: a focused button group or menu may
+    // use the arrows itself.
     const canvas = document.getElementById("canvas");
     if (active && active !== document.body && active !== document.documentElement && !canvas?.contains(active)) return;
     if (selectNeighbour(ARROWS[e.key])) e.preventDefault();
@@ -110,8 +109,8 @@ function onModifiedKey(e) {
   const letter = letterOf(e);
   if (letter !== "s" && letter !== "e") return;
   e.preventDefault();
-  // A field being edited (a page rename, a size typed into the inspector)
-  // commits on blur, so what is saved is what is on screen.
+  // A field being edited (page rename, inspector size) commits on blur, so
+  // what is saved is what is on screen.
   const active = document.activeElement;
   if (isTextField(active)) active.blur();
   if (letter === "s") saveProject();
@@ -119,8 +118,8 @@ function onModifiedKey(e) {
 }
 
 // Removes the selected element through the handler its × button calls. The
-// selection is cleared only if something was actually removed: a refusal
-// (the rest of the row is locked) keeps it, next to the handler's own toast.
+// selection is cleared only if something was removed. A refusal (rest of the
+// row locked) keeps it.
 function removeSelected() {
   const domId = state.selectedElement?.domId || "";
   const el = document.getElementById(domId);
@@ -144,12 +143,11 @@ function removeSelected() {
   if (count() < before) setSelected(null);
 }
 
-// Moves the selection to the nearest card in the pressed direction. Only
-// cards wholly past the current one's edge count (so the full-width header
-// is never "to the right" of a slicer). Cards in the same row (or column)
-// come first; among them the smallest gap wins, then the one best lined up.
-// With nothing selected the arrows are left to the page, so they still scroll
-// it. Selecting goes through the card's own click handler.
+// Selects the nearest card in the pressed direction. Only cards wholly past
+// the current card's edge count (so the full-width header is never "to the
+// right" of a slicer). Cards in the same row or column come first, then the
+// smallest gap, then the best alignment. With nothing selected the arrows go
+// to the page and scroll it. Selecting uses the card's own click handler.
 function selectNeighbour({ axis, sign }) {
   const cards = [...document.querySelectorAll(CARDS)];
   const current = document.getElementById(state.selectedElement?.domId || "");

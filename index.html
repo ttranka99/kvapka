@@ -4,17 +4,16 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- The Czech text below is what crawlers and link previews see (they
-         don't run JS); i18n.js swaps it for the active language. -->
+    <!-- Czech text for crawlers and link previews, which don't run JS.
+         i18n.js swaps it for the active language. -->
     <title data-i18n="app.title">kvapka · návrhář rozložení Power BI reportů</title>
     <meta name="description" data-i18n-content="app.description" content="Navrhněte rozložení Power BI reportu přímo v prohlížeči: vyberte šablonu, rozmístěte vizuály a motiv, pak exportujte projekt PBIR pro Power BI Desktop." />
     <meta name="theme-color" content="#2b3038" />
 
     <!-- SEO: replace https://kvapka.example with the production domain before release.
-         Each language has its own URL (?lang=en), listed by the hreflang
-         links. There is no static canonical on purpose: the same file serves
-         both URLs, so i18n.js adds it from the active language's hreflang
-         link (and keeps og:url / og:locale in step). -->
+         Each language has its own URL (?lang=en), listed in the hreflang links.
+         No static canonical: one file serves both URLs, so i18n.js adds it from
+         the active language's hreflang link and keeps og:url / og:locale in step. -->
     <link rel="alternate" hreflang="cs" href="https://kvapka.example/" />
     <link rel="alternate" hreflang="en" href="https://kvapka.example/?lang=en" />
     <link rel="alternate" hreflang="x-default" href="https://kvapka.example/?lang=en" />
@@ -45,11 +44,10 @@
 </head>
 
 <body>
-    <!-- The icon sprite. Every glyph that appears more than once, and every
-         glyph a JS file builds, is a <use href="#i-…"> of one of these — no JS
-         file carries SVG markup, so a stroke weight can't drift between
-         copies. Icons used exactly once (the export arrow, the rail sections,
-         the reset button) stay inline where they're used. -->
+    <!-- Icon sprite. Glyphs used more than once, and all glyphs built in JS, are
+         <use href="#i-..."> of these, so no JS file carries SVG and stroke weight
+         can't drift. Icons used once (export arrow, rail sections, reset button)
+         stay inline. -->
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">
         <defs>
             <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
@@ -72,8 +70,7 @@
     </svg>
 
     <header class="topbar">
-        <!-- Start and actions share the slack equally, so the subtitle between
-             them sits in the true centre of the bar. -->
+        <!-- Start and actions share the slack equally, so the subtitle sits in the true centre. -->
         <div class="topbar-start">
             <a class="brand" href="./" data-i18n-aria-label="topbar.brand">
                 <!-- assets/img/logo.svg, inlined so it takes currentColor. -->
@@ -84,8 +81,7 @@
                 <span class="brand-name" data-i18n="topbar.brand"></span>
             </a>
 
-            <!-- Undo / redo for the page being edited (also Ctrl+Z, Ctrl+Y /
-                 Ctrl+Shift+Z), on the left beside the brand like most apps.
+            <!-- Undo / redo for the current page (also Ctrl+Z, Ctrl+Y / Ctrl+Shift+Z).
                  Enabled by state/history.js. -->
             <div class="history-buttons" role="group" data-i18n-aria-label="history.group">
                 <button type="button" id="undo-btn" class="btn btn-ghost history-btn" data-i18n-aria-label="history.undo" data-i18n-title="history.undo" disabled>
@@ -100,15 +96,15 @@
         <span class="topbar-subtitle" data-i18n="topbar.subtitle" data-i18n-stable></span>
 
         <div class="topbar-actions">
-            <!-- Language codes, the same in every language; the group's name
-                 comes from the locale file. Wired in app.js. -->
+            <!-- Language codes are the same in every language. The group's name comes
+                 from the locale file. Wired in app.js. -->
             <div class="segmented lang-switch" role="group" data-i18n-aria-label="topbar.language">
                 <button type="button" class="template-option" data-locale="cs" lang="cs">CS</button>
                 <button type="button" class="template-option" data-locale="en" lang="en">EN</button>
             </div>
 
-            <!-- New project, or save / open the pages as a .kvapka.json file. The menu is
-                 positioned against .project-wrap, like the bell's panel.
+            <!-- New project, or save / open pages as a .kvapka.json file.
+                 The menu is positioned against .project-wrap, like the bell's panel.
                  Wired in ui/projectMenu.js. -->
             <div class="project-wrap">
                 <button type="button" id="project-menu-btn" class="btn btn-ghost project-menu-btn" data-i18n-aria-label="project.menu" aria-haspopup="menu" aria-expanded="false" aria-controls="project-menu">
@@ -137,9 +133,8 @@
                 <span data-i18n="topbar.export" data-i18n-stable></span>
             </button>
 
-            <!-- Panel and toasts are positioned against .bell-wrap, so they follow
-                 the bell at any bar height instead of hanging off a hard-coded
-                 --topbar offset that the wrapped narrow bar invalidates. -->
+            <!-- Panel and toasts are positioned against .bell-wrap, so they follow the bell
+                 at any bar height. A hard-coded --topbar offset breaks when the bar wraps. -->
             <div class="bell-wrap">
                 <button id="notification-bell" class="icon-circle notification-bell" data-i18n-aria-label="topbar.notifications" type="button">
                     <svg aria-hidden="true"><use href="#i-bell"/></svg>
@@ -172,9 +167,8 @@
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 4a2 2 0 1 1 4 0v1h4v4h1a2 2 0 1 1 0 4h-1v4h-4v-1a2 2 0 1 0-4 0v1H6v-4H5a2 2 0 1 1 0-4h1V5h4V4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
                 <span data-i18n="rail.elements"></span>
             </button>
-            <!-- Help and About open modals (ui/help.js, ui/about.js) rather
-                 than sections, so they have no data-section and the rail
-                 never lights them. -->
+            <!-- Help and About open modals (ui/help.js, ui/about.js), not sections.
+                 So they have no data-section and the rail never lights them. -->
             <button type="button" id="help-btn" class="rail-btn rail-btn--help" aria-haspopup="dialog" data-i18n-title="help.button">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M9.6 9.2a2.5 2.5 0 0 1 4.85.85c0 1.7-2.45 2.2-2.45 3.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="16.9" r="1.15" fill="currentColor"/></svg>
                 <span data-i18n="rail.help"></span>
@@ -187,11 +181,11 @@
 
         <aside class="sidebar m-reveal">
             <div class="sidebar-panels">
-                <!-- Folds down to its head once the canvas is set up, so the
-                     panels used all the time sit higher (ui/templatePanel.js). -->
+                <!-- Folds to its head once the canvas is set up, so the everyday panels sit
+                     higher (ui/templatePanel.js). -->
                 <section class="panel panel-template">
-                    <!-- The accordion pattern: the heading holds the toggle, so
-                         the panel stays a landmark for screen readers. -->
+                    <!-- Accordion pattern: the heading holds the toggle, so the panel stays a
+                         landmark for screen readers. -->
                     <h2 class="panel-head-title">
                         <button type="button" class="panel-head" id="template-toggle" aria-expanded="true" aria-controls="template-body">
                             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
@@ -200,10 +194,9 @@
                         </button>
                     </h2>
 
-                    <!-- Two layers in one place: the controls, and the folded panel's
-                         stand-in — a spec sheet of what they are set to, filled by
-                         ui/templatePanel.js. One is in, the other fades out on top
-                         of it while the fold's height eases between them. -->
+                    <!-- Two layers in one place: the controls, and a spec sheet of their values
+                         that stands in when the panel is folded (filled by ui/templatePanel.js).
+                         One fades out over the other while the fold's height eases. -->
                     <div class="template-fold">
                         <div class="fold-layer is-out" id="template-summary">
                             <dl class="spec-sheet">
@@ -231,8 +224,8 @@
 
                             <div class="panel-field">
                                 <h3 class="field-label" id="label-resolution" data-i18n="template.resolution"></h3>
-                                <!-- Chips are built by ui/themePicker.js: the two built-in
-                                     presets first, then every saved custom theme. -->
+                                <!-- Chips are built by ui/themePicker.js: the two built-in presets, then
+                                     every saved custom theme. -->
                                 <div class="theme-selector" id="theme-selector" role="group" aria-labelledby="label-resolution"></div>
                             </div>
 
@@ -255,11 +248,9 @@
 
                             <div class="panel-field">
                                 <h3 class="field-label" id="label-slicer-placement" data-i18n="template.slicers"></h3>
-                                <!-- Each option is a whole layout, not a view of one:
-                                     picking it switches to a template built for that
-                                     shape (ui/themePicker.js). An option with no
-                                     template of its own is disabled rather than
-                                     conjuring one. -->
+                                <!-- Each option is a whole layout, not a view of one. Picking it switches to
+                                     a template built for that shape (ui/themePicker.js). An option with no
+                                     template is disabled. -->
                                 <div class="template-selector segmented segmented--3" role="group" aria-labelledby="label-slicer-placement">
                                     <button type="button" class="template-option active" data-placement="horizontal" data-i18n="placement.horizontal"></button>
                                     <button type="button" class="template-option" data-placement="vertical-left" data-i18n="placement.verticalLeft"></button>
@@ -269,14 +260,12 @@
                             </div>
 
                             <div class="panel-section panel-rows">
-                                <!-- Collapses away in vertical mode: a single slicer column
-                                     has no per-row limit to set. -->
+                                <!-- Hidden in vertical mode: a single slicer column has no per-row limit. -->
                                 <div class="collapsible expanded" id="slicers-per-row-field">
                                     <div class="collapsible-inner">
                                         <div class="panel-row">
                                             <label for="slicers-per-row" data-i18n="template.slicersPerRow"></label>
-                                            <!-- Options come from the active theme's
-                                                 min/max per-row bounds (themePicker.js). -->
+                                            <!-- Options come from the active theme's per-row min/max (themePicker.js). -->
                                             <select id="slicers-per-row"></select>
                                         </div>
                                     </div>
@@ -343,21 +332,19 @@
                         <button id="add-kpi" class="btn btn-secondary full-btn"><svg aria-hidden="true"><use href="#i-kpi"/></svg><span data-i18n="add.kpi"></span></button>
                         <button id="add-chart-split" class="btn btn-secondary full-btn m-reveal hidden"><svg aria-hidden="true"><use href="#i-chart"/></svg><span data-i18n="add.chart"></span></button>
                     </div>
-                    <!-- Filled with one button per KPI band beyond the first
-                         (see syncKpiBandControls in app.js). Empty when the
-                         active theme defines only the header band. -->
+                    <!-- One button per KPI band beyond the first (see syncKpiBandControls in
+                         app.js). Empty when the theme has only the header band. -->
                     <div id="add-kpi-bands"></div>
                 </section>
             </div>
         </aside>
 
         <main class="main m-reveal">
-            <!-- The page tabs, in a fixed row above the sheet. The sheet hangs
-                 from the top of the canvas area, so switching to a page on
-                 another template resizes the sheet but never moves the tab
-                 just clicked. In the stacked layout ui/tabs.js moves the strip
-                 into the top bar. The tabs scroll inside .tab-viewport while
-                 the arrows and the + stay pinned outside it. -->
+            <!-- Page tabs sit in a fixed row above the sheet. The sheet hangs from the top
+                 of the canvas area, so switching to a page on another template resizes the
+                 sheet but never moves the tab just clicked. In the stacked layout,
+                 ui/tabs.js moves the strip into the top bar. Tabs scroll inside
+                 .tab-viewport; the arrows and + stay pinned outside it. -->
             <div class="tab-strip">
                 <button type="button" class="icon-circle tab-scroll" data-dir="prev" data-i18n-aria-label="tabs.prev" hidden>
                     <svg aria-hidden="true"><use href="#i-chevron"/></svg>

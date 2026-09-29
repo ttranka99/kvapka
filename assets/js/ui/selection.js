@@ -3,12 +3,10 @@ import { addWarning, renderWarnings } from "./warnings.js";
 import { icon } from "./icon.js";
 import { t, onLocaleChange } from "../i18n/i18n.js";
 
-// Unsaved width/height edits, typed into the panel but not yet applied to
-// app state. Seeded from the selected element's confirmed values on every
-// fresh selection (see setSelected below); only inline editing changes it
-// after that. The displayed spans always render from `pending`, not from
-// the confirmed value directly, so "what you typed" and "what's shown" never
-// diverge.
+// Unsaved width/height edits typed into the panel, not yet applied to app
+// state. Seeded from the selected element's values on each fresh selection
+// (see setSelected); only inline editing changes it after that. The spans
+// always render from `pending`, so what you typed and what is shown agree.
 let pending = { width: null, height: null };
 
 function isWidthEditable(kind) {
@@ -29,10 +27,9 @@ export function getPendingHeight() {
   return pending.height;
 }
 
-// Shows/hides and enables/disables the single Apply button. Dirty (enabled,
-// red — see button:disabled in style.css for the gray/red split) means the
-// shown value differs from the last-applied one for at least one editable
-// field of the current kind.
+// Enables/disables the single Apply button. Dirty (enabled, red; see
+// button:disabled in style.css) means at least one editable field of the
+// current kind differs from its last-applied value.
 function updateApplyButtonState() {
   const applyBtn = document.getElementById("apply-selection");
   const info = state.selectedElement;
@@ -61,14 +58,12 @@ function updateApplyButtonState() {
   applyBtn.disabled = !dirty;
 }
 
-// The check mark (icon("check")) swapped into a copy button after a successful
-// copy is the only confirmation the user gets, so no notification is raised.
+// A successful copy swaps a check mark (icon("check")) into the button. That
+// is the only confirmation, so no notification is raised.
 const COPY_SUCCESS_MS = 1200;
 
-// Wires the copy-to-clipboard buttons next to the X/Y/width/height rows.
-// These DOM nodes are static (unlike #canvas, the selection panel is never
-// torn down and rebuilt), so this only needs to run once at startup rather
-// than after every setSelected() call.
+// Wires the copy buttons next to the X/Y/width/height rows. The panel is
+// never rebuilt (unlike #canvas), so this runs once at startup.
 export function initSelectionCopyButtons() {
   document.querySelectorAll(".copy-btn[data-copy-target]").forEach(btn => {
     const originalHTML = btn.innerHTML;
@@ -99,13 +94,10 @@ export function initSelectionCopyButtons() {
   });
 }
 
-// Wires editing for the width/height rows: double-clicking the number, or a
-// single click on its pencil button, swaps the number for a small inline
-// number input and focuses it so the user can type immediately. Blur or
-// Enter commits the typed value back into `pending` (still unsaved —
-// nothing is written to app state here), Escape cancels. Invalid input
-// surfaces the same toast-based error pattern used everywhere else in the
-// panel rather than silently discarding or accepting garbage.
+// Wires editing for the width/height rows: a double-click on the number, or
+// a click on its pencil, swaps it for a focused number input. Blur or Enter
+// commits into `pending` (nothing is written to app state here), Escape
+// cancels. Invalid input raises a toast.
 export function initSelectionInlineEditing() {
   const fields = [
     { key: "width", wrapperId: "edit-width-wrapper", pencilId: "edit-width-pencil", spanId: "sel-width", inputId: "input-width", isEditable: isWidthEditable },
@@ -123,12 +115,10 @@ export function initSelectionInlineEditing() {
       if (!info || !isEditable(info.kind)) return;
 
       input.value = pending[key];
-      // .editable-value sets `display` with specificity/order that would
-      // beat a plain .hidden class, so it's hidden via inline style instead.
-      // The pencil uses visibility (not display) so it keeps its layout box
-      // and .push-right margin while hidden — otherwise the copy button next
-      // to it would jump left for the duration of the edit (see the
-      // .edit-pencil-btn comment in style.css for why that margin matters).
+      // .editable-value sets `display` with a specificity/order that beats
+      // .hidden, so hide it with an inline style. The pencil uses visibility,
+      // not display, to keep its box and .push-right margin, or the copy
+      // button would jump left (see .edit-pencil-btn in style.css).
       wrapper.style.display = "none";
       pencil.style.visibility = "hidden";
       input.classList.remove("hidden");
@@ -148,10 +138,8 @@ export function initSelectionInlineEditing() {
       if (raw === "" || isNaN(val)) {
         addWarning(t("warnings.size.invalidNumber"), "error");
         renderWarnings();
-        // Revert just this one field back to the element's actual current
-        // (last-applied) size — not the whole selection/panel, and not
-        // whatever unrelated unsaved edit might still be pending on the
-        // *other* field.
+        // Revert only this field to the last-applied size, not the other
+        // field's pending edit.
         const info = state.selectedElement;
         if (info) pending[key] = info[key];
       } else {
@@ -161,9 +149,8 @@ export function initSelectionInlineEditing() {
       span.textContent = pending[key];
       input.classList.add("hidden");
       wrapper.style.display = "";
-      // Re-apply pencil visibility in case the field became non-editable
-      // while being edited (e.g. the user clicked away to a different,
-      // read-only element mid-edit) — don't just blindly un-hide it.
+      // The field may have become non-editable mid-edit (a click on a
+      // read-only element), so don't just un-hide the pencil.
       pencil.style.visibility = isEditable(state.selectedElement?.kind) ? "" : "hidden";
       updateApplyButtonState();
     }
@@ -180,11 +167,9 @@ export function initSelectionInlineEditing() {
   });
 }
 
-// Shows the sidebar "Graf" split button only while the current selection is
-// an unstacked, unlocked top-level chart cell — the only kind of selection
-// splitting is actually valid for (see canSplitChart in stackEvents.js,
-// which this mirrors without importing it, to avoid a circular import: that
-// module imports setSelected from here).
+// Shows the sidebar "Graf" split button only for an unstacked, unlocked chart
+// cell. Mirrors canSplitChart in stackEvents.js without importing it, to
+// avoid a circular import (that module imports setSelected from here).
 function updateSplitChartButtonVisibility(info) {
   const btn = document.getElementById("add-chart-split");
   if (!btn) return;
@@ -201,13 +186,10 @@ function updateSplitChartButtonVisibility(info) {
   btn.classList.toggle("hidden", !show);
 }
 
-// opts.preservePending: when true, refreshes the panel's geometry (e.g.
-// after a drag tick or an Apply attempt) without resetting `pending`. Used
-// after an Apply attempt so a field that failed validation keeps showing
-// the user's attempted value instead of reverting silently; a field that
-// succeeded already matches its new confirmed value, so it's a no-op for
-// that field either way. A genuine new selection (the default) always
-// resets `pending` to the freshly selected element's confirmed values.
+// opts.preservePending: refresh the panel's geometry (after a drag tick or an
+// Apply attempt) without resetting `pending`, so a field that failed
+// validation keeps the attempted value. A new selection (the default) resets
+// `pending` to the element's confirmed values.
 export function setSelected(info, opts = {}) {
   const { preservePending = false } = opts;
 
@@ -258,9 +240,8 @@ export function setSelected(info, opts = {}) {
   editHeightWrapperEl.classList.toggle("is-editable", heightEditable);
   editWidthPencilEl.classList.toggle("is-editable", widthEditable);
   editHeightPencilEl.classList.toggle("is-editable", heightEditable);
-  // Clear any leftover inline override from a previous mid-edit hide, so a
-  // fresh selection's pencil visibility is driven purely by the class
-  // toggle above.
+  // Clear inline overrides left by a mid-edit hide, so the class toggle
+  // above alone drives the pencil.
   editWidthPencilEl.style.visibility = "";
   editHeightPencilEl.style.visibility = "";
   editWidthWrapperEl.style.display = "";
@@ -282,8 +263,8 @@ export function setSelected(info, opts = {}) {
   syncSelectionLockState();
 }
 
-// A language switch keeps the selection; only its type label, stored as
-// finished text, is carried over.
+// A language switch keeps the selection. Only its type label (stored as
+// finished text) needs converting.
 onLocaleChange(convert => {
   const info = state.selectedElement;
   if (!info) return;
@@ -291,10 +272,10 @@ onLocaleChange(convert => {
   document.getElementById("sel-type").textContent = info.labelType;
 });
 
-/* Marks the width/height rows of the inspector with the selected card's
-   lock. The card is the source of truth (renderLayout's markLocked writes
-   data-lock), so this also runs after every render — a lock toggled from
-   the card's own button never re-selects. */
+/* Marks the inspector's width/height rows with the selected card's lock. The
+   card is the source of truth (renderLayout's markLocked writes data-lock),
+   so this also runs after every render: a lock toggled from the card's own
+   button doesn't re-select. */
 export function syncSelectionLockState() {
   const info = state.selectedElement;
   const lock = info && info.domId ? document.getElementById(info.domId)?.dataset.lock : undefined;

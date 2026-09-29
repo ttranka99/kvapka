@@ -1,8 +1,8 @@
 // assets/js/export/zip.js
 //
-// Minimal dependency-free ZIP writer (method 0 = stored, no compression).
-// Good enough for the export payload, which is a few KB of JSON — keeps the
-// app a plain static site with no CDN/library dependency and works on file://.
+// Minimal ZIP writer (method 0 = stored, no compression). Enough for the few
+// KB of JSON exported, and keeps the app a static site with no library or
+// CDN, working on file://.
 
 let crcTable = null;
 

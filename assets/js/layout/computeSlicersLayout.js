@@ -13,14 +13,9 @@ const HARD_LIMIT_ERROR = () => t("warnings.slicer.limit");
 const SECOND_ROW_OVERFLOW_ERROR = () => t("warnings.slicer.secondRowOverflow");
 const COLUMN_OVERFLOW_ERROR = () => t("warnings.slicer.columnOverflow");
 
-// Tracks which conditions this module has already surfaced a notification
-// for, independent of whether that notification has since timed out into the
-// bell's panel. See the identical comment in computeKpiLayout.js: without
-// this, a still-true condition whose toast already timed out to the panel
-// would get re-added (and its toast popped back up) on every unrelated
-// re-render, since state.warnings alone can't distinguish "just recurred"
-// from "never stopped being true, panel-timeout just happened on its own
-// schedule". A message is only (re-)added at the actual false→true transition.
+// Conditions already reported, tracked apart from the toast timing out into
+// the bell's panel. A message is only added when the condition goes from
+// false to true. See computeKpiLayout.js for why.
 const activeConditions = new Set();
 
 function syncWarning(condition, msg, type) {
@@ -115,14 +110,12 @@ export function computeSlicersLayout(v) {
     return rows;
 }
 
-// Vertical mode: a single fixed-width column of slicers down the left side,
-// top-aligned below the title. Heights come from computeSlicerColumnHeights
-// (see that file for the fill/shrink rules) and the width is the column's,
-// shared by every slicer in it. There is deliberately no second column —
-// slicer count is capped by what fits the one column instead.
+// Vertical mode: one fixed-width column of slicers down the left side, below
+// the title. Heights come from computeSlicerColumnHeights; every slicer uses
+// the column's width. There is deliberately no second column: the slicer
+// count is capped by what fits.
 function computeSlicerColumn(v) {
-    // None of the horizontal row conditions can hold in this mode; clear any
-    // that were raised before the switch so they don't linger in the panel.
+    // Row conditions can't apply here. Clear any raised before the switch.
     syncWarning(false, MAX_PER_ROW_INFO(), "info");
     syncWarning(false, HARD_LIMIT_ERROR(), "error");
     syncWarning(false, SECOND_ROW_LIMIT_WARNING(), "warning");
@@ -133,10 +126,9 @@ function computeSlicerColumn(v) {
         return [];
     }
 
-    // Overflow is only reachable by locking slicers to heights that together
-    // exceed the column (adding one is blocked before it can overflow) — the
-    // heights are clamped to stay on-canvas either way, so this warns rather
-    // than invalidating the whole layout the way a row overflow does.
+    // Overflow only happens when locked heights exceed the column (adding a
+    // slicer is blocked first). Heights are clamped on-canvas, so this only
+    // warns instead of dropping the layout like a row overflow does.
     syncWarning(
         slicerColumnOverflows(state.slicers, v.slicerColumnHeight),
         COLUMN_OVERFLOW_ERROR(),

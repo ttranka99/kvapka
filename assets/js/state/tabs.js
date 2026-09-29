@@ -31,35 +31,30 @@ export function captureSnapshot() {
     chartRows: clone(state.chartRows),
     warnings: clone(state.warnings),
     activeTemplate: state.activeTemplate,
-    // The theme is stored by value as well as by id. A page must keep
-    // rendering exactly as authored even if the custom theme it uses is later
-    // renamed, edited or deleted in the theme editor — the id alone would
-    // silently re-point the page at something else, or at nothing.
+    // The theme is stored by value as well as by id, so a page keeps
+    // rendering as authored if its custom theme is later renamed, edited or
+    // deleted. The id alone would re-point the page at something else.
     theme: clone(state.activeTheme),
     maxSlicers: state.MAX_SLICERS,
     maxKpis: state.MAX_KPIS,
-    // Orientation and side are not stored: they are the theme's placement,
-    // and the theme is already here by value. A page cannot hold an
-    // orientation of its own any more — picking one picks a layout.
+    // Orientation and side are not stored: they come from the theme's
+    // placement, and the theme is stored above.
     slicerColumnWidth: state.SLICER_COLUMN_WIDTH,
   };
 }
 
 export function loadSnapshot(snap) {
-  // applyTheme resets the column width and the per-row limits to the theme's
-  // defaults, so the page's own values have to be restored after it, not
-  // before.
+  // applyTheme resets the column width and per-row limits to the theme's
+  // defaults, so restore the page's own values after it.
   state.applyTheme(snap.theme ?? getTheme(snap.activeTemplate) ?? normalizeTheme({}));
   state.setSlicerColumnWidth(snap.slicerColumnWidth);
   state.setMaxSlicers(snap.maxSlicers);
   state.setMaxKpis(snap.maxKpis);
   state.setSlicers(clone(snap.slicers));
 
-  // Snapshots that outlive a page load come back through sanitizeSnapshot(),
-  // which always rebuilds `kpiBands`, so a snapshot without them can only be
-  // one built in memory before bands existed. Falling back to whatever
-  // applyTheme() just seeded (rather than an empty set of bands) is defensive
-  // coding, not a real data migration.
+  // Stored snapshots go through sanitizeSnapshot(), which always rebuilds
+  // `kpiBands`. A snapshot without them can only be an old in-memory one, so
+  // keeping what applyTheme() seeded is just defensive.
   if (snap.kpiBands) state.setKpiBands(clone(snap.kpiBands));
 
   state.setChartRows(clone(snap.chartRows));
@@ -87,16 +82,15 @@ export function themeIdsInUse() {
   return [...new Set(ids)];
 }
 
-// A fresh page. Its number is kept so the generated name ("Page N") can be
-// re-rendered in another language until the user names the page themselves.
+// A fresh page. Its number is kept so the generated "Page N" name can follow
+// a language switch until the user names the page.
 function newTab() {
   const number = nextPageNumber++;
   return { id: nextTabId++, number, name: t("tabs.defaultName", { n: number }), named: false, snapshot: null };
 }
 
-// On a language switch: unnamed pages take the new language's generated name,
-// and every other page's stored warnings are carried over the same way the
-// live ones are (ui/warnings.js), so they read right when that page opens.
+// On a language switch: unnamed pages get the new language's generated name,
+// and stored warnings are converted like the live ones (ui/warnings.js).
 onLocaleChange(convert => {
   tabs.forEach(tab => {
     if (!tab.named) tab.name = t("tabs.defaultName", { n: tab.number });
@@ -114,13 +108,12 @@ function nearestTopBuiltin(theme) {
 
 /**
  * The layout a new page starts on, given the one it is created from. A custom
- * layout is the user's own and is kept exactly, side column and all. A
- * built-in keeps only its resolution: new pages start with slicers on top, so
- * FULL HD / HD on the left or right comes back as the top FULL HD / HD.
+ * layout is kept exactly, side column and all. A built-in keeps only its
+ * resolution: new pages start with slicers on top, so FULL HD / HD with a
+ * side column becomes the top FULL HD / HD.
  *
- * A custom layout that has since been deleted is not passed on. The page it
- * lives on keeps it by value, but a new page falls back to the top built-in
- * nearest its canvas size.
+ * A deleted custom layout is not passed on. Its page keeps it by value, but
+ * a new page falls back to the top built-in nearest its canvas size.
  */
 export function newPageTheme(base) {
   if (!base.builtin) return getTheme(base.id) ?? getTheme(nearestTopBuiltin(base).id);
@@ -128,11 +121,11 @@ export function newPageTheme(base) {
   return getTheme(nearestTopBuiltin(base).id);
 }
 
-// Seeds live state with fresh-page defaults (reuses initState — no duplicated defaults)
+// Seeds live state with fresh-page defaults (reuses initState)
 function loadDefaults(theme) {
-  // The live KPI bands still belong to the page just left, and applyTheme()
-  // carries bands across a theme switch — so they are dropped first, leaving
-  // it nothing to reuse but the theme's own seed counts.
+  // The live KPI bands belong to the page just left, and applyTheme() carries
+  // bands across a switch. Drop them first so only the theme's seed counts
+  // remain.
   state.setKpiBands({});
   state.applyTheme(theme);
   initState();
@@ -143,8 +136,8 @@ export function initTabs() {
 }
 
 /**
- * Replaces every page with one fresh "Page 1", as on a first visit — the
- * Project menu's "New project". The caller refreshes the UI. Undo history
+ * Replaces every page with one fresh "Page 1", as on a first visit (the
+ * Project menu's "New project"). The caller refreshes the UI. Undo history
  * goes with the old pages (state/history.js keys it by tab object).
  */
 export function resetTabs() {
@@ -152,21 +145,21 @@ export function resetTabs() {
   nextPageNumber = 1;
   tabs = [newTab()];
   activeTabIndex = 0;
-  // The first page starts from the stored global default (FULL HD until the
-  // user picks another with the "All" scope).
+  // The first page uses the stored global default (FULL HD until the user
+  // picks another with the "All" scope).
   loadDefaults(newPageTheme(getTheme(getDefaultThemeId()) ?? normalizeTheme({})));
 }
 
 /**
- * What serializeTabs() would return for a brand-new project, without
- * touching the pages: the fresh page is made live for a moment and the real
- * ones are put back, the same swap applyThemeToAllTabs() does.
+ * What serializeTabs() would return for a new project, without touching the
+ * pages. A fresh page is made live briefly and the real ones are put back,
+ * as applyThemeToAllTabs() does.
  */
 export function serializeBlankTabs() {
   const saved = { tabs, activeTabIndex, nextTabId, nextPageNumber, live: captureSnapshot() };
   resetTabs();
-  // A new project also starts on the default element styles; the live ones
-  // are never touched here.
+  // A new project also has the default element styles. The live ones are
+  // untouched.
   const blank = { ...serializeTabs(), elementStyles: defaultElementStyles() };
   ({ tabs, activeTabIndex, nextTabId, nextPageNumber } = saved);
   loadSnapshot(saved.live);
@@ -178,8 +171,8 @@ export function serializeBlankTabs() {
 // Shared by the autosave (state/persist.js) and project files
 // (state/projectFile.js): both are this same serialized page list.
 export const SESSION_VERSION = 1;
-// Generous ceilings no real layout reaches; anything past them is not a
-// layout this app wrote.
+// Generous limits no real layout reaches. Anything past them wasn't written
+// by this app.
 const MAX_ITEMS = 100;
 const MAX_NAME_LENGTH = 40;   // the rename input's own maxLength (ui/tabs.js)
 const MAX_PAGE_NUMBER = 100000;
@@ -187,12 +180,11 @@ const MAX_SIZE = 10000;       // px; past the largest canvas a theme allows (768
 // The shape makeThemeId() produces, with room for hand-written ids.
 const THEME_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
-// The whole page list as plain JSON, for state/persist.js to keep between
-// visits. The active page's stored snapshot is stale by design, so it is
-// captured fresh here. The element styles (Customize Elements) belong to the
-// project rather than a page, so they sit beside the pages. They are
-// optional on the way back in — a file saved before they existed opens with
-// the defaults — so the version stays the same.
+// The whole page list as plain JSON, for state/persist.js. The active page's
+// stored snapshot is stale by design, so it is captured fresh here. Element
+// styles (Customize Elements) belong to the project, not a page, so they sit
+// beside the pages. They are optional on read (a file saved before they
+// existed opens with defaults), so the version stays the same.
 export function serializeTabs() {
   return {
     version: SESSION_VERSION,
@@ -202,8 +194,8 @@ export function serializeTabs() {
       number: tab.number,
       name: tab.name,
       named: tab.named,
-      // Notifications are dropped on the way back in (sanitizeSnapshot), and
-      // they may quote a file name; a saved project holds layout data only.
+      // Warnings are dropped on read (sanitizeSnapshot) and may quote a file
+      // name. A saved project holds layout data only.
       snapshot: { ...(i === activeTabIndex ? captureSnapshot() : tab.snapshot), warnings: [] }
     })),
     elementStyles: JSON.parse(JSON.stringify(getElementStyles()))
@@ -216,7 +208,7 @@ const list = (v, map) => {
   if (!Array.isArray(v) || v.length > MAX_ITEMS) throw new Error("bad list");
   return v.map(map);
 };
-// Slicers carry both sizes, KPI cards only a height — so a size is kept only
+// Slicers have both sizes, KPI cards only a height, so a size is kept only
 // where the stored element had one.
 const sized = v => {
   if (!isObject(v)) throw new Error("bad element");
@@ -231,8 +223,8 @@ function sanitizeChartItem(v) {
   const item = {};
   if (size(v?.width) !== null) item.width = v.width;
   if (typeof v?.locked === "boolean") item.locked = v.locked;
-  // A stack is two charts or more; stackEvents.js unstacks one that drops
-  // to a single chart, so a shorter one is read as no stack at all.
+  // A stack has two charts or more (stackEvents.js unstacks one that drops
+  // to a single chart), so a shorter one is read as no stack.
   if (v?.stack !== undefined) {
     const stack = list(v.stack, s => ({ height: size(s?.height), locked: s?.locked === true }));
     if (stack.length >= 2) item.stack = stack;
@@ -240,11 +232,11 @@ function sanitizeChartItem(v) {
   return item;
 }
 
-// normalizeTheme() clamps every value but takes the id and the built-in flag
-// on trust. A built-in is read-only (the editor always forks it), so one
-// stored under a built-in id can only ever be that built-in: the canonical
-// copy is used, and a file can't pass altered values off as FULL HD. Every
-// other theme is custom, under an id of the shape the app itself generates.
+// normalizeTheme() clamps every value but trusts the id and built-in flag.
+// A built-in is read-only (the editor forks it), so a theme under a built-in
+// id is replaced by the canonical copy. A file can't pass altered values off
+// as FULL HD. Every other theme is custom, with an id shaped like the ones
+// the app generates.
 function sanitizeTheme(raw) {
   const theme = normalizeTheme(raw);
   const builtin = getBuiltinTheme(theme.id);
@@ -254,16 +246,16 @@ function sanitizeTheme(raw) {
   return theme;
 }
 
-// Stored data is untrusted input — anything with access to the browser's
-// storage can rewrite it — so a snapshot is rebuilt field by field from an
-// allow-list rather than trusted as parsed. Throws on a shape it can't use.
+// Stored data is untrusted (anything with access to the browser's storage can
+// rewrite it), so a snapshot is rebuilt field by field from an allow-list.
+// Throws on a shape it can't use.
 function sanitizeSnapshot(snap) {
   if (!isObject(snap)) throw new Error("bad snapshot");
   const theme = sanitizeTheme(snap.theme);
   const kpiBands = {};
   const bands = isObject(snap.kpiBands) ? snap.kpiBands : {};
-  // Only the bands this theme defines; any other key (including oddities
-  // like "__proto__") is dropped.
+  // Only the bands this theme defines. Any other key (e.g. "__proto__") is
+  // dropped.
   theme.sections
     .filter(s => s.type === "kpi")
     .forEach(s => {
@@ -278,7 +270,7 @@ function sanitizeSnapshot(snap) {
       locked: row?.locked === true,
       items: list(row?.items, sanitizeChartItem)
     })).filter(row => row.items.length > 0),
-    // Notifications are about the moment they were raised, not the page.
+    // Warnings belong to the moment they were raised, not the page.
     warnings: [],
     activeTemplate: theme.id,
     theme,
@@ -290,8 +282,8 @@ function sanitizeSnapshot(snap) {
 
 /**
  * Replaces the page list with a serialized one and loads its active page into
- * live state. Returns false, leaving everything untouched, when the data is
- * not a session this app could have written.
+ * live state. Returns false, changing nothing, if this app couldn't have
+ * written the data.
  */
 export function restoreTabs(data) {
   try {
@@ -307,23 +299,23 @@ export function restoreTabs(data) {
       return {
         id: i + 1,
         number: tab.number,
-        // An unnamed page's name is generated, so it follows the current
-        // language rather than the one it was saved in.
+        // An unnamed page's name is generated, so it uses the current
+        // language, not the saved one.
         name: named ? tab.name.trim().slice(0, MAX_NAME_LENGTH) : t("tabs.defaultName", { n: tab.number }),
         named,
         snapshot: sanitizeSnapshot(tab.snapshot)
       };
     });
 
-    // Ids are only identities within this session, so they are renumbered;
-    // the page counter must stay past every number in use so "Page N" names
-    // don't repeat.
+    // Ids only matter within this session, so they are renumbered. The page
+    // counter must stay past every number in use so "Page N" names don't
+    // repeat.
     const highestNumber = Math.max(...restored.map(tab => tab.number));
     const pageNumber = Number.isInteger(data.nextPageNumber) && data.nextPageNumber <= MAX_PAGE_NUMBER + 1
       ? data.nextPageNumber
       : 0;
 
-    // Rebuilt from the allow-list like every snapshot; never throws.
+    // Rebuilt from an allow-list like snapshots; never throws.
     const elementStyles = normalizeElementStyles(data.elementStyles);
 
     loadSnapshot(restored[active].snapshot);
@@ -349,8 +341,8 @@ export function switchTab(index) {
 
 export function addTab() {
   if (tabs.length >= MAX_TABS) return false;
-  // A new page follows the layout of the page it was created from — the one
-  // the user just picked or applied — but none of that page's elements.
+  // A new page uses the layout of the page it was created from, but none of
+  // its elements.
   const theme = newPageTheme(state.activeTheme);
   tabs[activeTabIndex].snapshot = captureSnapshot();
   tabs.push(newTab());
@@ -372,9 +364,8 @@ export function removeTab(index) {
   return false;
 }
 
-// Returns true when the name actually changed. `named` records that the user
-// gave the page a name of their own; until then the tab bar shows the
-// generated "Page N" as a placeholder.
+// Returns true when the name changed. `named` records that the user chose the
+// name; until then the tab shows the generated "Page N".
 export function renameTab(index, name) {
   const trimmed = String(name).trim();
   const tab = tabs[index];
@@ -385,16 +376,15 @@ export function renameTab(index, name) {
 }
 
 /**
- * Applies a theme to every page at once — the "global" half of the
- * global/per-page split. Each page keeps its own elements; only the layout
- * rules change under them, and the locked sizes those rules could invalidate
- * are reset per page exactly as a single-page theme switch does.
+ * Applies a theme to every page at once (the "global" half of the
+ * global/per-page split). Each page keeps its elements; only the layout
+ * rules change, and locked sizes they could invalidate are reset per page,
+ * as in a single-page theme switch.
  */
 export function applyThemeToAllTabs(theme) {
-  // Every page but the active one lives in a snapshot, and the only way to
-  // re-solve one is to make it live for a moment — the same swap-in/swap-out
-  // the exporter does. The caller applies the theme to the active page
-  // itself, since that one also has to refresh the UI around it.
+  // Pages other than the active one live in snapshots, and re-solving one
+  // means making it live briefly, as the exporter does. The caller applies
+  // the theme to the active page, since that one also refreshes the UI.
   const live = captureSnapshot();
 
   tabs.forEach((tab, i) => {

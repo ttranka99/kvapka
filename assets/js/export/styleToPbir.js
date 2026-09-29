@@ -2,15 +2,14 @@
 //
 // Turns a type's element styles (elements/elementStyleModel.js) into the
 // `visual` block of a PBIR visual.json. The base is the fixed template from
-// visualTemplates.js, which also carries what the editor doesn't expose
+// visualTemplates.js, which also holds what the editor doesn't expose
 // (pendingChangesIcon, stylePreset, drillFilterOtherVisuals…).
 //
-// Only the objects the user actually changed are written over it. An object
-// with any field off its default gets every one of its editable fields
-// written, so what Power BI draws is what the preview showed, not a mix of
-// the edit and Power BI's own defaults. An untouched object is left exactly
-// as the template has it, which is what keeps an uncustomized project's
-// export byte-for-byte what it always was.
+// Only changed objects are written over it. If any field of an object is off
+// its default, all its editable fields are written, so Power BI draws what
+// the preview showed, not a mix with its own defaults. An untouched object
+// stays as in the template, so an uncustomized project exports byte-for-byte
+// as before.
 
 import { SLICER_TEMPLATE, KPI_TEMPLATE, CHART_TEMPLATE } from "./visualTemplates.js";
 import { fieldsFor, CONTAINER_OBJECTS, sameValue } from "../elements/elementStyleModel.js";

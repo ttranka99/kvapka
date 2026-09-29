@@ -3,20 +3,19 @@
 // The custom-theme editor: a full-screen dialog with the numeric rules on the
 // left and a live, draggable preview of the canvas on the right.
 //
-// The preview deliberately does NOT show one slicer and one KPI. A theme is a
-// set of *rules*, so what it shows is the shape those rules produce: the whole
-// slicer stripe spanning the usable width, split into the theme's default
-// number of cells; the KPI band as a band; the chart area as the rows that are
-// left over. Every region carries the numbers it is governed by, and every
-// region that maps to a single tunable can be dragged to change it — so the
-// controls on the left and the picture on the right are two views of one
-// object, and hovering either highlights the other.
+// The preview does NOT show one slicer and one KPI. A theme is a set of
+// *rules*, so it shows the shape they produce: the whole slicer stripe across
+// the usable width split into the default number of cells, the KPI band as a
+// band, and the chart area as the leftover rows. Each region shows the numbers
+// governing it, and a region tied to one tunable can be dragged to change it.
+// Controls and preview are two views of one object; hovering either
+// highlights the other.
 //
-// Motion follows ui/motion.js: a discrete change (a reset, a band added or
-// removed, a reorder, another placement) glides the preview's regions to
-// their new boxes; an imported layout is new content and fades in (R3); the
-// switchers slide their thumb (ui/thumb.js); a slider,
-// a typed value or a handle drag never eases — it follows the input (R5).
+// Motion follows ui/motion.js. A discrete change (reset, band added or
+// removed, reorder, another placement) glides the regions to their new boxes.
+// An imported layout is new content and fades in (R3). Switchers slide their
+// thumb (ui/thumb.js). A slider, typed value or handle drag never eases; it
+// follows the input (R5).
 
 import {
   GROUPS,
@@ -59,8 +58,8 @@ import { confirmDialog } from "../ui/dialog.js";
 import { themeIdsInUse } from "../state/tabs.js";
 import { t, onLocaleChange } from "../i18n/i18n.js";
 
-// renderPreview() and renderReadout() name the draft theme `t`; they reach
-// the translator by this second name.
+// renderPreview() and renderReadout() call the draft theme `t`, so they use
+// this second name for the translator.
 const tr = t;
 
 // --- Dialog state ------------------------------------------------------
@@ -71,24 +70,22 @@ let baseTheme = null;         // what it was derived from, for reset
 let editingExistingId = null; // non-null when editing a saved custom theme
 let onApply = null;           // callback handed in by the opener
 let onClose = null;           // fired on every exit path (see closeThemeEditor)
-// Preview-only knobs. Orientation is deliberately NOT one of them any more:
-// the preview shows the layout being edited, and a layout has exactly one
-// shape. A toggle here would put a picture of the other placement next to
-// controls that cannot affect it.
+// Preview-only knobs. Orientation is not one: a layout has exactly one shape,
+// and a toggle would show the other placement next to controls that can't
+// affect it.
 let preview = {
   chartRows: 2
 };
 let highlightedRegion = null;
-// "preview" or "controls": only a hover over the preview lights the controls;
-// a hovered control is already lit by its own :hover.
+// "preview" or "controls". Only a hover over the preview lights controls; a
+// hovered control already has its own :hover.
 let highlightFrom = null;
 // The findings on screen, by title, so only a new one fades in. null right
 // after opening: the section fades in as a whole then.
 let shownFindings = null;
 
-// How many cells a preview chart row is drawn as. Fixed: the preview shows
-// the shape a theme's rules produce, and nothing in a theme governs how many
-// charts end up in a row (that follows from minChartWidth at layout time).
+// Cells drawn per preview chart row. Fixed: no theme rule sets how many
+// charts fit in a row (that follows from minChartWidth at layout time).
 const PREVIEW_CHART_COLS = 2;
 
 const el = (tag, className, text) => {
@@ -104,19 +101,19 @@ const el = (tag, className, text) => {
  * Opens the editor.
  * @param {object} options
  * @param {object} options.theme  theme to start from (a built-in is copied
- *                                into a new custom theme; a custom one is
+ *                                to a new custom theme; a custom one is
  *                                edited in place)
  * @param {(theme: object) => void} options.onApply  called with the saved
  *                                theme when the user confirms
- * @param {() => void} [options.onClose]  called whenever the editor closes,
- *                                however it closes — the rail uses it to
- *                                hand the screen back to the template section
+ * @param {() => void} [options.onClose]  called on every way the editor
+ *                                closes; the rail uses it to hand the screen
+ *                                back to the template section
  */
 export function openThemeEditor(options) {
   const source = normalizeTheme(options.theme);
   // Built-ins are read-only baselines, so opening one always forks. `mode:
-  // "new"` forks a custom theme too — that is the sidebar's "new theme"
-  // button, which seeds from whatever is active rather than starting blank.
+  // "new"` forks a custom theme too (the sidebar's "new theme" button seeds
+  // from the active theme, not a blank one).
   const fork = source.builtin || options.mode === "new";
 
   if (fork) {
@@ -131,15 +128,14 @@ export function openThemeEditor(options) {
     draft = cloneTheme(source);
   }
 
-  // Always a built-in of the draft's own placement — comparing a vertical
-  // layout against a horizontal preset would report every slicer field as a
-  // change the user never made.
+  // Always a built-in of the draft's own placement. A vertical layout against
+  // a horizontal preset would report every slicer field as changed.
   baseTheme = cloneTheme(baselineFor(draft));
   onApply = options.onApply || null;
   onClose = options.onClose || null;
 
-  // Force both to rebuild for this draft: the dialog is reused across opens,
-  // so last session's field set and live/locked placement row are still in it.
+  // Force both to rebuild: the dialog is reused across opens, so the last
+  // session's field set and live/locked placement row are still in it.
   controlsPlacement = null;
   placementIsEditable = null;
 
@@ -149,9 +145,9 @@ export function openThemeEditor(options) {
   shownFindings = null;
   render();
 
-  // A read-only peek at the draft's section order, for the test harness —
-  // draft itself is module-private, and the DOM alone can't tell a raw
-  // sections index from a rendered one.
+  // A read-only peek at the draft's section order, for the test harness.
+  // draft is module-private, and the DOM can't tell a raw sections index from
+  // a rendered one.
   window.__themeDraftSectionsForTest = () => draft.sections.map(s => ({ ...s }));
 
   const nameInput = root.querySelector("#theme-name");
@@ -166,11 +162,10 @@ export function closeThemeEditor() {
   if (onClose) onClose();
 }
 
-// A language switch rebuilds the dialog: nearly all of its text is set once,
-// when it is built. An open editor comes back at once around the same draft,
-// so nothing typed is lost. The old overlay is hidden before it goes, which
-// also retires its document-level Escape handler (that returns early on a
-// hidden overlay).
+// A language switch rebuilds the dialog, since nearly all its text is set once
+// at build time. An open editor comes straight back around the same draft, so
+// nothing typed is lost. The old overlay is hidden first, which also retires
+// its document-level Escape handler (it returns early on a hidden overlay).
 onLocaleChange(() => {
   if (!root) return;
   const wasOpen = !root.hidden;
@@ -192,8 +187,8 @@ function buildDialog() {
   overlay.id = "theme-editor";
   overlay.hidden = true;
 
-  // A section, not a modal: it takes the sidebar + canvas's place beside the
-  // rail (like #section-prvky), so the rail stays reachable at every width.
+  // A section, not a modal: it replaces the sidebar + canvas beside the rail
+  // (like #section-prvky), so the rail stays reachable at every width.
   const dialog = el("div", "theme-editor__dialog");
   dialog.setAttribute("role", "region");
   dialog.setAttribute("aria-label", t("editor.region"));
@@ -213,9 +208,8 @@ function buildDialog() {
     if (e.key === "Escape") { e.preventDefault(); requestClose(); }
   });
 
-  // The preview is scaled to the frame it is measured against, so it has to
-  // be redrawn whenever that frame changes size — a window resize, or the
-  // controls pane's scrollbar appearing.
+  // The preview is scaled to its frame, so redraw whenever the frame resizes
+  // (window resize, or the controls pane's scrollbar appearing).
   const frame = overlay.querySelector(".theme-stage__frame");
   if (typeof ResizeObserver === "function") {
     let queued = false;
@@ -233,8 +227,8 @@ function buildHead() {
   const head = el("header", "theme-editor__head");
 
   const identity = el("div", "theme-editor__identity");
-  // The box you see is this <label>, not the input: it holds the name and
-  // the pencil together, and a click on the pencil lands in the field.
+  // The visible box is this <label>, not the input. It holds the name and the
+  // pencil, so clicking the pencil focuses the field.
   const box = el("label", "theme-editor__name-box");
   const name = document.createElement("input");
   name.type = "text";
@@ -288,8 +282,7 @@ function button(label, variant, onClick, title, iconName) {
   const b = document.createElement("button");
   b.type = "button";
   b.className = `btn btn-${variant}`;
-  // A <span>, not a bare text node, so an icon can sit beside it with
-  // .btn's gap keeping the two apart.
+  // A <span>, not a bare text node, so .btn's gap spaces it from an icon.
   if (iconName) b.appendChild(iconEl(iconName));
   const text = document.createElement("span");
   text.textContent = label;
@@ -302,24 +295,21 @@ function button(label, variant, onClick, title, iconName) {
 function buildControlsPane() {
   const pane = el("aside", "theme-editor__controls");
 
-  // Filled by syncPlacementSlot(): whether it is a live chooser or a locked
-  // one depends on the draft, unlike the groups below, which are fixed per
-  // placement.
+  // Filled by syncPlacementSlot(). Live or locked depends on the draft,
+  // unlike the groups below, which are fixed per placement.
   pane.appendChild(el("div", "theme-editor__placement-slot"));
 
-  // Only the fields this layout's shape actually uses. A control that governs
-  // the other placement would sit here doing nothing visible — worse than not
-  // being offered — and its preview region doesn't exist to highlight either.
-  // The values behind the hidden fields are still carried and still saved.
+  // Only the fields this layout's shape uses. A control for the other
+  // placement would do nothing visible, and its preview region doesn't exist
+  // to highlight. Hidden fields' values are still carried and saved.
   const visible = fieldsFor(draft.placement);
 
   GROUPS.forEach(group => {
     const fields = visible.filter(f => f.group === group.id);
     const extras = group.id === "kpis";
 
-    // A group whose fields are all out of scope contributes nothing but a
-    // heading. None empties today; the rule keeps that true as fields are
-    // added later.
+    // A group whose fields are all out of scope would be just a heading, so
+    // skip it. None is empty today; this keeps it so as fields are added.
     if (!fields.length && !extras) return;
 
     const section = el("section", "theme-group");
@@ -331,8 +321,7 @@ function buildControlsPane() {
 
     fields.forEach(field => section.appendChild(buildField(field)));
 
-    // The KPI band list rides along with the group it belongs to, rather than
-    // living in a separate "advanced" pane the user has to go hunting for.
+    // The KPI band list sits in its own group, not a separate "advanced" pane.
     if (extras) section.appendChild(buildKpiBandsControl());
 
     pane.appendChild(section);
@@ -342,7 +331,7 @@ function buildControlsPane() {
     const before = new Map(fieldsFor(draft.placement).map(f => [f.key, displayValue(f)]));
     draft = { ...cloneTheme(baseTheme), id: draft.id, label: draft.label, builtin: false };
     render({ motion: "move" });
-    // R7: every value the reset put back gets a halo, so it can be found.
+    // R7: each value the reset restored gets a halo so it can be found.
     fieldsFor(draft.placement).forEach(f => {
       if (before.get(f.key) !== displayValue(f)) flashEl(root.querySelector(`.theme-field[data-field="${f.key}"]`));
     });
@@ -357,10 +346,9 @@ function buildField(field) {
   const row = el("div", "theme-field");
   row.dataset.field = field.key;
 
-  // A field that survives into both placements can still mean different
-  // things in each (slicerHeight is a band height in a row and a per-slicer
-  // floor in a column), so both the wording and the region it lights up come
-  // from the draft's placement.
+  // A field in both placements can mean different things (slicerHeight is a
+  // band height in a row, a per-slicer floor in a column), so wording and
+  // highlighted region come from the draft's placement.
   const region = fieldRegion(field, draft.placement);
   if (region) row.dataset.region = region;
 
@@ -413,16 +401,14 @@ function buildField(field) {
   return row;
 }
 
-// Where the slicers stand — the one property that decides which *layout*
-// this is, rather than how it is tuned. It is the first row of the controls
-// pane, drawn with the very same segmented control the sidebar's "Slicery"
-// switch uses, so the two sections read as one column.
+// Where the slicers stand: the property that decides which *layout* this is,
+// not how it is tuned. First row of the controls pane, using the same
+// segmented control as the sidebar's "Slicery" switch.
 //
-// It is settable only while the layout is new. Flipping it on a saved layout
-// would silently turn one template into another — every page using it would
-// change shape — so an existing layout shows the control locked (every
-// option disabled) and says why. Building the other orientation is a
-// separate act: start a new template and choose its placement here.
+// Settable only while the layout is new. Flipping it on a saved layout would
+// turn one template into another and change every page using it. So an
+// existing layout shows the control locked (all options disabled) with the
+// reason. For the other orientation, start a new template and pick it here.
 function buildPlacementControl() {
   const locked = editingExistingId !== null;
   const row = el("div", "theme-field theme-editor__placement");
@@ -440,15 +426,13 @@ function buildPlacementControl() {
     b.disabled = locked;
     b.addEventListener("click", () => {
       if (draft.placement === placement) return;
-      // Straight through normalizeTheme so the baseline follows the new
-      // shape too — otherwise a layout flipped to vertical would keep
-      // diffing itself against a horizontal preset.
+      // Through normalizeTheme so the baseline follows the new shape. Else a
+      // layout flipped to vertical would diff against a horizontal preset.
       draft = normalizeTheme({ ...draft, placement });
       baseTheme = cloneTheme(baselineFor(draft));
-      // The same header, bands and gaps, rearranged: they glide to where the
-      // new placement puts them, the slicer stripe giving way to a column.
-      // This row survives the pane rebuild (syncControlsPane), so the thumb
-      // slides and the keyboard stays where it was.
+      // Same header, bands and gaps, rearranged: they glide to their new
+      // places as the slicer stripe becomes a column. This row survives the
+      // pane rebuild (syncControlsPane), so the thumb slides and focus stays.
       render({ motion: "move" });
     });
     group.appendChild(b);
@@ -465,8 +449,8 @@ function buildPlacementControl() {
   return row;
 }
 
-// A band row's heading — the first `kpi` section is the header band; every
-// other one names the chart row it follows.
+// A band row's heading. The first `kpi` section is the header band; the
+// others name the chart row they follow.
 function bandTitle(section, index, g) {
   return index === 0
     ? t("editor.band.header")
@@ -475,12 +459,11 @@ function bandTitle(section, index, g) {
 
 // The 1-based chart row a KPI band visually follows, for its preview label.
 //
-// Every `charts` section above the band contributes its rows, not just the
-// nearest one — with two bands the lower one sits under the *sum*, and
-// labelling it by its immediate neighbour alone called row 3 "row 1".
-// `chartGroups` (from computeChartGroups, via previewLayout) is what says how
-// many rows each section actually got, including the open-ended one; without
-// it a fixed `rows` is the best available answer and a null counts as one.
+// Every `charts` section above the band adds its rows, not just the nearest.
+// With two bands the lower one sits under the *sum*; using only the nearest
+// section called row 3 "row 1". `chartGroups` (computeChartGroups, via
+// previewLayout) gives each section's real row count, including the
+// open-ended one. Without it a fixed `rows` is used and a null counts as one.
 function afterRowLabel(theme, section, chartGroups) {
   const countFor = s => {
     const group = chartGroups && chartGroups.find(g => g.sectionId === s.id);
@@ -496,16 +479,13 @@ function afterRowLabel(theme, section, chartGroups) {
   return Math.max(1, rows);
 }
 
-// Appends a new KPI band at the end of the stack, with a fresh open-ended
-// charts section absorbing whatever rows are left below it. Exactly one
-// charts section may stay open-ended — computeChartGroups() (chartGroups.js)
-// only resolves "whatever's left" correctly for the *last* one — so the
-// theme's current last section (until now the absorber) is pinned to a
-// single fixed row first; that single row is what ends up sitting between
-// the existing content and the new band, mirroring the previous single
-// "second band"'s default placement. Ids are placeholders; normalizeTheme()'s
-// dedup pass renames them if they collide with anything a previous "+"
-// already added.
+// Appends a KPI band at the end of the stack, with a fresh open-ended charts
+// section taking the remaining rows below it. Only the *last* charts section
+// may be open-ended (computeChartGroups() in chartGroups.js resolves
+// "whatever's left" only for it), so the current last section is first pinned
+// to one row. That row ends up between the existing content and the new band,
+// like the old single "second band" default. Ids are placeholders;
+// normalizeTheme()'s dedup pass renames any that collide with an earlier "+".
 function appendKpiBand(sections) {
   const list = sections.map(s => ({ ...s }));
   for (let i = list.length - 1; i >= 0; i--) {
@@ -527,22 +507,19 @@ const GAP_BEFORE_LABELS = {
   get block() { return t("editor.band.gapBlock"); }
 };
 
-// One row per `kpi` section — replaces the old fixed "header band + one
-// optional second band" checkbox with a list that scales to however many a
-// theme actually defines. defaultCount/allowSecondRow/gapBefore are edited
-// in place; removing a row leaves its cards to state.applyTheme's own
-// reconciliation (reconcileKpiBands in state.js), which rehomes them to
-// the nearest surviving band rather than dropping them.
-// Replaces one section in the draft with a patched copy of itself. All four
-// band-row controls edit exactly one field this way, so they share it rather
-// than each spelling out the same map-over-sections.
+// One row per `kpi` section. defaultCount/allowSecondRow/gapBefore are edited
+// in place. Removing a row leaves its cards to state.applyTheme's
+// reconciliation (reconcileKpiBands in state.js), which rehomes them to the
+// nearest surviving band instead of dropping them.
+// Replaces one section in the draft with a patched copy. All four band-row
+// controls edit one field this way, so they share it.
 //
 // Addressed by id, never by object identity: normalizeTheme() returns fresh
-// section objects every time, while a band row (and the listener closing over
-// it) outlives any number of renders — see renderKpiBandsList. Matching on
-// identity meant every edit after the first silently patched nothing.
+// section objects every time, while a band row (and its listener) outlives
+// many renders (see renderKpiBandsList). Matching by identity made every edit
+// after the first patch nothing.
 //
-// `opts` goes to render(): a switch or a choice glides the preview, a typed
+// `opts` goes to render(): a switch or choice glides the preview, a typed
 // count does not.
 function updateSection(sectionId, patch, opts) {
   draft = normalizeTheme({
@@ -557,9 +534,8 @@ function removeSection(sectionId) {
   render({ motion: "move" });
 }
 
-// A two-or-three-way choice as a small toggle, in the pane's own idiom:
-// `onPick` gets the option's value. render() refreshes which one reads as
-// active via setToggleValue.
+// A two- or three-way choice as a small toggle. `onPick` gets the option's
+// value; render() refreshes the active one via setToggleValue.
 function toggle(className, options, onPick) {
   const group = el("div", `theme-toggle ${className}`);
   options.forEach(([value, label]) => {
@@ -598,11 +574,10 @@ function renderKpiBandsList(g, motion) {
 
   const sections = draft.sections.filter(s => s.type === "kpi");
 
-  // Rebuilding these rows unconditionally would destroy whichever control the
-  // user is typing in — render() runs on every keystroke, so "12" could never
-  // be entered into a count field. Only rebuild when the *set* of bands has
-  // actually changed; otherwise refresh the values in place, skipping the
-  // focused control, exactly as renderControls() does for the FIELDS inputs.
+  // Always rebuilding would destroy the control being typed in (render() runs
+  // on every keystroke, so "12" couldn't be entered). Rebuild only when the
+  // *set* of bands changed; otherwise refresh values in place, skipping the
+  // focused control, as renderControls() does for the FIELDS inputs.
   const rendered = [...list.querySelectorAll(".theme-kpi-band")];
   const sameBands = rendered.length === sections.length
     && rendered.every((row, i) => row.dataset.kpiBandId === sections[i].id);
@@ -623,8 +598,7 @@ function renderKpiBandsList(g, motion) {
   list.innerHTML = "";
 
   sections.forEach((section, i) => {
-    // The row outlives the `section` object it was built from, so every
-    // listener below closes over this id rather than that object.
+    // The row outlives the `section` object, so listeners use this id.
     const bandId = section.id;
     const row = el("div", "theme-kpi-band");
     row.dataset.kpiBandId = bandId;
@@ -661,7 +635,7 @@ function renderKpiBandsList(g, motion) {
     });
     row.appendChild(bandRow(t("editor.band.count"), count));
 
-    // On or off, so the app's switch (ui/switch.js), kept on the row so the
+    // On or off: the app's switch (ui/switch.js), kept on the row so the
     // in-place refresh above can set it.
     const secondRow = createSwitch({
       label: t("editor.band.secondRow"),
@@ -671,10 +645,9 @@ function renderKpiBandsList(g, motion) {
     row.secondRowSwitch = secondRow;
     row.appendChild(bandRow(t("editor.band.secondRow"), secondRow.node));
 
-    // The gap immediately above this band. "Auto" derives it from the
-    // layout's usual rule (a wide block gap once charts are involved
-    // above it, a tight one otherwise); the other two pin it regardless
-    // of what ends up around it.
+    // The gap just above this band. "Auto" uses the layout's usual rule (wide
+    // block gap once charts are above it, tight otherwise). The other two pin
+    // it whatever surrounds the band.
     const gap = toggle("theme-kpi-band__gap",
       ["auto", "small", "block"].map(value => [value, GAP_BEFORE_LABELS[value]]),
       value => updateSection(bandId, { gapBefore: value }, { motion: "move" }));
@@ -736,8 +709,7 @@ function buildStagePane() {
   const canvas = el("div", "theme-preview");
   canvas.id = "theme-preview";
   // The canvas fields (width/height) claim region "canvas", and the canvas
-  // *is* this node — nothing inside the preview stands for it. Without this
-  // they were the one pair of controls that highlighted nothing at all.
+  // *is* this node. Without this they would highlight nothing.
   canvas.dataset.region = "canvas";
   frame.appendChild(canvas);
   stage.appendChild(frame);
@@ -745,13 +717,13 @@ function buildStagePane() {
   stage.appendChild(el("div", "theme-stage__readout"));
 
   // Passing notices (imported, couldn't read) get their own slot, so the
-  // findings below only ever describe the template itself.
+  // findings below only describe the template.
   const notice = el("div", "theme-stage__notice");
   notice.setAttribute("role", "status");
   stage.appendChild(notice);
 
   // A polite live region. renderStatus() rebuilds it only when the findings
-  // change, so dragging a handle doesn't re-announce the list every frame.
+  // change, so a handle drag doesn't re-announce the list every frame.
   const status = el("div", "theme-stage__status");
   status.setAttribute("role", "status");
   stage.appendChild(status);
@@ -795,10 +767,9 @@ function applyHighlight() {
 // --- Rendering ----------------------------------------------------------
 
 // The placement the controls pane was last built for, and whether its
-// placement row was last built live or locked. The dialog itself is built once and
-// reused across opens, so both have to be rebuilt when the answer changes —
-// unlike every other control, *which* controls exist now depends on the
-// draft.
+// placement row was built live or locked. The dialog is built once and reused
+// across opens, so both must be rebuilt when they change. Unlike other
+// controls, *which* controls exist depends on the draft.
 let controlsPlacement = null;
 let placementIsEditable = null;
 
@@ -812,13 +783,12 @@ function syncControlsPane() {
   const scrollTop = old.scrollTop;
   const pane = buildControlsPane();
 
-  // Another placement within the same session: the placement row the user
-  // just clicked moves across as it is, so its thumb slides and focus stays
-  // put; the controls both placements share are rebuilt without a flicker,
-  // and only the ones this placement adds fade in (R2).
+  // Another placement in the same session: the clicked placement row moves
+  // across as is, so its thumb slides and focus stays. Controls both
+  // placements share are rebuilt without flicker; only new ones fade in (R2).
   const oldSlot = old.querySelector(".theme-editor__placement-slot");
-  // Moving a node out of the document blurs it, so the focused option is
-  // handed its focus back once the row is in the new pane.
+  // Moving a node out of the document blurs it, so refocus the option once
+  // the row is in the new pane.
   const focused = oldSlot && oldSlot.contains(document.activeElement) ? document.activeElement : null;
   if (previous !== null && placementIsEditable !== null && oldSlot) {
     pane.replaceChild(oldSlot, pane.querySelector(".theme-editor__placement-slot"));
@@ -837,7 +807,7 @@ function syncControlsPane() {
 }
 
 // Refilled when the pane was rebuilt or the chooser flips between live and
-// locked. Which option reads as active is handled by renderControls().
+// locked. renderControls() handles which option is active.
 function syncPlacementSlot() {
   const editable = editingExistingId === null;
   if (placementIsEditable === editable) return;
@@ -847,16 +817,16 @@ function syncPlacementSlot() {
   slot.appendChild(buildPlacementControl());
 }
 
-// `motion` is for renderPreview(): "move" glides the regions to their new
-// boxes, "swap" fades the preview in, and none — every keystroke, slider and
-// drag frame — redraws it in place (motion.js R5).
+// `motion` is for renderPreview(). "move" glides regions to their new boxes,
+// "swap" fades the preview in, and none (every keystroke, slider and drag
+// frame) redraws in place (motion.js R5).
 function render({ motion } = {}) {
   draft = resolveDependencies(draft);
   syncControlsPane();
   syncPlacementSlot();
-  // One walk per render, shared by everything below: the controls, the
-  // preview and the readout all describe the same layout, and running the
-  // solver once per consumer was the most expensive thing a render did.
+  // One walk per render, shared by the controls, preview and readout, which
+  // all describe the same layout. Running the solver per consumer was the most
+  // expensive part of a render.
   const g = previewLayout();
   renderMeta();
   renderControls(g, motion);
@@ -873,8 +843,8 @@ function renderMeta() {
 }
 
 function renderControls(g, motion) {
-  // The same list buildControlsPane() rendered — asking for a field this
-  // placement doesn't show would only find nothing.
+  // The same list buildControlsPane() rendered; a field this placement
+  // doesn't show would find nothing.
   fieldsFor(draft.placement).forEach(field => {
     const row = root.querySelector(`.theme-field[data-field="${field.key}"]`);
     if (!row) return;
@@ -882,7 +852,7 @@ function renderControls(g, motion) {
     const range = row.querySelector(".theme-field__range");
     const number = row.querySelector(".theme-field__number");
     range.value = String(value);
-    // Never yank the caret out from under someone mid-typing.
+    // Never move the caret while someone is typing.
     if (document.activeElement !== number) number.value = String(value);
   });
 
@@ -894,29 +864,24 @@ function renderControls(g, motion) {
 
   renderKpiBandsList(g, motion);
 
-  // Same rule as the FIELDS inputs above: never rewrite a field the user is
-  // currently typing into.
+  // Same rule as the FIELDS inputs: never rewrite a field being typed in.
   const rows = root.querySelector("#theme-preview-rows");
   if (document.activeElement !== rows) rows.value = String(preview.chartRows);
 }
 
-// Feeds sectionWalker.js — the same placement code the real canvas solver
-// uses — a *sample* page: the theme's default number of slicers and KPIs,
-// and however many chart rows the user is previewing. This used to be a
-// hand-rolled reimplementation of the solver's band maths; now it's the
-// solver itself, so the preview can never disagree with the canvas about
-// where a boundary falls.
+// Feeds sectionWalker.js (the real canvas solver's placement code) a *sample*
+// page: the theme's default number of slicers and KPIs, and the chart rows
+// being previewed. Using the solver itself means the preview can't disagree
+// with the canvas about where a boundary falls.
 function previewLayout(themeOverride) {
   const t = themeOverride || draft;
-  // Straight from the theme: the preview shows the layout being edited, so
-  // there is nothing to choose here.
+  // Straight from the theme; the preview shows the layout being edited.
   const vertical = isVerticalPlacement(t.placement);
   const chartRowCount = preview.chartRows;
 
-  // Every `kpi` section gets at least one sample card, even at
-  // defaultCount 0 (the header band's own default) — the preview exists to
-  // show the band the rules *would* produce, not to vanish because no page
-  // has put anything in it yet.
+  // Every `kpi` section gets at least one sample card, even at defaultCount 0
+  // (the header band's default). The preview shows the band the rules *would*
+  // produce, so it must not vanish just because no page has content yet.
   const kpiCardsBySectionId = new Map();
   t.sections.filter(s => s.type === "kpi").forEach(s => {
     const count = Math.max(1, s.defaultCount);
@@ -936,9 +901,8 @@ function previewLayout(themeOverride) {
     orientation: vertical ? "vertical" : "horizontal",
     slicerSide: sideOfPlacement(t.placement),
     columnWidth: t.slicerColumnWidth,
-    // A flat split across the rows' shared budget — the preview's rows are
-    // sample cells, not real charts with their own locked heights, so there
-    // is nothing for a real solver like computeChartRowHeights to weigh.
+    // A flat split of the rows' shared budget. Preview rows are sample cells
+    // with no locked heights, so computeChartRowHeights has nothing to weigh.
     rowHeightSolver: ({ chartsHeight, chartRowGapCount }) => {
       const rowHeight = chartRowCount > 0
         ? (chartsHeight - chartRowGapCount * t.gapSmall) / chartRowCount
@@ -948,42 +912,40 @@ function previewLayout(themeOverride) {
   });
 
   const tooSmall = g.rowHeights.some(h => h < t.hardMinChartHeight);
-  // chartGroups rides along because the band labels need to know how many
-  // rows each charts section actually got, including the open-ended one.
+  // chartGroups is passed along because band labels need each charts
+  // section's real row count, including the open-ended one.
   return { ...g, vertical, rowCount: chartRowCount, tooSmall, chartGroups };
 }
 
 // --- Section reordering ---------------------------------------------------
 //
-// A theme's band order lives entirely in draft.sections, and both the
-// keyboard path and the pointer drag (below) mutate it through the same two
-// primitives: mapPlacedToRaw() translates a position in the *rendered*
-// stack (what the user actually sees and grabs) back to an index in the
-// *raw* sections array (which may hold sections the current sample content
-// dropped — an empty KPI band, say), and moveSectionToRawIndex() performs
-// the splice. Only "kpi" and "slicers" sections get a grip() — "title" and
-// "charts" are the substrate everything else is placed against.
+// A theme's band order lives in draft.sections. The keyboard path and the
+// pointer drag (below) both change it through two primitives:
+// mapPlacedToRaw() maps a position in the *rendered* stack (what the user
+// grabs) to an index in the *raw* sections array (which may hold sections the
+// sample content dropped, e.g. an empty KPI band), and
+// moveSectionToRawIndex() does the splice. Only "kpi" and "slicers" sections
+// get a grip(); "title" and "charts" are the base everything else is placed
+// against.
 
 // There is always exactly one `slicers` section (normalizeSections()
-// guarantees it) — this just finds its id, since every id is the theme
-// author's own rather than a hardcoded "slicers".
+// guarantees it). This finds its id, which is the author's own, not
+// "slicers".
 function slicersSectionId(theme) {
   const s = theme.sections.find(s => s.type === "slicers");
   return s ? s.id : "slicers";
 }
 
-// A cheap order+shape fingerprint, used to tell a real move from a drop
-// that lands back where it started (which must count as no mutation at
-// all, not a no-op edit).
+// A cheap order+shape fingerprint, to tell a real move from a drop back where
+// it started (which must count as no mutation, not a no-op edit).
 function sectionsSignature(list) {
   return list.map(s => `${s.type}:${s.id ?? ""}:${s.rows ?? ""}`).join("|");
 }
 
-// previewLayout()'s `g.sections` is the rendered stack, in the same
-// relative order as `sections` but with every zero-space entry (an empty
-// KPI band, a slicer band with no slicers) dropped. This walks both in
-// lockstep to recover, for each rendered entry, which raw index it came
-// from — the only thing the splice below actually needs to know.
+// previewLayout()'s `g.sections` is the rendered stack: the same order as
+// `sections` but without zero-space entries (an empty KPI band, a slicer band
+// with no slicers). This walks both in lockstep to find each rendered entry's
+// raw index, which is all the splice below needs.
 function mapPlacedToRaw(sections, placed) {
   const rawIndex = [];
   let pi = 0;
@@ -995,9 +957,9 @@ function mapPlacedToRaw(sections, placed) {
   return rawIndex;
 }
 
-// Removes the section at `fromRaw` and reinserts it immediately before
-// whatever now sits at `beforeRaw` (an index into the *original* array —
-// the splice below accounts for the shift the removal causes).
+// Removes the section at `fromRaw` and reinserts it just before whatever now
+// sits at `beforeRaw` (an index into the *original* array; the splice
+// accounts for the shift from the removal).
 function moveSectionToRawIndex(sections, fromRaw, beforeRaw) {
   const list = sections.slice();
   const [item] = list.splice(fromRaw, 1);
@@ -1006,11 +968,9 @@ function moveSectionToRawIndex(sections, fromRaw, beforeRaw) {
   return list;
 }
 
-// The keyboard path: Ctrl+ArrowUp/Down on a grip moves its section past
-// whichever rendered neighbour sits on that side — the same "one slot" a
-// pointer drag would snap to, just without a pointer stream to hit-test.
-// Deterministic, so it's also what the pointer drag's own mutations are
-// proven against.
+// The keyboard path: Ctrl+ArrowUp/Down on a grip moves its section past the
+// rendered neighbour on that side, the same "one slot" a pointer drag snaps
+// to. Deterministic, so the pointer drag's mutations are tested against it.
 function moveSectionOneSlot(sectionType, sectionId, direction) {
   const g = previewLayout();
   const sections = draft.sections;
@@ -1031,31 +991,23 @@ function moveSectionOneSlot(sectionType, sectionId, direction) {
   draft = normalizeTheme({ ...draft, sections: nextSections });
   render({ motion: "move" });
 
-  // render() tore down and rebuilt every node, including the grip that had
-  // focus — put focus back on the (same conceptual) grip in its new spot so
-  // a second Ctrl+ArrowUp/Down keeps working without the user having to
-  // tab back to it.
+  // render() rebuilt every node, including the focused grip. Refocus the same
+  // grip in its new spot so another Ctrl+ArrowUp/Down works without tabbing.
   const node = root.querySelector(
     `.theme-grip[data-section-type="${sectionType}"][data-section-id="${sectionId}"]`
   );
   if (node) node.focus();
 }
 
-// Six-dot grab handle, inset into a movable region's top-left corner. Not
-// the region body (already the hover-highlight target) and not its edges
-// (the resize `dragHandle`s) — its own small hit area, so a resize drag and
-// a reorder drag can never fight over the same pointerdown.
-// The drag handle IS the region's label chip, with the grip dots as its
-// leading glyph — not a separate widget sitting on top of one.
-//
-// Both wanted the same spot (a region's top-left corner, the only place a
-// short label reads cleanly against the cell decoration), so as two elements
-// they overlapped and the dots appeared to sit underneath the text. Merging
-// them removes the collision by construction, and it puts the affordance on
-// the one thing in the region that already names it: you grab the label of
-// the band you want to move. Non-movable regions (the header, chart rows,
-// the gap rulers) keep a plain tag() chip with no dots and no grab cursor,
-// so "has dots" reads as "this one moves".
+// Six-dot grab handle in a movable region's top-left corner. It is neither
+// the region body (the hover-highlight target) nor its edges (the resize
+// `dragHandle`s), so resize and reorder drags never compete for a pointerdown.
+// The handle IS the region's label chip, with the grip dots as its leading
+// glyph, so you grab the label of the band you want to move. (Separate
+// elements overlapped in the top-left corner, the only spot where a short
+// label reads cleanly, and the dots looked hidden under the text.)
+// Non-movable regions (header, chart rows, gap rulers) keep a plain tag()
+// chip with no dots, so "has dots" means "this one moves".
 function grip(sectionType, sectionId, text, extra) {
   const handle = el("span", `theme-tag theme-grip${extra ? " " + extra : ""}`);
   handle.dataset.sectionType = sectionType;
@@ -1082,28 +1034,24 @@ function grip(sectionType, sectionId, text, extra) {
   return handle;
 }
 
-// The pointer drag itself — implemented separately below; kept as its own
-// function so grip() (and its keyboard path) don't need to know anything
-// about it beyond "call this on pointerdown".
+// The pointer drag itself, implemented below as its own function so grip()
+// only needs to call it on pointerdown.
 // Every place the dragged section could land, computed ONCE at pointerdown
-// and then frozen for the rest of the gesture — pointermove only has to
-// pick the nearest one and move a ghost, never touch `draft` or re-render.
+// and frozen for the gesture. pointermove only picks the nearest one and
+// moves a ghost; it never touches `draft` or re-renders.
 //
-//   "boundary"  — every gap in the *rendered* stack (above the first
-//                 entry, between each pair, below the last). Always valid
-//                 to try; whether it actually changes anything is decided
-//                 once, up front, and cached as `invalid`.
+//   "boundary"  — every gap in the *rendered* stack (above the first entry,
+//                 between each pair, below the last). Always valid to try;
+//                 whether it changes anything is decided up front and
+//                 cached as `invalid`.
 //   "split"     — a chart-row boundary strictly *inside* a charts group.
-//                 Dropping there splits that theme section into two,
-//                 sandwiching the dragged section between the row it
-//                 claims and the rows that are left.
+//                 Dropping there splits that theme section in two, with the
+//                 dragged section between the row it claims and the rest.
 //
-// There used to be a third kind, "gutter": two strips beside the usable area
-// that turned the slicers band into a vertical column when it was dropped
-// there. It is gone, because docking by drag changed the layout's *identity*
-// — a horizontal template silently became a vertical one, taking every page
-// using it along. Placement is now chosen once, when a template is created.
-// Reordering only ever reorders.
+// There used to be a third kind, "gutter" (strips beside the usable area that
+// turned the slicers band into a column). It is gone: docking by drag changed
+// the layout's *identity* and every page using it. Placement is now chosen
+// once, when a template is created. Reordering only reorders.
 function buildDropSlots(theme, g, rawIndex, sections, draggedType, draggedRaw) {
   const slots = [];
   const originalSignature = sectionsSignature(sections);
@@ -1141,9 +1089,8 @@ function buildDropSlots(theme, g, rawIndex, sections, draggedType, draggedRaw) {
           const orig = sections[groupRaw];
           const secondRows = orig.rows === null ? null : orig.rows - r;
           const first = { ...orig, rows: r };
-          // A placeholder id — normalizeTheme()'s dedup pass renames it if
-          // it collides with anything, so there is nothing to get right
-          // here beyond "not the same id as `first`".
+          // A placeholder id. normalizeTheme()'s dedup pass renames it on a
+          // collision; it only needs to differ from `first`.
           const second = { ...orig, rows: secondRows, id: `${orig.id}-split` };
           const list = sections.slice();
           const [dragged] = list.splice(draggedRaw, 1);
@@ -1159,8 +1106,7 @@ function buildDropSlots(theme, g, rawIndex, sections, draggedType, draggedRaw) {
 }
 
 // Nearest slot by |cursorY - slot.y|. Every slot is a boundary in the
-// vertical stack now that gutter docking is gone, so the cursor's x plays no
-// part in the choice.
+// vertical stack, so the cursor's x is ignored.
 function pickSlot(slots, cursorY) {
   let best = null;
   let bestDist = Infinity;
@@ -1171,12 +1117,11 @@ function pickSlot(slots, cursorY) {
   return best;
 }
 
-// Writes a projected walkSections() result onto the region nodes already on
-// screen — no innerHTML rebuild, so the CSS transition on .theme-region's
-// top/height is what actually animates the other bands sliding into place.
-// `excludeNode` is the dragged region itself: it tracks the pointer via its
-// own transform (see startSectionDrag) rather than being repositioned here,
-// or the two would fight over where it is.
+// Writes a projected walkSections() result onto the region nodes on screen.
+// No innerHTML rebuild, so the CSS transition on .theme-region's top/height
+// animates the other bands sliding into place. `excludeNode` is the dragged
+// region; it follows the pointer via its own transform (see startSectionDrag),
+// and repositioning it here would fight that.
 function applyProjectedLayout(stage, g, scale, excludeNode) {
   const px = v => `${v * scale}px`;
 
@@ -1211,8 +1156,8 @@ function startSectionDrag(event, sectionType, sectionId) {
   try { event.target.setPointerCapture(event.pointerId); } catch { /* not every target supports it */ }
 
   const stage = root.querySelector("#theme-preview");
-  // A glide still running would be measured mid-flight, and a fading ghost
-  // would be shuffled with the live bands.
+  // A running glide would be measured mid-flight, and a fading ghost would
+  // be shuffled with the live bands.
   settleBoxes(stage, ".theme-region");
   const stageRect = stage.getBoundingClientRect();
   const scale = Number(stage.style.getPropertyValue("--preview-scale")) || 1;
@@ -1221,11 +1166,10 @@ function startSectionDrag(event, sectionType, sectionId) {
   const g = previewLayout();
   const sections = draft.sections;
   const rawIndex = mapPlacedToRaw(sections, g.sections);
-  // A docked (vertical) slicers section sits *beside* the rendered stack,
-  // not inside it — sectionWalker.js's buildEffectiveStack() deliberately
-  // skips it there, so it never appears in g.sections. Its raw index has
-  // to come straight from `sections` instead, or dragging the docked
-  // column's grip would silently find nothing to drag.
+  // A docked (vertical) slicers section sits *beside* the rendered stack.
+  // sectionWalker.js's buildEffectiveStack() skips it, so it isn't in
+  // g.sections. Take its raw index straight from `sections`, or its grip
+  // would find nothing to drag.
   const draggedRaw = sections.findIndex(s => s.type === sectionType && s.id === sectionId);
   if (draggedRaw === -1) return;
 
@@ -1236,12 +1180,9 @@ function startSectionDrag(event, sectionType, sectionId) {
   const startClientX = event.clientX;
   const startClientY = event.clientY;
 
-  // Live displacement used to be switched off in a vertical layout, because a
-  // drag could dock the band into a column mid-gesture and the projection
-  // would have had to rebuild region nodes of a different kind (a column vs a
-  // stripe) rather than just moving them. A drag can no longer change the
-  // placement at all, so every drag is now a plain reorder within one stack
-  // and the live shuffle is always safe to run.
+  // Live displacement is safe in every layout: a drag can't change the
+  // placement, so it is always a plain reorder within one stack and the
+  // projection only moves nodes, never rebuilds them into another kind.
   regionEl.classList.add("theme-region--dragging");
   document.body.classList.add("theme-editor-reordering");
 
@@ -1250,10 +1191,9 @@ function startSectionDrag(event, sectionType, sectionId) {
   let rafId = null;
   let latestEvent = null;
 
-  // Applies (or clears) the live-shuffled layout for `slot`, skipping the
-  // work entirely when the nearest slot hasn't changed since the last
-  // frame — walkSections() is cheap, but there is no reason to re-run it
-  // and rewrite a dozen inline styles every frame the pointer sits still.
+  // Applies (or clears) the live-shuffled layout for `slot`. Skipped when
+  // the nearest slot is unchanged, so a still pointer doesn't re-run
+  // walkSections() and rewrite a dozen inline styles every frame.
   const applyProjectionFor = slot => {
     if (slot === projectedSlot) return;
     projectedSlot = slot;
@@ -1278,18 +1218,15 @@ function startSectionDrag(event, sectionType, sectionId) {
 
     const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-    // The lifted band slides up and down the stack only. Every band already
-    // spans the full content width, so sideways travel conveys nothing and
-    // just makes it look detached from the layout. (The slicer band used to
-    // keep its x axis, because moving sideways was how you aimed at a gutter
-    // dock — with that gone, there is nothing left to aim at.)
+    // The lifted band moves up and down the stack only. Every band spans the
+    // full content width, so sideways travel would just look detached.
     //
-    // Vertically the whole band is kept on the canvas — off in the backdrop
-    // it reads as a rendering glitch rather than as something being held.
+    // Vertically the band stays on the canvas; off in the backdrop it would
+    // look like a rendering glitch, not something being held.
     const liftY = clamp(dy, stageRect.top - regionRect.top, stageRect.bottom - regionRect.bottom);
 
-    // No transition on this — it has to track the pointer 1:1, every frame,
-    // or lifting the band stops feeling like holding it.
+    // No transition: it must track the pointer 1:1 every frame, or the band
+    // stops feeling held.
     regionEl.style.transform = `translate(0px, ${liftY}px) scale(1.03)`;
 
     const cursorThemeY = (e.clientY - stageRect.top) / scale;
@@ -1303,9 +1240,9 @@ function startSectionDrag(event, sectionType, sectionId) {
     if (rafId === null) rafId = requestAnimationFrame(processFrame);
   };
 
-  // Animates every displaced band (and the lifted original) back to where
-  // they started. Only an aborted drag needs this — a successful drop hands
-  // off to render(), which rebuilds every node fresh at its final position.
+  // Animates every displaced band (and the lifted one) back to its start.
+  // Only an aborted drag needs it; a successful drop hands off to render(),
+  // which rebuilds every node at its final position.
   const revertVisualState = () => {
     applyProjectedLayout(stage, g, scale, regionEl);
     regionEl.classList.remove("theme-region--dragging");
@@ -1328,19 +1265,16 @@ function startSectionDrag(event, sectionType, sectionId) {
     if (!chosenSlot || chosenSlot.invalid) { revertVisualState(); return; }   // no-op: nothing to mutate
     const patch = chosenSlot.apply();
     draft = normalizeTheme({ ...draft, ...patch });
-    // The other bands already stand where the live shuffle put them, so
-    // their boxes match and they stay put; the lifted band glides from where
-    // it was held into its slot.
+    // The other bands already stand where the live shuffle put them, so they
+    // stay put; the lifted band glides from where it was held into its slot.
     render({ motion: "move" });
   };
 
   const cancel = () => { cleanup(); revertVisualState(); };   // aborts with zero mutation
 
-  // Capture phase, and stopped from propagating further: the dialog itself
-  // has its own document-level Escape handler that closes the whole editor
-  // (bubble phase, so it would otherwise run *first*, since document sits
-  // between the event's target and window) — a drag's Escape must abort
-  // the drag, not the dialog underneath it.
+  // Capture phase, and propagation stopped. The dialog has a document-level
+  // Escape handler that closes the whole editor (bubble phase, so it would
+  // otherwise run first). A drag's Escape must abort only the drag.
   const onKeydown = e => {
     if (e.key !== "Escape") return;
     e.preventDefault();
@@ -1354,12 +1288,12 @@ function startSectionDrag(event, sectionType, sectionId) {
   window.addEventListener("keydown", onKeydown, true);
 }
 
-// Every region is keyed (data-key) by what it stands for, not by its place in
-// the DOM, so a rebuild can be replayed as movement (motion.js playBoxes).
+// Every region is keyed (data-key) by what it stands for, not its DOM place,
+// so a rebuild can be replayed as movement (motion.js playBoxes).
 const REGION = ".theme-region[data-key]";
 const regionKey = node => node.dataset.key;
 
-// A region that is gone fades out as a picture only: nothing on it may be
+// A region that is gone fades out as a picture only. Nothing on it may be
 // hovered, grabbed or found by the next snapshot or applyHighlight().
 function cleanRegion(node) {
   node.classList.remove("is-linked", "theme-region--dragging", "theme-region--returning");
@@ -1370,8 +1304,8 @@ function cleanRegion(node) {
 }
 
 function renderPreview(g, motion) {
-  // Exposed for the test harness: a reorder drag must call render() exactly
-  // once (on a successful drop), never on every pointermove.
+  // Exposed for the test harness: a reorder drag must call render() once (on
+  // a successful drop), never on every pointermove.
   window.__themeRenderPreviewCalls = (window.__themeRenderPreviewCalls || 0) + 1;
 
   const stage = root.querySelector("#theme-preview");
@@ -1390,9 +1324,8 @@ function renderPreview(g, motion) {
 
   const px = v => `${v * scale}px`;
 
-  // The usable-area outline — context only, no region of its own: it marks
-  // where content may go, and it is nearly the size of the whole preview, so
-  // highlighting it would read as "everything" rather than as one setting.
+  // The usable-area outline: context only, no region. It is nearly the whole
+  // preview, so highlighting it would read as "everything", not one setting.
   const usable = el("div", "theme-region theme-region--usable");
   usable.dataset.key = "usable";
   usable.style.left = px(t.margin);
@@ -1402,12 +1335,10 @@ function renderPreview(g, motion) {
   usable.appendChild(tag(tr("editor.preview.usable", { width: usableWidth(t), height: usableHeight(t) }), "theme-tag--usable"));
   stage.appendChild(usable);
 
-  // The margin itself, drawn as the four bands of outer space it actually is.
-  // Without these the one thing the margin control governs is empty canvas
-  // with no element in it, so there is nothing to highlight when the control
-  // is hovered and nothing to hover to find the control. All four carry the
-  // same region name and edit the same single value — dragging any inner edge
-  // moves the margin on every side at once, which is what one margin means.
+  // The margin, drawn as the four bands of outer space it is. Without them
+  // the margin control governs empty canvas, with nothing to highlight or to
+  // hover. All four share one region name and value; dragging any inner edge
+  // moves the margin on every side.
   const inner = usableHeight(t);
   [
     { side: "top", box: { left: 0, top: 0, width: t.canvasWidth, height: t.margin }, axis: "y", sign: 1 },
@@ -1416,9 +1347,9 @@ function renderPreview(g, motion) {
     { side: "right", box: { left: t.canvasWidth - t.margin, top: t.margin, width: t.margin, height: inner }, axis: "x", sign: -1, edge: "left" }
   ].forEach(band => {
     const node = region("margin", `theme-region theme-region--margin theme-region--margin-${band.side}`, band.box, px, `margin-${band.side}`);
-    // The label only fits once the band is a few real pixels tall; below that
+    // The label fits only once the band is a few real pixels tall; below that
     // it would spill over the header. The drag handle stays either way, so a
-    // margin dragged down to 0 can always be dragged back out.
+    // margin dragged to 0 can be dragged back out.
     if (band.side === "top" && t.margin * scale >= 11) {
       node.appendChild(el("span", "theme-margin__value", tr("editor.preview.margin", { value: t.margin })));
     }
@@ -1444,11 +1375,8 @@ function renderPreview(g, motion) {
       t.gapSmall * scale, "column");
     column.appendChild(dragHandle("slicerColumnWidth", "x", 1, scale));
     // A plain chip, not a grip: the column stands outside the vertical stack
-    // (buildEffectiveStack drops it), so there is no slot for it to move to
-    // and reordering it in `sections` would change nothing on screen. It used
-    // to be draggable because dragging it out of the gutter turned the layout
-    // horizontal — which is precisely the identity change a template no
-    // longer permits.
+    // (buildEffectiveStack drops it), so it has no slot to move to and
+    // reordering it in `sections` would change nothing on screen.
     // A tall narrow column has no room for a one-line chip, so this one wraps.
     column.appendChild(tag(
       tr("editor.preview.slicerColumn", { width: t.slicerColumnWidth, min: t.minSlicerColumnWidth, max: t.maxSlicerColumnWidth }),
@@ -1470,13 +1398,11 @@ function renderPreview(g, motion) {
     stage.appendChild(stripe);
   }
 
-  // KPI bands — the walker's `placed` list gives every kpi section actually
-  // showing (thanks to previewLayout()'s at-least-one-sample-card seeding,
-  // that's every kpi section the theme defines) its real top/height, so
-  // there is nothing left to recompute here. The header band is the first
-  // of them; a theme may define any number of others interrupting the
-  // chart area, each rendered generically below (there used to be exactly
-  // one, hardcoded — "the second band" — before bands became a list).
+  // KPI bands. The walker's `placed` list gives each showing kpi section its
+  // real top/height (previewLayout() seeds one sample card, so that is every
+  // kpi section), so nothing is recomputed here. The header band is the
+  // first; a theme may define any number of others interrupting the chart
+  // area, all rendered the same way below.
   const kpiEntries = g.sections.filter(s => s.type === "kpi");
   const headerKpi = kpiEntries[0] || null;
   const extraKpis = kpiEntries.slice(1);
@@ -1497,8 +1423,8 @@ function renderPreview(g, motion) {
     stage.appendChild(kpi);
   }
 
-  // Chart rows — g.rowTops/g.rowHeights already account for a middle band
-  // carving space out between two of them, exactly as the real canvas does.
+  // Chart rows. g.rowTops/g.rowHeights already account for a middle band
+  // taking space between two rows, as on the real canvas.
   for (let i = 0; i < g.rowCount; i++) {
     const top = g.rowTops[i];
     const height = g.rowHeights[i];
@@ -1532,40 +1458,36 @@ function renderPreview(g, motion) {
     stage.appendChild(band);
   });
 
-  // Gap rulers — the two spacing values are otherwise invisible negative
-  // space, so each gets a measured, draggable strip of its own. Which gap
-  // falls where swaps with the orientation, exactly as the real solver does:
-  // horizontally the slicer band is separated from the title by the small
-  // gap and the KPIs from the charts by the block gap, while vertically the
-  // content block hangs off the title by the block gap and the charts follow
-  // the KPIs at the small one.
+  // Gap rulers. The two spacing values are otherwise invisible space, so each
+  // gets a measured, draggable strip. Which gap goes where swaps with the
+  // orientation, as in the real solver: horizontally the small gap separates
+  // slicers from the title and the block gap separates KPIs from charts;
+  // vertically the block gap separates the content block from the title and
+  // the small gap separates charts from KPIs.
   //
-  // Which boundary carries which gap is not fixed — it follows the band
-  // order and any per-band `gapBefore` override — so each strip is drawn at
-  // a boundary the walk genuinely applied that value to (every placed box
-  // records the gap it got as `gapAbove`), rather than at the position the
-  // default title -> slicers -> kpi -> charts order would put it. A theme in
-  // which nothing uses a value simply gets no ruler for it, which beats a
-  // strip lying across a band it has nothing to do with. Each strip spans
-  // the band below it, so it is always as wide as the thing it separates.
+  // The boundary is not fixed: it follows band order and any per-band
+  // `gapBefore` override. So each strip is drawn at a boundary the walk really
+  // applied that value to (each placed box records its gap as `gapAbove`),
+  // not where the default title -> slicers -> kpi -> charts order would put
+  // it. A value nothing uses gets no ruler, which beats a strip across an
+  // unrelated band. Each strip spans the band below it.
   const takenBoundaries = new Set();
   [
     ["gap-small", "gapSmall", t.gapSmall],
     ["gap-block", "gapKpiToCharts", t.gapKpiToCharts]
   ].forEach(([regionName, fieldKey, value]) => {
     if (value <= 0) return;
-    // Two gaps can be set to the same number; giving each its own boundary
-    // keeps the second strip from stacking invisibly on the first.
+    // Two gaps can share a number; giving each its own boundary stops the
+    // second strip stacking invisibly on the first.
     const i = g.sections.findIndex((s, k) => s.gapAbove === value && !takenBoundaries.has(k));
     if (i === -1) return;
     takenBoundaries.add(i);
 
     const entry = g.sections[i];
-    // The strip spans the usable width when it separates full-width bands —
-    // or, in a vertical layout, when it is the block gap under the title,
-    // which the slicer column hangs off too (its top is that same boundary):
-    // there it must run over the column as well, or the space above the
-    // column reads as nothing at all.
+    // The strip spans the usable width when it separates full-width bands.
+    // In a vertical layout it also does for the block gap under the title,
+    // where the slicer column starts at the same boundary. It must cover the
+    // column too, or the space above the column reads as nothing.
     const spansUsable = entry.type === "title" || entry.type === "slicers"
       || (g.vertical && entry.top === g.slicerColumnTop && value === t.gapKpiToCharts);
     stage.appendChild(gapRuler(regionName, fieldKey, value, {
@@ -1576,10 +1498,10 @@ function renderPreview(g, motion) {
     }, px, scale));
   });
 
-  // A slicer column is separated from the content block by the block gap
-  // sideways (contentBoxFor() in sectionWalker.js), a boundary the stack walk
-  // never visits — so it gets its own upright strip, on whichever side the
-  // column sits. Same region as the horizontal strip: both are one value.
+  // The block gap also separates a slicer column from the content block
+  // sideways (contentBoxFor() in sectionWalker.js). The stack walk never
+  // visits that boundary, so it gets its own upright strip on the column's
+  // side. Same region as the horizontal strip: both are one value.
   if (g.vertical && t.gapKpiToCharts > 0) {
     const right = g.slicerColumnLeft > g.contentLeft;
     stage.appendChild(gapRuler("gap-block", "gapKpiToCharts", t.gapKpiToCharts, {
@@ -1598,8 +1520,8 @@ function cellWidth(total, count, gap) {
   return Math.max(0, Math.floor((total - (count - 1) * gap) / count));
 }
 
-// `key` names the region for the motion replay; it defaults to the region
-// name, which is enough wherever a theme draws only one of it.
+// `key` names the region for the motion replay. It defaults to the region
+// name, enough wherever a theme draws only one.
 function region(regionName, className, box, px, key = regionName) {
   const node = el("div", className);
   node.dataset.region = regionName;
@@ -1618,8 +1540,8 @@ function tag(text, extra) {
   return node;
 }
 
-// Draws the region's internal division into cells, so a stripe reads as "the
-// slicers that will sit here", not as one big block.
+// Draws the region's cells, so a stripe reads as "the slicers that will sit
+// here", not one big block.
 function stackCells(parent, count, gapPx, direction) {
   const grid = el("div", `theme-cells theme-cells--${direction}`);
   grid.style.gap = `${Math.max(1, gapPx)}px`;
@@ -1627,15 +1549,15 @@ function stackCells(parent, count, gapPx, direction) {
   parent.appendChild(grid);
 }
 
-// `handle` picks the draggable edge: a horizontal strip grows downward by
-// default; an upright one ({ axis: "x", sign, side }) grows sideways and gets
+// `handle` picks the draggable edge. A horizontal strip grows downward by
+// default. An upright one ({ axis: "x", sign, side }) grows sideways and gets
 // the modifier that turns its value pill along the strip.
 function gapRuler(regionName, fieldKey, value, box, px, scale, handle = { axis: "y", sign: 1 }) {
   const upright = handle.axis === "x";
   const node = region(regionName, `theme-region theme-region--gap${upright ? " theme-region--gap-x" : ""}`, box, px,
     upright ? `${regionName}-x` : regionName);
   // Same guard as the margin label: below a few real pixels the pill would
-  // only spill over the neighbours it is meant to sit between.
+  // spill over its neighbours.
   if (!upright || value * scale >= 11) {
     node.appendChild(el("span", "theme-gap__value", t("editor.preview.gap", { value })));
   }
@@ -1644,9 +1566,8 @@ function gapRuler(regionName, fieldKey, value, box, px, scale, handle = { axis: 
 }
 
 // A grab strip on a region edge that edits one field directly. `sign` is +1
-// when dragging away from the origin grows the value and -1 when it shrinks
-// it (the margin's top edge moves down as the margin grows, so its own handle
-// is inverted).
+// when dragging away from the origin grows the value, -1 when it shrinks it
+// (the margin's top edge moves down as the margin grows, so it is inverted).
 function dragHandle(fieldKey, axis, sign, scale, side) {
   const field = FIELD_BY_KEY[fieldKey];
   const handle = el("div", `theme-handle theme-handle--${axis}${side ? " theme-handle--" + side : ""}`);
@@ -1661,9 +1582,9 @@ function dragHandle(fieldKey, axis, sign, scale, side) {
     const startValue = draft[fieldKey];
     setHighlight(field.region);
 
-    // A render() tears down every control and rebuilds the whole preview, so
-    // one per pointer event is far more than the screen can show. Coalesce
-    // to one per frame, the same way the reorder drag does.
+    // render() rebuilds every control and the whole preview, so one per
+    // pointer event is more than the screen shows. Coalesce to one per frame,
+    // as the reorder drag does.
     let rafId = null;
     let latest = null;
 
@@ -1680,8 +1601,7 @@ function dragHandle(fieldKey, axis, sign, scale, side) {
       if (rafId === null) rafId = requestAnimationFrame(processFrame);
     };
     const up = () => {
-      // Land on the last position the pointer reached, not on the frame
-      // that happened to render before the release.
+      // Land on the pointer's last position, not the last rendered frame.
       if (rafId !== null) { cancelAnimationFrame(rafId); processFrame(); }
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
@@ -1728,8 +1648,8 @@ function renderReadout(g) {
   root.querySelector(".theme-editor__head-actions .btn-primary").disabled = issues.some(i => i.severity === "error");
 }
 
-// All clear is one quiet line. Otherwise a count (which also says why Save
-// is off), then each finding as a headline with the fix beneath it.
+// All clear is one quiet line. Otherwise a count (which also explains why
+// Save is off), then each finding as a headline with its fix beneath.
 function renderStatus(issues) {
   const status = root.querySelector(".theme-stage__status");
   const key = JSON.stringify(issues);
@@ -1737,8 +1657,8 @@ function renderStatus(issues) {
   status.dataset.key = key;
   status.innerHTML = "";
 
-  // Only a finding that just appeared fades in (R2). The rest are rebuilt
-  // in place, so a drag that keeps changing the list never flickers it.
+  // Only a new finding fades in (R2). The rest are rebuilt in place, so a
+  // drag that keeps changing the list doesn't flicker.
   const before = shownFindings;
   shownFindings = new Set(issues.map(i => i.title));
   const isNew = title => before !== null && !before.has(title);
@@ -1798,9 +1718,9 @@ function handleSave() {
 
   const theme = { ...normalizeTheme({ ...draft, label }), builtin: false };
 
-  // A theme created from a built-in gets its id at save time, from the name
-  // the user settled on — an id minted at open time would carry the throwaway
-  // "FULL HD – vlastní" wording forever.
+  // A theme created from a built-in gets its id at save time, from the final
+  // name. An id made at open time would keep the throwaway "FULL HD – vlastní"
+  // wording forever.
   if (editingExistingId === null) theme.id = makeThemeId(label, themeIdsInUse());
   else theme.id = editingExistingId;
 
@@ -1829,7 +1749,7 @@ async function handleDelete() {
     confirmLabel: t("editor.delete"),
     danger: true
   });
-  // The editor may have moved on while the question was open.
+  // The editor may have changed while the question was open.
   if (!confirmed || editingExistingId !== id || !root || root.hidden) return;
 
   const result = deleteTheme(editingExistingId);
@@ -1861,9 +1781,8 @@ function handleImportFile(event) {
       return;
     }
 
-    // One theme in the file loads straight into the editor for review; a
-    // collection is saved wholesale, since there is nothing sensible to show
-    // in a single-theme editor for five themes at once.
+    // One theme in the file loads into the editor for review. A collection
+    // is saved wholesale, since a single-theme editor can't show five.
     if (parsed.themes.length === 1) {
       draft = { ...parsed.themes[0], builtin: false, id: draft.id, label: parsed.themes[0].label };
       editingExistingId = null;
@@ -1889,7 +1808,7 @@ function flash(text, severity) {
   const node = el("p", `theme-notice theme-notice--${kind} m-reveal`);
   node.appendChild(iconEl(kind === "ok" ? "check" : "error"));
   node.appendChild(el("span", null, text));
-  // One notice at a time: a newer one replaces, never stacks.
+  // One notice at a time; a newer one replaces the old.
   root.querySelector(".theme-stage__notice").replaceChildren(node);
   setTimeout(() => leave(node, () => node.remove()), 4000);
 }

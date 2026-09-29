@@ -8,15 +8,13 @@ import { settleCanvas } from "../ui/motion.js";
 let activeResize = null;
 
 // --- Snapping ---
-// Step snap: the dragged width always lands on a multiple of 5 canvas px
-// (e.g. 245, 250, 255...), matching the grid the layout solvers use.
+// Step snap: the dragged width lands on a multiple of 5 canvas px, matching
+// the grid the layout solvers use.
 //
-// Strong snap: aligns the dragged edge with a slicer/KPI's right edge, or
-// with a chart boundary in another chart row.
-// Tolerance is defined in *screen* px and converted to canvas px at drag
-// time (divided by EFFECTIVE_SCALE), so the catch radius feels consistent
-// under the pointer regardless of how much the canvas preview is currently
-// shrunk to fit the viewport.
+// Strong snap: aligns the dragged edge with a slicer/KPI right edge or a
+// chart boundary in another row. The tolerance is in screen px and divided
+// by EFFECTIVE_SCALE at drag time, so the catch radius feels the same at any
+// preview scale.
 const STRONG_SNAP_SCREEN_PX = 8;
 
 function getCanvasRect() {
@@ -24,28 +22,19 @@ function getCanvasRect() {
   return canvas ? canvas.getBoundingClientRect() : null;
 }
 
-// Reads the already-rendered slicer/KPI elements' true rendered geometry
-// (getBoundingClientRect, not a parsed style string) to get their right
-// edges in canvas (unscaled) px, relative to #canvas itself. Reading actual
-// rendered geometry rather than re-deriving it avoids any chance of a
-// mismatch between assumption and reality. Not calling
-// computeSlicersLayout()/computeKpiLayout() again ourselves is deliberate
-// too — those functions also drive the notification system as a side
-// effect (see warnings.js), so re-invoking them here just to read
-// coordinates would risk redundant or unwanted warning churn.
+// Collects snap targets: right edges (in unscaled canvas px, relative to
+// #canvas) of the rendered slicer/KPI elements. Reads the DOM instead of
+// calling computeSlicersLayout()/computeKpiLayout(), which also drive
+// warnings as a side effect (see warnings.js).
 //
-// Only the right edge is collected (not the left edge too): the handle being
-// dragged is always the right edge of "current"/left edge of "next", so the
-// only alignment that makes visual sense is against other elements' right
-// edges.
+// Only right edges are used, because the dragged handle is the right edge of
+// "current" and the left edge of "next".
 //
-// Charts in the other rows contribute their boundaries too (every cell's
-// right edge except the row's last, which is the content edge), so columns
-// can be lined up from row to row. The gap between charts is the same in
-// every row, so a matched right edge lines up the whole gap. The dragged
-// row's own charts are skipped: their boundaries aren't moving, so snapping
-// to them would mean nothing. Stacked cells need no special handling — their
-// `chart-r-i` anchor covers the cell's full outer box.
+// Charts in other rows add their boundaries too (each cell's right edge
+// except the row's last), so columns line up across rows. The gap is the same
+// in every row, so matching a right edge lines up the whole gap. The dragged
+// row is skipped because its boundaries are moving. Stacked cells work as is:
+// their `chart-r-i` anchor covers the full cell.
 function collectSnapEdgeTargets(rowIndex) {
   const targets = new Set();
   const canvasRect = getCanvasRect();
@@ -85,19 +74,13 @@ function findNearestSnapEdge(boundaryX, targets, tolerancePx) {
   return nearest;
 }
 
-// Shows/hides the vertical alignment guide line, positioned at an exact
-// SCREEN px value relative to #canvas (no scale conversion happens in here
-// — the caller already provides a screen-space value). Re-created on every
-// call rather than reused, since #canvas is fully torn down and rebuilt by
-// renderLayout() on every width change — any guide appended before that
-// render is gone by the time this runs again, so there's nothing stale to
-// remove first.
+// Shows or hides the vertical alignment guide at a screen px value relative
+// to #canvas (no scale conversion here). It is re-created on every call,
+// because renderLayout() rebuilds #canvas on every width change.
 //
-// The line is snapped to whole device pixels and is at least one device pixel
-// wide. A plain 1px line centred with a half-pixel shift is narrower than a
-// device pixel under browser zoom below 100% (e.g. 0.9 device px at 90%), and
-// whether it gets drawn at all then depends on where it happens to fall on
-// the pixel grid — so it would vanish at some snap positions and not others.
+// The line is snapped to whole device pixels and is at least one device
+// pixel wide. A plain 1px line is narrower than a device pixel under browser
+// zoom below 100%, so it would vanish at some snap positions.
 function updateSnapGuide(screenLeftPx) {
   const canvas = document.getElementById("canvas");
   if (!canvas) return;
@@ -119,12 +102,8 @@ function updateSnapGuide(screenLeftPx) {
   canvas.appendChild(guide);
 }
 
-// Computes the guide's screen position by reading the ACTUAL rendered
-// bounding boxes of the current/next chart elements (getBoundingClientRect,
-// relative to #canvas), rather than parsing style strings or deriving it
-// from a GAP_SMALL-based formula. This is ground truth: it's correct
-// regardless of what layout logic produced those positions, border-box
-// sizing, or any other detail that a formula could get subtly wrong.
+// Guide position in screen px, read from the rendered bounding boxes of the
+// current/next chart elements rather than derived from a GAP_SMALL formula.
 function computeGapMidpointScreen(rowIndex, itemIndex) {
   const canvasRect = getCanvasRect();
   if (!canvasRect) return null;
@@ -150,20 +129,16 @@ function finishResize() {
   document.body.style.cursor = "default";
   document.body.classList.remove("is-resizing-chart");
   updateSnapGuide(null);
-  // Deliberately no state.setWarnings([]) here: the layout solvers own the
+  // No state.setWarnings([]) here on purpose. The layout solvers own the
   // warning lifecycle (see syncWarning in computeKpiLayout.js /
-  // computeSlicersLayout.js / computeSlicerRowWidths.js) and already cleared
-  // anything the resize resolved on the last render of the drag. Wiping the
-  // array here would instead make every still-true condition look brand new
-  // to those solvers, so the next render would re-add it and pop its toast
-  // back up even though nothing about it changed.
+  // computeSlicersLayout.js / computeSlicerRowWidths.js). Wiping the array
+  // would make still-true warnings look new and pop their toasts again.
   activeResize = null;
 }
 
-// Freezes every not-yet-locked sub-chart's height when a width drag locks
-// the stacked cell containing them, mirroring handleToggleStackLock's own
-// lock-time height freeze (stackEvents.js) so each sub-chart's individual
-// unlock button has something meaningful to unlock afterwards.
+// Freezes the height of each unlocked sub-chart when a width drag locks its
+// stacked cell. Mirrors handleToggleStackLock (stackEvents.js), so each
+// sub-chart's unlock button has something to unlock.
 function lockStackEntriesForResize(rowIndex, itemIndex, chart) {
   if (!chart.stack) return;
 
@@ -196,11 +171,9 @@ function handlePointerMove(event) {
   let isStrongSnapped = false;
 
   if (snappedEdge !== null) {
-    // The chart's edge lands exactly on the slicer/KPI edge — flush, exact.
-    // Rounded because snappedEdge is derived from real DOM getBoundingClientRect()
-    // measurements divided by EFFECTIVE_SCALE, which can leave a sub-pixel
-    // float remainder (e.g. 710.0000762939453) that would otherwise get baked
-    // into state as a non-integer width.
+    // Rounded because snappedEdge comes from DOM measurements divided by
+    // EFFECTIVE_SCALE, which can leave a float remainder (e.g.
+    // 710.0000762939453) that would end up in state.
     newCurrentWidth = Math.round(snappedEdge - activeResize.itemStartX);
     isStrongSnapped = true;
   } else {
@@ -222,9 +195,8 @@ function handlePointerMove(event) {
   }
 
   if (newCurrentWidth === activeResize.currentWidth && newNextWidth === activeResize.nextWidth) {
-    // Width didn't actually change this tick — the existing rendered chart
-    // elements are still accurate, so the guide (if any) can be recomputed
-    // from them without re-rendering the chart layout itself.
+    // Width unchanged: the rendered elements are still valid, so only the
+    // guide needs updating.
     updateSnapGuide(isStrongSnapped ? computeGapMidpointScreen(activeResize.rowIndex, activeResize.itemIndex) : null);
     return;
   }
@@ -244,18 +216,15 @@ function handlePointerMove(event) {
   nextChart.width = newNextWidth;
   nextChart.locked = true;
 
-  // A stacked cell's width lock is derived from its sub-charts (locked while
-  // any sub-chart is locked — see handleToggleStackLock in stackEvents.js), so
-  // freezing the cell's width here also has to lock every not-yet-locked
-  // sub-chart, or the freshly-set item.locked would have no per-chart control
-  // that can ever clear it.
+  // A stacked cell is locked while any sub-chart is locked (see
+  // handleToggleStackLock in stackEvents.js). So lock every sub-chart too,
+  // or nothing could ever clear the new item.locked.
   lockStackEntriesForResize(activeResize.rowIndex, activeResize.itemIndex, currentChart);
   lockStackEntriesForResize(activeResize.rowIndex, activeResize.itemIndex + 1, nextChart);
 
   activeResize.onResize();
-  // onResize (renderLayout) just rebuilt #canvas from scratch with the new
-  // widths — only now can the two chart elements' real positions be read
-  // back out to find the true gap midpoint.
+  // onResize (renderLayout) rebuilt #canvas, so the new positions can be read
+  // only now.
   updateSnapGuide(isStrongSnapped ? computeGapMidpointScreen(activeResize.rowIndex, activeResize.itemIndex) : null);
   refreshSelectedChartAfterResize();
 }
@@ -269,8 +238,7 @@ export function attachChartResizeHandle(handle, rowIndex, itemIndex, onResize) {
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    // The snap targets below are measured from the cards; a card still
-    // gliding from the last change would put them somewhere in between.
+    // Snap targets are measured from the cards, so let any glide finish.
     settleCanvas(document.getElementById("canvas"));
 
     const v = computeVerticalLayout();
@@ -301,14 +269,9 @@ export function attachChartResizeHandle(handle, rowIndex, itemIndex, onResize) {
     window.addEventListener("pointerup", activeResize.upHandler);
     window.addEventListener("pointercancel", activeResize.upHandler);
     document.body.style.cursor = "ew-resize";
-    // #canvas is fully torn down and rebuilt on every width change during
-    // the drag (see project render model), which briefly removes and
-    // recreates every chart's hover controls each tick even though the
-    // cursor never actually left the chart — reading as a flicker. Since
-    // showing add/remove/lock controls mid-drag isn't useful anyway, this
-    // class just forces them hidden for the whole drag instead of letting
-    // them flash in and out on every rebuild (see .is-resizing-chart in
-    // style.css).
+    // #canvas is rebuilt on every tick of the drag, which would make the
+    // hover controls flicker. This class hides them for the whole drag (see
+    // .is-resizing-chart in style.css).
     document.body.classList.add("is-resizing-chart");
   });
 }

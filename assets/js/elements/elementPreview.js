@@ -1,13 +1,12 @@
 // assets/js/elements/elementPreview.js
 //
-// The live mock of one element type in the Customize Elements section, plus
-// the guides that explain an edit while it happens.
+// The live mock of one element type in Customize Elements, plus the guides
+// that explain an edit while it happens.
 //
-// A mock is built once (per type, per mode) and from then on only restyled:
-// applyStyles() writes CSS custom properties onto its frame, so dragging the
-// radius slider re-rounds the corners on every frame without touching the
-// DOM tree. Sizes are Power BI's own: px for boxes, pt for text (CSS pt is
-// the same unit), so the mock at 100 % is the visual at 100 %.
+// A mock is built once (per type, per mode) and then only restyled.
+// applyStyles() writes CSS custom properties onto its frame, so a slider drag
+// never rebuilds the DOM. Sizes are Power BI's own (px for boxes, pt for
+// text), so the mock at 100 % matches the visual at 100 %.
 //
 // DOM, per mock:
 //
@@ -17,8 +16,7 @@
 //     .el-guide--…               radius arcs, padding bands, shadow outline
 //     .el-tag                    the value being set, next to what it sets
 //
-// The guides live outside .el-mock so the rounded, clipped box never cuts
-// them off.
+// Guides sit outside .el-mock so its rounded, clipped box can't cut them off.
 
 import { FONTS, resolveColor, rgba, shadowCss, shadowDirection } from "./elementStyleModel.js";
 import { t } from "../i18n/i18n.js";
@@ -48,9 +46,8 @@ const part = (tag, className, name, text) => {
   return node;
 };
 
-// A part that can be switched off (a title, a header, a label) sits in a
-// fold, so switching it eases it shut and the rest of the mock slides up
-// instead of jumping. The fold's data-fold names the switch (see CSS).
+// A part that can be switched off sits in a fold, so the rest of the mock
+// slides up instead of jumping. data-fold names the switch (see CSS).
 const fold = (name, node) => {
   const outer = el("div", "el-fold");
   outer.dataset.fold = name;
@@ -68,7 +65,7 @@ const svg = markup => {
 
 const CHEVRON = '<svg class="el-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-// Power BI's visual header: the icons that appear over a visual on hover.
+// Power BI's visual header: the icons shown over a visual on hover.
 function chrome() {
   const node = part("div", "el-chrome", "chrome");
   node.innerHTML =
@@ -108,8 +105,7 @@ function buildKpi(mock) {
   mock.appendChild(body);
 }
 
-// A small line chart in the first theme data color, with the tooltip Power BI
-// shows over a point.
+// A small line chart in the first theme data color, with a point tooltip.
 function buildChart(mock) {
   mock.appendChild(fold("title", part("div", "el-title", "title", t("elements.sample.chartTitle"))));
   const plot = part("div", "el-chart__plot", "plot");
@@ -149,7 +145,7 @@ export function buildFrame(type) {
   mock.appendChild(chrome());
   frame.appendChild(mock);
 
-  // Guides, drawn over the mock when a value they explain is being set.
+  // Guides, drawn while the value they explain is being set.
   const radius = el("div", "el-guide el-guide--radius");
   ["tl", "tr", "bl", "br"].forEach(c => radius.appendChild(el("span", `el-guide__corner el-guide__corner--${c}`)));
   frame.appendChild(radius);
@@ -185,8 +181,8 @@ function textVars(style, prefix, values, key, { sizeKey = "fontSize", colorKey =
 }
 
 /**
- * Writes one type's values onto a mock frame. Cheap: custom properties and a
- * few data attributes, no DOM rebuild — safe on every slider frame.
+ * Writes one type's values onto a mock frame. Only custom properties and
+ * data attributes, so it is safe on every slider frame.
  */
 export function applyStyles(frame, type, values) {
   const s = frame.style;
@@ -237,8 +233,8 @@ export function applyStyles(frame, type, values) {
 
 // --- Guides -----------------------------------------------------------------
 //
-// Which guide explains which field, and where its tag goes. Anything not
-// listed here gets a pulse on the part it changes instead.
+// Which guide explains which field, and where its tag goes. Fields not
+// listed pulse their part instead.
 
 function guideFor(key) {
   if (key === "border.radius") return "radius";
@@ -274,8 +270,8 @@ function boxIn(frame, node) {
 }
 
 /**
- * Explains the change just made to `key`: draws its guide with the value on
- * a tag, or pulses the part it changed. Lingers a moment after the last call.
+ * Explains the change just made to `key`: draws its guide with the value on a
+ * tag, or pulses the part. Stays briefly after the last call.
  */
 export function showGuide(frame, field, values, part) {
   const guide = guideFor(field.key);

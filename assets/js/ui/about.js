@@ -1,11 +1,10 @@
 // assets/js/ui/about.js
 //
 // The About modal, opened from the rail's ⓘ button: version, copyright, a
-// GitHub panel for bug reports and ideas, and the links a footer would carry
-// (privacy, terms, changelog). A modal rather than a footer bar, so the
-// canvas keeps the full height.
+// GitHub panel for bug reports and ideas, and footer-style links (privacy,
+// terms, changelog). It is a modal so the canvas keeps its full height.
 //
-// The card is built on every open, so it is always in the current language.
+// Built on every open, so it is always in the current language.
 
 import { openModal, makeButton } from "./dialog.js";
 import { openLegal } from "./legalDialog.js";
@@ -18,18 +17,17 @@ const OWNER = "ttranka99";
 const REPO_PATH = "ttranka99/kvapka";
 const REPO_URL = `https://github.com/${REPO_PATH}`;
 
-// The legal pages hold both languages; the hash picks the one to show. A plain
-// click opens them in a modal (ui/legalDialog.js); the real href stays for
-// middle-click, "copy link" and the fetch-failed fallback.
+// The legal pages hold both languages; the hash picks one. A plain click opens
+// a modal (ui/legalDialog.js). The href stays for middle-click, "copy link"
+// and the fetch-failed fallback.
 const LINKS = [
   { key: "about.privacy", href: "privacy.html", legal: true },
   { key: "about.terms", href: "terms.html", legal: true },
   { key: "about.changelog", href: "CHANGELOG.md" },
 ];
 
-// A new-issue link with the label set and the body prefilled, so every report
-// says which version it came from. GitHub drops the label for users without
-// triage rights, which leaves a plain issue.
+// A new-issue link with the label and body prefilled, so every report names
+// its version. GitHub drops the label for users without triage rights.
 function issueUrl(label, bodyKey) {
   const body = `${t(bodyKey)}---
 ${t("about.github.version", { version: VERSION })}
@@ -107,8 +105,7 @@ export function openAbout() {
   copyright.textContent = `© ${COPYRIGHT_YEAR} ${OWNER}`;
   meta.append(version, copyright);
 
-  // External links open in new tabs, so following one never navigates away
-  // from the editor.
+  // External links open in a new tab so the editor stays open.
   const links = document.createElement("ul");
   links.className = "about__links";
   for (const { key, href, legal } of LINKS) {

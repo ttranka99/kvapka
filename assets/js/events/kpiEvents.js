@@ -7,10 +7,9 @@ import { computeKpiLayoutForBand } from "../layout/computeKpiLayout.js";
 import { flash } from "../ui/motion.js";
 import { t, isFrom } from "../i18n/i18n.js";
 
-// Every KPI band is edited through the same handlers, addressed by the id
-// of its `kpi` section — however many a theme defines, each behaves the
-// same way except for its own allowSecondRow flag (only the header band,
-// by convention, ever grows a second row).
+// All KPI bands share these handlers, addressed by the id of the `kpi`
+// section. They differ only in allowSecondRow (by convention, only the
+// header band has it).
 function sectionFor(bandId) {
   return state.activeTheme.sections.find(s => s.type === "kpi" && s.id === bandId);
 }
@@ -72,10 +71,9 @@ export function handleRemoveKpi(index, bandId) {
   renderLayout();
 }
 
-// Freezes (or releases) a KPI's width at what the solver currently shows,
-// so it is excluded from redistribution when cards are added or removed.
-// One flag covers both of a card's values (a height set by Apply locks the
-// same way), so releasing it lets both go.
+// Freezes (or releases) a KPI's width at the solver's current value, so
+// add/remove doesn't redistribute it. One flag covers width and height (Apply
+// locks the same way), so releasing it frees both.
 export function handleToggleKpiLock(index, bandId) {
   const k = state.getKpiBand(bandId)[index];
   if (!k) return;
@@ -93,17 +91,16 @@ export function handleToggleKpiLock(index, bandId) {
 
   state.setKpiBand(bandId, [...state.getKpiBand(bandId)]);
   renderLayout();
-  // Locking only; unlocking is quiet. The card's dom id encodes the band's
-  // ordinal, not its id, so it is found by the data-kpi tag renderLayout sets.
+  // Flash on lock only. The dom id has the band ordinal, not its id, so find
+  // the card by the data-kpi tag from renderLayout.
   if (k.locked) flash(document.querySelector(`.canvas-element.kpi[data-kpi="${bandId}:${index}"]`)?.id);
 }
 
 // Select KPI
 //
-// `item.band` is the section's ordinal in the theme's band list, so the label
-// names which band a card belongs to. It stops saying "prostřední pás" for
-// everything past the header: a theme can define any number of bands now, and
-// only the second of three is in the middle of anything.
+// `item.band` is the section's ordinal in the theme's band list. The label
+// uses it because a theme can have any number of bands, so "middle band"
+// would be wrong for most.
 export function handleSelectKpi(item, domId, opts = {}) {
   const band = item.band ?? 0;
   setSelected({

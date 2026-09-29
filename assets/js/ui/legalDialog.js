@@ -1,12 +1,12 @@
 // assets/js/ui/legalDialog.js
 //
-// The privacy policy and terms of use as a modal, so reading them never leaves
-// the editor. privacy.html / terms.html stay the only copy of the text: the
-// page is fetched, parsed (DOMParser runs no scripts, and it is our own
+// The privacy policy and terms of use as a modal, so reading them doesn't
+// leave the editor. privacy.html / terms.html stay the only copy of the text:
+// the page is fetched, parsed (DOMParser runs no scripts, and it is our own
 // same-origin file) and the article for the current language is imported.
 //
-// If the page can't be fetched (opened from file://, offline) the tab
-// navigates to it instead — never a new window.
+// If the fetch fails (file://, offline) the tab navigates there instead,
+// never a new window.
 
 import { openModal, makeButton } from "./dialog.js";
 import { t, getLocale } from "../i18n/i18n.js";
@@ -63,7 +63,7 @@ export async function openLegal(page, { onBack, trigger } = {}) {
   for (const node of source ? source.childNodes : []) {
     body.appendChild(document.importNode(node, true));
   }
-  // External sites open in a new tab so the editor stays where it is.
+  // External sites open in a new tab so the editor stays open.
   for (const a of body.querySelectorAll('a[href^="http"]')) {
     a.target = "_blank";
     a.rel = "noopener";

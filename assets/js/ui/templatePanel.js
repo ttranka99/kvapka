@@ -1,29 +1,27 @@
 // assets/js/ui/templatePanel.js
 //
-// The Šablona panel folds down to its head. The canvas is set up once and
-// then left alone while the work happens in the selection and add panels,
-// which on a short screen would otherwise sit below the fold under a panel
-// nobody is using. Folded, a small spec sheet stands in for the controls —
-// resolution, scope, slicer placement, KPIs per row — so the setup still
-// reads at a glance, and clicking it opens the panel again.
+// The Šablona panel folds down to its head. The canvas is set up once, then
+// the work happens in the selection and add panels, which on a short screen
+// would sit below the fold under an unused panel. Folded, a small spec sheet
+// (resolution, scope, slicer placement, KPIs per row) stands in for the
+// controls. Clicking it opens the panel again.
 //
-// When it folds is tied to the page, not remembered across visits:
-//   - a new page (and so every app load) starts open — it is a new setup;
+// The fold state is per page, not remembered across visits:
+//   - a new page (and so every app load) starts open;
 //   - the first real work on the canvas folds it: a pointer on the sheet
 //     (selecting, dragging, resizing) or an add button. Changing the setup
-//     itself doesn't count — that is what the open panel is for;
-//   - the head toggles it either way, and the next work on the canvas folds
-//     it again;
-//   - each page keeps its own state, so switching back to a page already
-//     being worked on finds the panel folded.
+//     doesn't count, that is what the open panel is for;
+//   - the head toggles it either way, and the next work folds it again;
+//   - each page keeps its own state, so a page already worked on comes back
+//     folded.
 //
 // The cross-fade is CSS (the fold section in style.css). The rest is here,
-// because CSS can't ease a height between two contents, or follow a panel
+// because CSS can't ease a height between two contents or follow a panel
 // that changes grid cell:
-//   - the fold's height eases from wherever it is to the new layer's height;
-//   - stacked, the folded panel becomes a bar across both columns, moving
-//     its two neighbours to other cells; they glide there (motion.js R1) on
-//     the same timing, so it all reads as one movement.
+//   - the fold's height eases from its current value to the new layer's;
+//   - stacked, the folded panel becomes a bar across both columns and moves
+//     its two neighbours to other cells. They glide there (motion.js R1) on
+//     the same timing, so it reads as one movement.
 
 import * as state from "../state/state.js";
 import { placementLabel } from "../theme/themeModel.js";
@@ -45,14 +43,13 @@ let body;
 let summary;
 let heightAnim;
 let unfreezeTimer;
-// Ids of the pages whose panel is folded. Pages live in memory only, so
-// this does too.
+// Ids of pages whose panel is folded. Memory only, like the pages.
 const foldedPages = new Set();
-// Whether the DOM shows a state yet — the first call must always apply one.
+// Whether the DOM shows a state yet. The first call must always apply one.
 let shown = false;
 
-/** A duration token as ms — the bare value; motion.js's durationMs() adds
- *  slack meant for fallback timeouts, not for timing an animation. */
+/** A duration token as ms, without the slack motion.js's durationMs() adds
+ *  for fallback timeouts. */
 function tokenMs(token) {
   const raw = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
   const ms = raw.endsWith("ms") ? parseFloat(raw) : parseFloat(raw) * 1000;
@@ -85,10 +82,10 @@ export function initTemplatePanel() {
   summary.addEventListener("click", flip);
 
   // Work on the canvas means the setup is done for now. It folds when the
-  // gesture ends, not as it starts: stacked, the sheet sits under the panels
-  // and would slide up out from under a click or a drag still in progress.
+  // gesture ends, not starts: stacked, the sheet would slide up from under a
+  // click or drag still in progress.
   const foldNow = () => setTemplateCollapsed(true);
-  // A cancelled gesture (a touch that became a scroll) was not work.
+  // A cancelled gesture (a touch that became a scroll) isn't work.
   document.getElementById("canvas")?.addEventListener("pointerdown", () => {
     const end = e => {
       window.removeEventListener("pointerup", end);
@@ -102,14 +99,14 @@ export function initTemplatePanel() {
     if (e.target.closest("button")) foldNow();
   });
 
-  // The state a page loads with is not a change, so it doesn't animate.
+  // The state a page loads with isn't a change, so no animation.
   panel.classList.add("is-instant");
   syncTemplateFoldForPage();
   requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.remove("is-instant")));
 }
 
-/** Shows the active page's fold: open for a page not worked on yet. Called
- *  whenever another page (a new one, or an existing one) comes up. */
+/** Shows the active page's fold (open for a page not worked on yet). Called
+ *  whenever another page comes up. */
 export function syncTemplateFoldForPage() {
   setTemplateCollapsed(foldedPages.has(activePageId()));
 }
@@ -120,7 +117,7 @@ export function setTemplateCollapsed(collapsed) {
   if (collapsed) foldedPages.add(id);
   else foldedPages.delete(id);
 
-  // Every pointer on the canvas lands here; most find the panel folded.
+  // Every pointer on the canvas lands here. Most find the panel folded.
   if (shown && panel.classList.contains("is-collapsed") === collapsed) return;
   const animate = shown && !panel.classList.contains("is-instant") && !reducedMotion();
   shown = true;
@@ -134,17 +131,17 @@ export function setTemplateCollapsed(collapsed) {
     const panelsBefore = isStacked() ? panels.getBoundingClientRect().height : null;
     heightAnim?.cancel();
 
-    // The outgoing layer keeps the width it has while it fades: stacked, the
-    // panel changes width with the fold, and its text would rewrap mid-fade.
+    // The outgoing layer keeps its width while fading. Stacked, the panel
+    // changes width with the fold and its text would rewrap mid-fade.
     clearTimeout(unfreezeTimer);
     incoming.style.width = "";
     outgoing.style.width = animate ? `${outgoing.getBoundingClientRect().width}px` : "";
     unfreezeTimer = setTimeout(() => { outgoing.style.width = ""; }, tokenMs("--fast"));
 
-    // Held at the height it shows while the layers swap, and the target read
-    // off the incoming layer itself: the page never lays out at the new
-    // height ahead of the animation, where it could be hundreds of pixels
-    // shorter and have the browser clamp the scroll.
+    // Hold the current height while the layers swap and read the target from
+    // the incoming layer. The page must not lay out at the new height ahead
+    // of the animation: it could be hundreds of px shorter and the browser
+    // would clamp the scroll.
     if (animate) fold.style.height = `${from}px`;
 
     panel.classList.toggle("is-collapsed", collapsed);
@@ -164,19 +161,19 @@ export function setTemplateCollapsed(collapsed) {
   });
 
   toggle.setAttribute("aria-expanded", String(!collapsed));
-  // The outgoing layer is only faded and hidden; inert takes its controls
-  // out of the tab order and away from screen readers right away.
+  // The outgoing layer is only faded and hidden. inert removes its controls
+  // from the tab order and screen readers at once.
   incoming.inert = false;
   outgoing.inert = true;
   syncTemplateSummary();
 }
 
-/** Stacked, the swap also re-cells the other panels: folding drops them
- *  into a row under the bar, opening lifts them into the right column. At
- *  the fold's old height either would change the sidebar's height in one
- *  frame and jolt the sheet below it. So the height starts wherever keeps
- *  the sidebar as tall as it was, then eases on to `to` — within the range
- *  between `from` and `to`, so it never runs backwards. */
+/** Stacked, the swap also moves the other panels to other cells: folding
+ *  drops them into a row under the bar, opening lifts them into the right
+ *  column. From the fold's old height that would change the sidebar height
+ *  in one frame and jolt the sheet. So the height starts at whatever keeps
+ *  the sidebar as tall as it was, then eases to `to`, staying between `from`
+ *  and `to` so it never runs backwards. */
 function stackedStart(from, to, panelsBefore) {
   const panels = panel.parentElement;
   const clamp = v => Math.min(Math.max(v, Math.min(from, to)), Math.max(from, to));
@@ -185,9 +182,9 @@ function stackedStart(from, to, panelsBefore) {
   let start = clamp(from - (panels.getBoundingClientRect().height - panelsBefore));
   fold.style.height = `${start}px`;
 
-  // Opening: the right column can be the taller one, and the grid stretches
-  // the panel to it, so the sidebar only follows the fold once the panel's
-  // own content (up to the fold's bottom) is as tall as the sidebar was.
+  // Opening: the right column can be taller and the grid stretches the panel
+  // to it, so the sidebar follows the fold only once the panel's own content
+  // (up to the fold's bottom) is as tall as the sidebar was.
   if (panels.getBoundingClientRect().height < panelsBefore - 0.5) {
     const top = panel.getBoundingClientRect().top;
     const content = fold.getBoundingClientRect().bottom - top + parseFloat(getComputedStyle(panel).paddingBottom);
@@ -198,10 +195,10 @@ function stackedStart(from, to, panelsBefore) {
 
 /** FLIP for the stacked layout, where the fold moves the other panels to
  *  another grid cell. They are measured, `change` runs, and each eases back
- *  from where it was — on the fold's own duration and curve, so it composes
- *  with the height change into one straight glide. Beside the sheet nothing
- *  changes cell and this just runs `change`. A glide caught mid-way is
- *  measured where it shows, so it turns around without a jump. */
+ *  from its old spot on the fold's duration and curve, so it joins the height
+ *  change as one glide. Beside the sheet nothing changes cell and this just
+ *  runs `change`. A glide caught mid-way is measured where it shows, so it
+ *  turns around without a jump. */
 function glideNeighbours(animate, change) {
   if (!animate || !isStacked()) {
     change();
@@ -224,8 +221,8 @@ function glideNeighbours(animate, change) {
   });
 }
 
-/** Fills the spec sheet from the state the controls show. Kept current
- *  whether or not it is on screen, so a fold never reveals stale values. */
+/** Fills the spec sheet from the controls' state. Kept current even when
+ *  hidden, so a fold never shows stale values. */
 export function syncTemplateSummary() {
   if (!summary) return;
   const set = (id, text) => {

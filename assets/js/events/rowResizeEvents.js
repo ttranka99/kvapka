@@ -7,11 +7,9 @@ import { snapToStep } from "../layout/sizeStep.js";
 
 let activeRowResize = null;
 
-// Step snap only — the dragged height always lands on a multiple of 5 canvas
-// px, same as the chart-width drag. Unlike width dragging, there's no
-// "strong" alignment snap here: slicers/KPIs live above the chart area, not
-// between chart rows, so there's nothing meaningful to align a row boundary
-// against.
+// Step snap only: the dragged height lands on a multiple of 5 canvas px.
+// There is no strong snap because slicers/KPIs are not between chart rows,
+// so there is nothing to align a row boundary with.
 
 function finishRowResize() {
   if (!activeRowResize) return;
@@ -21,10 +19,7 @@ function finishRowResize() {
   window.removeEventListener("pointercancel", activeRowResize.upHandler);
   document.body.style.cursor = "default";
   document.body.classList.remove("is-resizing-chart");
-  // No state.setWarnings([]) here — see the note in
-  // chartResizeEvents.js's finishResize(): wiping the array makes every
-  // still-true condition look new to the layout solvers, which re-add it and
-  // re-pop its toast on the next render.
+  // No state.setWarnings([]) here, see finishResize() in chartResizeEvents.js.
   activeRowResize = null;
 }
 
@@ -61,9 +56,8 @@ function handleRowPointerMove(event) {
   const rowB = state.chartRows[activeRowResize.rowIndex + 1];
   if (!rowA || !rowB) return;
 
-  // Only these two rows' heights change — their combined total stays fixed
-  // throughout the drag, so no other row's auto-computed height is
-  // affected, and no new overflow risk is introduced by this operation.
+  // Only these two rows change and their total stays fixed, so other rows
+  // are unaffected and there is no new overflow risk.
   rowA.height = newCurrentHeight;
   rowA.locked = true;
   rowB.height = newNextHeight;
@@ -107,8 +101,7 @@ export function attachRowResizeHandle(handle, rowIndex, onResize) {
     window.addEventListener("pointerup", activeRowResize.upHandler);
     window.addEventListener("pointercancel", activeRowResize.upHandler);
     document.body.style.cursor = "ns-resize";
-    // Reuses the same flicker-suppression class as chart-width dragging —
-    // #canvas is rebuilt on every height change too, for the same reason.
+    // Same flicker-suppression class as the chart-width drag.
     document.body.classList.add("is-resizing-chart");
   });
 }

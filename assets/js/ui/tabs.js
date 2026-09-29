@@ -20,16 +20,16 @@ export function initTabsUI(options) {
   addBtnEl = document.getElementById("tab-add");
   scrollBtnEls = Array.from(document.querySelectorAll(".tab-scroll"));
 
-  // The bar is torn down and rebuilt on every change, so everything that has
-  // to keep its identity — the + button and the scroller — is wired once here
-  // and only has its state refreshed by renderTabBar().
+  // The bar is rebuilt on every change, so what must keep its identity (the
+  // + button and the scroller) is wired once here. renderTabBar() only
+  // refreshes its state.
   addBtnEl.addEventListener("click", () => {
     if (!addTab()) return;
     const index = getActiveTabIndex();
     renderTabBar({ index, type: "new" });
     refreshUI();
-    // A new page opens straight into its name: the one moment everyone
-    // wants to rename, and the only cue the pill gives that it can be.
+    // A new page opens straight into rename: that is when users want it, and
+    // it shows that the pill can be renamed.
     const tabEl = tabBarEl.querySelector(".tab--active");
     if (tabEl) startRename(tabEl, tabEl.querySelector(".tab-label"), index);
   });
@@ -43,8 +43,8 @@ export function initTabsUI(options) {
 
   viewportEl.addEventListener("scroll", updateScrollAffordances, { passive: true });
 
-  // A mouse wheel only sends deltaY; without this the strip is unreachable
-  // for anyone without a trackpad or a visible scrollbar.
+  // A mouse wheel only sends deltaY. Without this, users with no trackpad or
+  // visible scrollbar can't scroll the strip.
   viewportEl.addEventListener("wheel", e => {
     if (e.deltaX !== 0 || e.deltaY === 0) return;
     if (viewportEl.scrollWidth <= viewportEl.clientWidth) return;
@@ -52,8 +52,8 @@ export function initTabsUI(options) {
     viewportEl.scrollLeft += e.deltaY;
   }, { passive: false });
 
-  // Catches window resizes and the sidebar/rail width changes at the
-  // breakpoints, both of which change what fits.
+  // Catches window resizes and sidebar/rail width changes at the
+  // breakpoints. Both change what fits.
   new ResizeObserver(updateScrollAffordances).observe(viewportEl);
 
   placeStrip();
@@ -71,11 +71,10 @@ export function renderTabBar(animate) {
   // Closing a page that isn't open re-renders only this bar, not the canvas.
   scheduleSave();
 
-  // Switching pages changes nothing about the list itself, only which pill
-  // is lit — so the pills are kept and only their state is patched, which
-  // is what lets the pill's own colour transition play (motion.js R4). The
-  // signature is everything the build below derives from the list; while
-  // it matches, every pill and every closure's `index` is still right.
+  // Switching pages only changes which pill is lit, so keep the pills and
+  // patch their state. That lets the pill's colour transition play (motion.js
+  // R4). The signature covers everything the build below derives from the
+  // list: while it matches, every pill and closure `index` is still right.
   const signature = signatureOf(tabs);
   if (!animate && signature === builtSignature && !tabBarEl.querySelector(".tab--editing")) {
     Array.from(tabBarEl.children).forEach((tabEl, index) => {
@@ -89,9 +88,8 @@ export function renderTabBar(animate) {
     return;
   }
 
-  // scrollLeft is lost with the DOM it belongs to, so it is carried across
-  // the rebuild by hand — otherwise renaming a tab would jump the strip back
-  // to the start.
+  // scrollLeft is lost with the DOM, so carry it over by hand. Otherwise a
+  // rename would jump the strip back to the start.
   const savedScroll = viewportEl ? viewportEl.scrollLeft : 0;
 
   tabBarEl.innerHTML = "";
@@ -106,9 +104,8 @@ export function renderTabBar(animate) {
     tabEl.tabIndex = index === active ? 0 : -1;
     tabEl.dataset.index = String(index);
 
-    // Only the tab that just changed gets the entrance/highlight — the bar is
-    // rebuilt whenever the list changes, so an animation on the base .tab
-    // class would replay on every tab, not just the one acted on.
+    // Only the changed tab is animated. The bar is rebuilt on every change,
+    // so an animation on the base .tab class would replay on all tabs.
     if (animate && index === animate.index) {
       const animClass = animate.type === "new" ? "m-enter" : "m-flash";
       tabEl.classList.add(animClass);
@@ -137,9 +134,9 @@ export function renderTabBar(animate) {
           if (swapped) refreshUI();
         };
 
-        // Unlike add/rename (which tag the *new* DOM after re-rendering),
-        // the closed tab is destroyed by the re-render, so it plays its exit
-        // first and only then triggers the state change + rebuild.
+        // Add/rename tag the new DOM after rendering, but a closed tab is
+        // destroyed by the render. So play its exit first, then change state
+        // and rebuild.
         closeBtn.disabled = true;
         leave(tabEl, commitRemoval);
       });
@@ -160,10 +157,10 @@ export function renderTabBar(animate) {
   updateScrollAffordances();
 }
 
-/* The strip lives at the top of .main, above the sheet but not tied to its
-   size, so a page switch never moves it. In the stacked layout the sheet
+/* The strip sits at the top of .main, above the sheet and independent of its
+   size, so a page switch doesn't move it. In the stacked layout the sheet
    scrolls away under the panels, so the strip takes its own row of the top
-   bar instead (style.css, max-width: 900px). One node, moved rather than
+   bar (style.css, max-width: 900px). It is one node that is moved, not
    duplicated, so its listeners and ResizeObserver come along. */
 function placeStrip() {
   const strip = viewportEl.parentElement;
@@ -182,13 +179,11 @@ function placeStrip() {
 }
 
 /* Scrolls the minimum distance to reveal the active tab. scrollIntoView()
-   would do this too, but it also walks up and scrolls every ancestor, which
-   in the stacked layout drags the whole page.
+   also scrolls every ancestor, which drags the whole page when stacked.
 
-   Measured with rects rather than offsetLeft: the tabs' offsetParent is
-   whichever positioned ancestor holds the strip (the sticky .topbar when
-   stacked), not .tab-bar, so offsetLeft would be measured from the wrong
-   origin. */
+   Uses rects, not offsetLeft: the tabs' offsetParent is the positioned
+   ancestor holding the strip (the sticky .topbar when stacked), not
+   .tab-bar, so offsetLeft would have the wrong origin. */
 function scrollActiveIntoView(behavior) {
   const activeEl = tabBarEl.querySelector(".tab--active");
   if (!activeEl) return;
@@ -202,9 +197,8 @@ function scrollActiveIntoView(behavior) {
   else if (tab.right + pad > view.right) delta = tab.right + pad - view.right;
   if (delta === 0) return;
 
-  // Snap through the last `pad` pixels at either end, so revealing the first or
-  // last tab leaves no sliver of scroll behind — which would otherwise keep an
-  // arrow lit for a two-pixel journey.
+  // Snap through the last `pad` pixels at either end, so revealing the first
+  // or last tab leaves no sliver of scroll that keeps an arrow lit.
   const max = viewportEl.scrollWidth - viewportEl.clientWidth;
   let left = viewportEl.scrollLeft + delta;
   if (left < pad) left = 0;
@@ -213,15 +207,14 @@ function scrollActiveIntoView(behavior) {
   viewportEl.scrollTo({ left, behavior: behavior || "auto" });
 }
 
-/* Arrows and edge fades both describe the same thing — which side still has
-   tabs hidden — so they are derived from the scroll position together.
+/* Arrows and edge fades both show which side has hidden tabs, so both come
+   from the scroll position.
 
-   The arrows are only ever added or removed as a pair, and the test is
-   "would the tabs overflow even without the arrows?". Toggling them one at a
-   time would be a feedback loop: an arrow appearing narrows the viewport,
-   which changes the very overflow that decided to show it. At the ends the
-   spare arrow is dimmed instead of removed, so the strip never jumps width
-   while you scroll it. */
+   The arrows are added or removed as a pair, using "would the tabs overflow
+   even without the arrows?". One at a time would be a feedback loop: an
+   arrow appearing narrows the viewport and changes the overflow that
+   showed it. At the ends the spare arrow is dimmed, not removed, so the
+   strip doesn't change width while scrolling. */
 function updateScrollAffordances() {
   if (!viewportEl) return;
 
@@ -233,8 +226,7 @@ function updateScrollAffordances() {
   scrollBtnEls.forEach(btn => { btn.hidden = !needsArrows; });
 
   const max = viewportEl.scrollWidth - viewportEl.clientWidth;
-  // 1px of slack: fractional layout widths mean scrollLeft rarely lands
-  // exactly on 0 or on max.
+  // 1px of slack: fractional widths mean scrollLeft rarely hits 0 or max.
   const canPrev = viewportEl.scrollLeft > 1;
   const canNext = viewportEl.scrollLeft < max - 1;
 
@@ -276,10 +268,9 @@ function onTabKeydown(e) {
 function startRename(tabEl, label, index) {
   if (tabEl.classList.contains("tab--editing")) return;
 
-  // The label stays put as the pill's sizer and the input sits over it, so
-  // the pill keeps its exact shape while editing — replacing the label with
-  // a fixed-width input would visibly jump. Typing is mirrored back into the
-  // label, which is what makes the pill follow the text.
+  // The label stays as the pill's sizer and the input sits over it, so the
+  // pill keeps its shape (a fixed-width input would make it jump). Typing is
+  // mirrored into the label, so the pill follows the text.
   const input = document.createElement("input");
   input.type = "text";
   input.className = "tab-rename-input";
@@ -296,19 +287,16 @@ function startRename(tabEl, label, index) {
   };
   input.addEventListener("input", mirror);
 
-  // Ending the edit restores the pill in place rather than rebuilding the
-  // bar. The edit usually ends by a mousedown on another pill (blur), and a
-  // rebuild at that moment would replace the pill under the cursor before
-  // mouseup — the click would never fire and switching would take two
-  // clicks. Left as is, every other pill keeps its identity and the click
-  // lands.
+  // Ending the edit restores the pill in place instead of rebuilding the bar.
+  // The edit usually ends on a mousedown (blur) on another pill. A rebuild
+  // then would replace that pill before mouseup, so the click would never
+  // fire and switching would take two clicks.
   let finished = false;   // guards against blur firing during DOM teardown
   const finish = changed => {
     if (finished) return;
     finished = true;
     const tab = getTabs()[index];
-    // A rename restores the pill in place instead of calling renderTabBar(),
-    // so it saves the session itself.
+    // No renderTabBar() here, so save the session directly.
     if (changed) scheduleSave();
     input.remove();
     label.textContent = tab.name;

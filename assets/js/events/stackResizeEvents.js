@@ -1,12 +1,10 @@
 // assets/js/events/stackResizeEvents.js
 //
-// Horizontal drag handle between two adjacent charts inside a vertical
-// stack. Structurally a clone of rowResizeEvents.js's row-height drag (same
-// two-neighbor, fixed-total-height resize), but deliberately does NOT lock
-// either sub-chart afterward — per the feature spec, stacked charts should
-// never gain a size lock just from being dragged, only from the explicit
-// lock button (see handleToggleStackLock in stackEvents.js). That keeps them
-// eligible for auto-redistribution when the row itself is resized.
+// Horizontal drag handle between two adjacent charts in a vertical stack.
+// Same two-neighbor, fixed-total resize as rowResizeEvents.js, but it does
+// NOT lock either sub-chart. Only the lock button does that (see
+// handleToggleStackLock in stackEvents.js), so dragged sub-charts still
+// redistribute when the row is resized.
 import * as state from "../state/state.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartsLayout } from "../layout/computeChartsLayout.js";
@@ -23,8 +21,7 @@ function finishStackResize() {
   window.removeEventListener("pointercancel", activeStackResize.upHandler);
   document.body.style.cursor = "default";
   document.body.classList.remove("is-resizing-chart");
-  // No state.setWarnings([]) here — see the note in
-  // chartResizeEvents.js's finishResize().
+  // No state.setWarnings([]) here, see finishResize() in chartResizeEvents.js.
   activeStackResize = null;
 }
 
@@ -60,9 +57,8 @@ function handleStackPointerMove(event) {
   const stack = state.chartRows[rowIndex]?.items?.[itemIndex]?.stack;
   if (!stack) return;
 
-  // Neither entry's `locked` flag is touched here — see file header. Storing
-  // the height keeps it fixed for this render, but it stays part of the
-  // "unlocked" pool for row-height redistribution and future add/remove.
+  // `locked` is not touched (see file header). The stored height holds for
+  // this render, but the entries stay in the unlocked pool.
   stack[stackIndex].height = newCurrentHeight;
   stack[stackIndex + 1].height = newNextHeight;
 

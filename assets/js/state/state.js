@@ -2,16 +2,11 @@
 //
 // Live layout state, plus the constants every solver reads.
 //
-// Those constants used to be hardcoded here, with a two-entry LAYOUT_TEMPLATES
-// table switching a handful of them between HD and FULL HD. They are now
-// projected from a *theme* (assets/js/theme/themeModel.js) — a JSON object
-// holding every one of them, which the user can edit, save and share. The
-// exported bindings below stay exactly what they were, so the solvers did not
-// have to change: ES module bindings are live views, and every consumer reads
-// them at call time (`state.GAP_SMALL`, or a named import used inside a
-// function), never snapshotting them at module load. Anything the theme can
-// change is therefore a `let` assigned by applyTheme() — including several
-// values that used to be `const` because nothing could vary them yet.
+// The constants are projected from a *theme* (assets/js/theme/themeModel.js),
+// a JSON object the user can edit, save and share. ES module bindings are
+// live views, and every consumer reads them at call time (`state.GAP_SMALL`,
+// or a named import used inside a function), never at module load. So
+// anything a theme can change is a `let` assigned by applyTheme().
 
 import {
   normalizeTheme,
@@ -35,33 +30,30 @@ export let TITLE_HEIGHT = activeTheme.titleHeight;
 export let GAP_SMALL = activeTheme.gapSmall;
 export let GAP_KPI_TO_CHARTS = activeTheme.gapKpiToCharts;
 export let SLICER_HEIGHT = activeTheme.slicerHeight;
-// Vertical-slicer mode: slicers stack in a single fixed-width column on the
-// left instead of a horizontal band under the title. SLICER_HEIGHT keeps its
-// meaning as the per-slicer *minimum* (and default) height in that mode.
+// Vertical-slicer mode: slicers stack in one fixed-width column instead of a
+// horizontal band under the title. SLICER_HEIGHT is still the per-slicer
+// *minimum* (and default) height.
 export let SLICER_COLUMN_WIDTH = activeTheme.slicerColumnWidth;
 export let MIN_SLICER_COLUMN_WIDTH = activeTheme.minSlicerColumnWidth;
 export let MAX_SLICER_COLUMN_WIDTH = activeTheme.maxSlicerColumnWidth;
-// Once the natural (minimum-height) stack would already fill this much of the
-// column, the unlocked slicers are expanded to fill it exactly instead — a
-// nearly-full column with a ragged empty tail reads as a bug, not a choice.
+// Once the minimum-height stack fills this much of the column, unlocked
+// slicers stretch to fill it, since a nearly full column with a ragged empty
+// tail looks like a bug.
 export let SLICER_FILL_THRESHOLD = activeTheme.slicerFillThreshold;
 export let KPI_MIN_HEIGHT = activeTheme.kpiMinHeight;
 export let MIN_SLICER_WIDTH = activeTheme.minSlicerWidth;
 export let MIN_CHART_ROW_HEIGHT = activeTheme.minChartRowHeight;
 export let MIN_CHART_WIDTH = activeTheme.minChartWidth;
-// Absolute floor a chart row/stacked-cell height can be squeezed to when the
-// layout's usual minimums (MIN_CHART_ROW_HEIGHT and stack minimums) don't
-// all fit within the canvas's available charts area — e.g. many rows on the
-// smaller HD template. Rows still render (never overflow the canvas) but a
-// warning is raised so the user knows content was shrunk below its normal
-// minimum.
+// Absolute floor for a chart row or stacked cell when the usual minimums
+// (MIN_CHART_ROW_HEIGHT and stack minimums) don't fit the charts area, e.g.
+// many rows on HD. Rows still render within the canvas, and a warning tells
+// the user they were shrunk below the normal minimum.
 export let HARD_MIN_CHART_HEIGHT = activeTheme.hardMinChartHeight;
 export let USABLE_WIDTH = CANVAS_WIDTH - 2 * MARGIN;
 export const SCALE = 0.4;
-// The scale actually used for rendering, after shrinking SCALE down (if needed)
-// to fit the canvas within the available viewport width. Kept in sync with
-// SCALE unless the viewport is too narrow. Read by renderLayout.js (drawing)
-// and chartResizeEvents.js (converting pointer drag deltas back to px).
+// The scale actually used for rendering: SCALE, shrunk if the viewport is too
+// narrow for the canvas. Read by renderLayout.js (drawing) and
+// chartResizeEvents.js (converting drag deltas back to px).
 export let EFFECTIVE_SCALE = SCALE;
 export let MIN_COMPONENTS_PER_ROW = activeTheme.minPerRow;
 export let MAX_COMPONENTS_PER_ROW = activeTheme.maxPerRow;
@@ -70,21 +62,17 @@ export let MAX_SLICERS = activeTheme.defaultSlicersPerRow;
 export let MAX_KPIS = activeTheme.defaultKpisPerRow;
 
 // Both are read-only projections of the active theme's `placement`, assigned
-// only by applyTheme(). They used to be independently mutable, with the
-// sidebar flipping orientation under a theme that had been authored for the
-// other shape. Orientation is now the layout's identity, so changing it means
-// choosing a different theme — there is deliberately no setter for either.
-// The bindings stay because every solver and renderer already reads them, and
-// reading them is still exactly right.
+// only by applyTheme(). Orientation is part of the layout's identity, so
+// changing it means choosing a different theme. There is deliberately no
+// setter for either.
 export let slicerOrientation = isVerticalPlacement(activeTheme.placement) ? "vertical" : "horizontal";
 export let SLICER_SIDE = sideOfPlacement(activeTheme.placement);
 
 export let slicers = [];
 // KPI cards, keyed by the id of the `kpi` section (in theme.sections) they
-// belong to. However many KPI bands a theme defines, each gets exactly one
-// entry here — a page switching between themes with different band counts
-// is reconciled by applyTheme() (see reconcileKpiBands below), never by
-// this module reaching into theme internals itself.
+// belong to. Each band a theme defines gets one entry. Switching between
+// themes with different band counts is handled by applyTheme() (see
+// reconcileKpiBands below).
 export let kpiBands = {};
 export let chartRows = [];
 export let selectedElement = null;
@@ -127,18 +115,16 @@ export function setMaxKpis(v) {
 }
 
 /**
- * Projects a theme onto every constant the solvers read. This is the only
- * place those bindings are assigned wholesale, so "what does this theme
- * actually change?" has exactly one answer to read.
+ * Projects a theme onto every constant the solvers read. It is the only
+ * place these bindings are assigned wholesale.
  *
- * Per-row limits are always reset to the theme's own defaults, matching how a
- * template switch always did — a limit of 7 carried onto a theme that caps
- * rows at 5 would be silently out of range. A caller that needs a page's own
- * values back (the tab restore in tabs.js) re-applies them afterwards rather
- * than asking this to skip the reset.
+ * Per-row limits always reset to the theme's defaults, because a limit of 7
+ * carried onto a theme that caps rows at 5 would be out of range. A caller
+ * that needs a page's own values (the tab restore in tabs.js) re-applies
+ * them afterwards.
  *
- * Orientation and side are not reset but *derived*: they are the theme's
- * placement, and nothing else can set them.
+ * Orientation and side are derived from the theme's placement, and nothing
+ * else can set them.
  */
 export function applyTheme(theme) {
   const t = normalizeTheme(theme);
@@ -158,9 +144,9 @@ export function applyTheme(theme) {
   MIN_SLICER_WIDTH = t.minSlicerWidth;
   MIN_SLICER_COLUMN_WIDTH = t.minSlicerColumnWidth;
   MAX_SLICER_COLUMN_WIDTH = t.maxSlicerColumnWidth;
-  // Back to the theme's own default rather than carrying over a width the
-  // user dragged under the previous one — 290px is over a fifth of the HD
-  // canvas, and the min/max bounds move with the theme too.
+  // Reset to the theme's default, not the width dragged under the previous
+  // theme: 290px is over a fifth of the HD canvas, and the min/max bounds
+  // change with the theme.
   SLICER_COLUMN_WIDTH = t.slicerColumnWidth;
   SLICER_FILL_THRESHOLD = t.slicerFillThreshold;
   KPI_MIN_HEIGHT = t.kpiMinHeight;
@@ -187,26 +173,22 @@ export function applyTheme(theme) {
 }
 
 /**
- * Carries a page's KPI cards across a theme switch, however many `kpi`
- * sections each theme has. Four rules, tried in order for every band in the
- * *new* theme:
+ * Carries a page's KPI cards across a theme switch, whatever number of `kpi`
+ * sections each theme has. Rules tried in order for every band in the *new*
+ * theme:
  *
- *   1. id match — the same section id existed before: keep its cards
- *      verbatim (the common case — most theme switches don't touch section
- *      ids at all).
- *   2. positional fallback — the Nth still-unmatched new band inherits the
- *      Nth still-unmatched old band's cards. This is what keeps the header
- *      KPIs alive when switching between two unrelated themes whose ids
- *      differ; matching by id alone would silently wipe them.
- *   3. seed — a band that still has nothing gets `defaultCount` blanks, but
- *      only when that default is greater than zero. The header band's
- *      default is 0 (initState.js starts it empty), so this only ever
- *      fires for a band meant to show something immediately.
+ *   1. id match: the same section id existed before, so keep its cards
+ *      (the common case).
+ *   2. positional fallback: the Nth unmatched new band takes the Nth
+ *      unmatched old band's cards. This keeps the header KPIs when two
+ *      unrelated themes have different ids.
+ *   3. seed: a band with nothing yet gets `defaultCount` blanks, if that is
+ *      above zero. The header band's default is 0 (initState.js starts it
+ *      empty), so this only fires for a band meant to show cards at once.
  *
- * A fourth pass then rehomes any *old* band nothing above claimed: its cards
- * move to the nearest surviving new band (nearest by position in the theme's
- * section list) rather than vanishing, and only get dropped — with a
- * warning — if the new theme has no KPI section left at all.
+ * A fourth pass rehomes any *old* band nothing claimed: its cards move to
+ * the nearest new band by position in the section list. They are dropped,
+ * with a warning, only if the new theme has no KPI section at all.
  */
 function reconcileKpiBands(oldSections, newSections, oldBands) {
   const oldKpiSections = oldSections.filter(s => s.type === "kpi");
@@ -274,9 +256,9 @@ function reconcileKpiBands(oldSections, newSections, oldBands) {
 }
 
 /**
- * Applies a theme by id, resolving built-ins and saved custom themes alike.
- * Unknown ids are ignored so a page whose custom theme was deleted keeps
- * whatever it is currently rendering instead of collapsing to a default.
+ * Applies a theme by id (built-in or saved custom). Unknown ids are ignored,
+ * so a page whose custom theme was deleted keeps what it renders now instead
+ * of falling back to a default.
  */
 export function setLayoutTemplate(templateKey) {
   const theme = getTheme(templateKey);
@@ -288,21 +270,15 @@ export function getActiveTheme() { return cloneTheme(activeTheme); }
 
 // --- Granular sizing-lock resets ---
 //
-// Historically there was a single resetSizingLocks() that wiped every
-// locked size (slicers, KPIs, chart widths, chart row heights) at once.
-// That's correct for a template switch, since it changes both CANVAS_WIDTH
-// (affecting horizontal locks: slicer/KPI/chart widths) and CANVAS_HEIGHT
-// (affecting chart row height locks) at the same time.
+// A full reset (resetSizingLocks) fits a theme switch, which changes both
+// CANVAS_WIDTH (slicer/KPI/chart width locks) and CANVAS_HEIGHT (chart row
+// height locks).
 //
-// But changing just "slicers per row" or "KPIs per row" only ever affects
-// MAX_SLICERS/MAX_KPIS — USABLE_WIDTH is untouched, so chart *widths* can
-// never overflow because of it. It can shift the vertical layout though
-// (more/fewer slicer or KPI rows changes chartsTop/chartsHeight), so chart
-// *row heights* can still legitimately need resetting. Calling the old
-// blanket resetSizingLocks() for a mere per-row-limit change was therefore
-// wiping chart width locks (and the charts' visual sizes) for no reason —
-// this split lets each caller reset only what its change could actually
-// invalidate.
+// Changing only "slicers per row" or "KPIs per row" leaves USABLE_WIDTH
+// alone, so chart *widths* can't overflow. It can still shift chartsTop and
+// chartsHeight, so chart *row heights* may need a reset. A blanket reset
+// there wiped chart width locks for no reason, so each caller resets only
+// what its change can invalidate.
 
 export function resetSlicerSizingLocks() {
   slicers = slicers.map(s => ({ ...s, width: null, height: null, locked: false }));
@@ -322,10 +298,9 @@ export function resetChartWidthLocks() {
     items: row.items.map(item => ({
       width: null,
       locked: false,
-      // Stacked cells survive a width/lock reset (only their own sizing is
-      // reset here) — width resets are triggered by things that can't
-      // themselves invalidate a vertical stack (per-row slicer/KPI count
-      // changes, template switches alongside the height reset below).
+      // Stacks survive a width reset (only their sizing is reset), since
+      // its triggers (per-row slicer/KPI count changes, theme switches) can't
+      // invalidate a vertical stack.
       ...(item.stack ? { stack: item.stack.map(() => ({ height: null, locked: false })) } : {})
     }))
   }));
@@ -339,9 +314,8 @@ export function resetChartRowHeightLocks() {
   }));
 }
 
-// Full reset — use when CANVAS_WIDTH and/or CANVAS_HEIGHT themselves changed
-// (i.e. a theme switch), since that can invalidate every kind of locked size
-// at once.
+// Full reset. Use when CANVAS_WIDTH or CANVAS_HEIGHT changed (a theme
+// switch), which can invalidate every locked size.
 export function resetSizingLocks() {
   resetSlicerSizingLocks();
   resetKpiSizingLocks();
@@ -349,6 +323,6 @@ export function resetSizingLocks() {
   resetChartRowHeightLocks();
 }
 
-// gettery pro computeVerticalLayout
+// Getters for computeVerticalLayout
 export function getSlicers() { return slicers; }
 export function getChartRows() { return chartRows; }

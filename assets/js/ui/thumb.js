@@ -1,19 +1,18 @@
 // assets/js/ui/thumb.js
 //
 // The sliding thumb of a segmented control (style.css .has-thumb): one slate
-// pill that slides to the chosen option, rather than each option lighting its
-// own background — the same object moving is what reads as a switch. Every
-// switcher in the app uses it: the CS / EN switch, Studio's scope and slicer
+// pill that slides to the chosen option instead of each option lighting its
+// own background. Used by every switcher: CS / EN, Studio's scope and slicer
 // placement, Customize Elements' types, Custom Layout's placement and a KPI
 // band's gap.
 //
-// Pure CSS maths over equal columns (--thumb-count, --thumb-step), nothing is
-// measured, so it is right even while its section is display:none.
+// Pure CSS maths over equal columns (--thumb-count, --thumb-step). Nothing is
+// measured, so it works even while its section is display:none.
 
 const options = group => Array.from(group.children).filter(node => node.tagName === "BUTTON");
 
-/** Turns `group` into a thumbed switcher. The thumb only slides once it has
- *  landed, so the first paint doesn't show it travelling in from option one. */
+/** Turns `group` into a thumbed switcher. The thumb slides only after it has
+ *  landed, so the first paint doesn't animate it in from option one. */
 export function initThumb(group) {
   group.classList.add("has-thumb");
   group.style.setProperty("--thumb-count", String(options(group).length));
