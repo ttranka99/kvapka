@@ -1,76 +1,250 @@
 import * as state from "../state/state.js";
 import { renderLayout } from "../ui/renderLayout.js";
+import { flash, flashAll } from "../ui/motion.js";
 import { renderWarnings, addWarning } from "../ui/warnings.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
-import { setSelected } from "../ui/selection.js";
+import { canAddChart, chartRowsFit } from "../layout/canAddChart.js";
+import { rowEffectiveMinHeight } from "../layout/computeStackHeights.js";
+import { snapToStep } from "../layout/sizeStep.js";
+import { slicerColumnFits } from "../layout/computeSlicerColumnHeights.js";
+import { setSelected, getPendingWidth, getPendingHeight } from "../ui/selection.js";
 import { initState } from "../state/initState.js";
+import { refreshSelectedChartAfterResize, lockedChartCardIds } from "./chartEvents.js";
+import { refreshSelectedSlicerAfterEdit } from "./slicerEvents.js";
+import { refreshSelectedKpiAfterEdit } from "./kpiEvents.js";
+import { refreshSelectedStackChartAfterEdit } from "./stackEvents.js";
+import { t } from "../i18n/i18n.js";
 
-// DOM references
-const inputWidth = document.getElementById("input-width");
-const inputHeight = document.getElementById("input-height");
-const applyWidthBtn = document.getElementById("apply-width");
-const applyHeightBtn = document.getElementById("apply-height");
 const resetBtn = document.getElementById("reset-layout");
+const applySelectionBtn = document.getElementById("apply-selection");
 
-// Apply width
-export function handleApplyWidth() {
-  if (!state.selectedElement) return;
+function isWidthEditable(kind) {
+  if (kind === "slicer") return !state.isVerticalSlicers();
+  return kind === "kpi" || kind === "chartRow";
+}
 
-  const val = parseInt(inputWidth.value, 10);
+// A slicer's height is its own in a vertical column and the band's shared
+// height in a horizontal row. A KPI's is always its band's.
+function isHeightEditable(kind) {
+  return kind === "slicer" || kind === "kpi" || kind === "chartRow" || kind === "stackChart";
+}
+
+// Validates and applies a new width for the selected element `info`.
+function applyWidthValue(info, val) {
+  // Typed values land on the same 5px grid the layout solvers use.
+  if (!isNaN(val)) val = snapToStep(val);
+
   if (isNaN(val) || val < 50) {
-    addWarning("Minimální šířka je 50px.");
+    addWarning(t("warnings.size.minWidth"), "error");
     renderWarnings();
     return;
   }
 
-  if (state.selectedElement.kind === "slicer") {
-    const s = state.selectedElement.stateRef;
+  if (info.kind === "slicer") {
+    // Vertical slicers share the column width (see isWidthEditable).
+    if (state.isVerticalSlicers()) return;
+
+    const s = info.stateRef;
     s.width = val;
     s.locked = true;
     renderLayout();
     return;
   }
 
-  if (state.selectedElement.kind === "kpi") {
-    const k = state.selectedElement.stateRef;
+  if (info.kind === "kpi") {
+    const k = info.stateRef;
     k.width = val;
     k.locked = true;
     renderLayout();
     return;
   }
-}
 
-// Apply height
-export function handleApplyHeight() {
-  if (!state.selectedElement) return;
-
-  if (state.selectedElement.kind === "kpi") {
-    const val = parseInt(inputHeight.value, 10);
-    if (isNaN(val) || val < state.KPI_MIN_HEIGHT) {
-      addWarning(`Minimální výška KPI je ${state.KPI_MIN_HEIGHT}px.`);
+  if (info.kind === "chartRow") {
+    if (val < state.MIN_CHART_WIDTH) {
+      addWarning(t("warnings.chart.minWidth", { min: state.MIN_CHART_WIDTH }), "error");
       renderWarnings();
       return;
     }
 
-    const k = state.selectedElement.stateRef;
-    k.height = val;
-    k.locked = true;
+    const match = /^chart-(\d+)-(\d+)$/.exec(info.domId);
+    if (!match) return;
+    const rowIndex = Number(match[1]);
+    const itemIndex = Number(match[2]);
+
+    const rowsCopy = JSON.parse(JSON.stringify(state.chartRows));
+    const row = rowsCopy[rowIndex];
+    const otherItems = row.items.filter((_, i) => i !== itemIndex);
+
+    if (otherItems.length > 0 && !otherItems.some(item => !item.locked)) {
+      addWarning(t("warnings.chart.widthUnlockRow"), "error");
+      renderWarnings();
+      flashAll(lockedChartCardIds(rowIndex, row.items.map((_, i) => i).filter(i => i !== itemIndex)));
+      return;
+    }
+
+    row.items = row.items.map((item, i) => {
+      if (i === itemIndex) return { ...item, width: val, locked: true };
+      return item.locked ? item : { ...item, width: null, locked: false };
+    });
+
+    if (!canAddChart(rowsCopy)) {
+      addWarning(t("warnings.size.widthNoFit"), "error");
+      renderWarnings();
+      return;
+    }
+
+    state.setChartRows(rowsCopy);
+    state.setWarnings([]);
+    renderLayout();
+  }
+}
+
+// Validates and applies a new height for the selected element `info`.
+function applyHeightValue(info, val) {
+  if (!isNaN(val)) val = snapToStep(val);
+
+  if (info.kind === "slicer") {
+    if (isNaN(val) || val < state.SLICER_HEIGHT) {
+      addWarning(t("warnings.slicer.minHeight", { min: state.SLICER_HEIGHT }), "error");
+      renderWarnings();
+      return;
+    }
+
+    // Horizontal: every slicer in the band shares the height, and a taller
+    // band takes it from the charts below, so they must still fit.
+    if (!state.isVerticalSlicers()) {
+      const originalRowHeight = state.SLICER_ROW_HEIGHT;
+      state.setSlicerRowHeight(val);
+      if (val > originalRowHeight && !chartRowsFit()) {
+        state.setSlicerRowHeight(originalRowHeight);
+        addWarning(t("warnings.slicer.rowHeightNoFit"), "error");
+        renderWarnings();
+        return;
+      }
+      renderLayout();
+      return;
+    }
+
+    // The other slicers share the remaining height, so this only holds if
+    // they all still meet their minimum.
+    const s = info.stateRef;
+    const originalHeight = s.height;
+    const originalLocked = s.locked;
+    s.height = val;
+    s.locked = true;
+
+    const v = computeVerticalLayout();
+    if (!slicerColumnFits(state.slicers, v.slicerColumnHeight)) {
+      s.height = originalHeight;
+      s.locked = originalLocked;
+      addWarning(t("warnings.slicer.heightNoFit"), "error");
+      renderWarnings();
+      return;
+    }
 
     renderLayout();
     return;
   }
 
-  if (state.selectedElement.kind === "chartRow") {
-    const val = parseInt(inputHeight.value, 10);
-    if (isNaN(val) || val < state.MIN_CHART_ROW_HEIGHT) {
-      addWarning(`Minimální výška řady grafů je ${state.MIN_CHART_ROW_HEIGHT}px.`);
+  if (info.kind === "kpi") {
+    if (isNaN(val) || val < state.KPI_MIN_HEIGHT) {
+      addWarning(t("warnings.kpi.minHeight", { min: state.KPI_MIN_HEIGHT }), "error");
       renderWarnings();
       return;
     }
 
+    // Every card in the band shares the height, and a taller band takes it
+    // from the charts, so they must still fit (as for the slicer band).
+    const originalHeight = state.kpiBandHeight(info.bandId);
+    state.setKpiBandHeight(info.bandId, val);
+    if (val > originalHeight && !chartRowsFit()) {
+      state.setKpiBandHeight(info.bandId, originalHeight);
+      addWarning(t("warnings.kpi.bandHeightNoFit"), "error");
+      renderWarnings();
+      return;
+    }
+
+    renderLayout();
+    return;
+  }
+
+  if (info.kind === "stackChart") {
+    if (isNaN(val) || val < state.MIN_CHART_ROW_HEIGHT) {
+      addWarning(t("warnings.chart.stackMinHeight", { min: state.MIN_CHART_ROW_HEIGHT }), "error");
+      renderWarnings();
+      return;
+    }
+
+    const { rowIndex, itemIndex, stackIndex } = info;
     const rowsCopy = JSON.parse(JSON.stringify(state.chartRows));
-    const row = rowsCopy[state.selectedElement.rowIndex];
+    const stack = rowsCopy[rowIndex]?.items?.[itemIndex]?.stack;
+    if (!stack) return;
+
+    const otherEntries = stack.filter((_, i) => i !== stackIndex);
+    if (!otherEntries.some(s => !s.locked)) {
+      addWarning(t("warnings.chart.heightUnlockStack"), "error");
+      renderWarnings();
+      flashAll(stack.map((_, s) => `chart-${rowIndex}-${itemIndex}-${s}`).filter((_, s) => s !== stackIndex));
+      return;
+    }
+
+    stack[stackIndex] = { height: val, locked: true };
+    stack.forEach((s, i) => {
+      if (i !== stackIndex && !s.locked) s.height = null;
+    });
+
+    const v = computeVerticalLayout();
+    const heights = computeChartRowHeights(v);
+    const rowHeight = heights[rowIndex];
+
+    const lockedSum = stack.filter(s => s.locked).reduce((sum, s) => sum + s.height, 0);
+    const unlockedCount = stack.filter(s => !s.locked).length;
+    const gaps = (stack.length - 1) * state.GAP_SMALL;
+    const needed = lockedSum + unlockedCount * state.MIN_CHART_ROW_HEIGHT + gaps;
+
+    if (needed > rowHeight) {
+      addWarning(t("warnings.chart.heightNoFitRow"), "error");
+      renderWarnings();
+      return;
+    }
+
+    state.setChartRows(rowsCopy);
+    state.setWarnings([]);
+    renderLayout();
+    return;
+  }
+
+  if (info.kind === "chartRow") {
+    const rowMin = rowEffectiveMinHeight(state.chartRows[info.rowIndex]);
+    if (isNaN(val) || val < rowMin) {
+      const msg = rowMin > state.MIN_CHART_ROW_HEIGHT
+        ? t("warnings.chart.rowMinHeightStack", { min: rowMin })
+        : t("warnings.chart.rowMinHeight", { min: rowMin });
+      addWarning(msg, "error");
+      renderWarnings();
+      return;
+    }
+
+    const otherRows = state.chartRows.filter((_, i) => i !== info.rowIndex);
+
+    if (otherRows.length === 0) {
+      addWarning(t("warnings.chart.singleRow"), "error");
+      renderWarnings();
+      return;
+    }
+
+    if (!otherRows.some(r => !r.locked)) {
+      addWarning(t("warnings.chart.rowUnlockOther"), "error");
+      renderWarnings();
+      state.chartRows.forEach((r, ri) => {
+        if (ri !== info.rowIndex) flashAll(lockedChartCardIds(ri, r.items.map((_, i) => i)));
+      });
+      return;
+    }
+
+    const rowsCopy = JSON.parse(JSON.stringify(state.chartRows));
+    const row = rowsCopy[info.rowIndex];
     const originalHeight = row.height;
     const originalLocked = row.locked;
 
@@ -82,17 +256,17 @@ export function handleApplyHeight() {
     const heights = computeChartRowHeights(v);
 
     const n = rowsCopy.length;
-    const totalGaps = (n - 1) * state.GAP_SMALL;
+    const totalGaps = (v.chartRowGapCount ?? n - 1) * state.GAP_SMALL;
     const totalHeight = heights.reduce((s, h) => s + h, 0) + totalGaps;
 
     const overflow =
-      heights.some(h => h < state.MIN_CHART_ROW_HEIGHT) ||
+      heights.some((h, i) => h < rowEffectiveMinHeight(state.chartRows[i])) ||
       totalHeight > v.chartsHeight;
 
     if (overflow) {
       row.height = originalHeight;
       row.locked = originalLocked;
-      addWarning("Zadaná výška se nevejde — uprav hodnotu.");
+      addWarning(t("warnings.size.heightNoFit"), "error");
       renderWarnings();
       return;
     }
@@ -100,6 +274,43 @@ export function handleApplyHeight() {
     state.setChartRows(rowsCopy);
     renderLayout();
   }
+}
+
+// Resyncs the selection panel after an Apply attempt. Fields still pending
+// (e.g. one that failed validation) are kept, unlike on a fresh selection.
+function refreshSelectedElementPreservingPending() {
+  const info = state.selectedElement;
+  if (!info) return;
+
+  if (info.kind === "chartRow") {
+    refreshSelectedChartAfterResize(true);
+  } else if (info.kind === "slicer") {
+    refreshSelectedSlicerAfterEdit(true);
+  } else if (info.kind === "kpi") {
+    refreshSelectedKpiAfterEdit(true);
+  } else if (info.kind === "stackChart") {
+    refreshSelectedStackChartAfterEdit(true);
+  }
+}
+
+// Apply: one button that applies whichever of width/height changed.
+export function handleApplySelection() {
+  const info = state.selectedElement;
+  if (!info) return;
+
+  const widthDirty = isWidthEditable(info.kind) && getPendingWidth() !== info.width;
+  const heightDirty = isHeightEditable(info.kind) && getPendingHeight() !== info.height;
+
+  if (!widthDirty && !heightDirty) return;
+
+  if (widthDirty) applyWidthValue(info, getPendingWidth());
+  if (heightDirty) applyHeightValue(info, getPendingHeight());
+
+  refreshSelectedElementPreservingPending();
+  // Only if a value landed (a rejected one warns instead): the card is now
+  // locked to it.
+  const now = state.selectedElement;
+  if (now && (now.width !== info.width || now.height !== info.height)) flash(info.domId);
 }
 
 // Reset layout
@@ -113,7 +324,6 @@ export function handleResetLayout() {
 
 // Attach listeners
 export function initResizeEvents() {
-  applyWidthBtn.addEventListener("click", handleApplyWidth);
-  applyHeightBtn.addEventListener("click", handleApplyHeight);
+  applySelectionBtn.addEventListener("click", handleApplySelection);
   resetBtn.addEventListener("click", handleResetLayout);
 }

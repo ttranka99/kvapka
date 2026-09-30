@@ -5,16 +5,12 @@ export function initState() {
     // Default slicers
     //
     const initialSlicers = [
-        // width = null → width will be computed automatically
-        { width: null, locked: false },
-        { width: null, locked: false },
-        { width: null, locked: false }
+        // width/height = null → computed automatically (width in the
+        // horizontal row, height in the vertical column)
+        { width: null, height: null, locked: false },
+        { width: null, height: null, locked: false },
+        { width: null, height: null, locked: false }
     ];
-
-    //
-    // Default KPIs
-    //
-    const initialKpis = [];
 
     //
     // Default chart rows
@@ -41,7 +37,8 @@ export function initState() {
     // Initialize state
     //
     state.setSlicers(initialSlicers);
-    state.setKpis(initialKpis);
+    // KPI bands are seeded by applyTheme() (see reconcileKpiBands in
+    // state.js), which loadDefaults() in state/tabs.js calls just before this.
     state.setChartRows(initialChartRows);
     state.setWarnings(initialWarnings);
 }

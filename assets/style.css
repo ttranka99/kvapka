@@ -1,53 +1,79 @@
-/* ----------------------------------------------------
-   DESIGN TOKENS
------------------------------------------------------*/
+/* ====================================================
+   kvapka — design system
+
+   Monochrome by default: a flat light workspace, white
+   panels, a slate title bar. Pink means "you can act
+   here" — it appears on the export button, the active
+   rail item and the bell dot, and otherwise only on
+   hover, press and selection.
+==================================================== */
 :root {
-  --color-primary: #d60032;
-  --color-primary-hover: #c1002d;
-  --color-primary-active: #a80027;
-  --color-primary-light: #fde8ed;
+  --pink: #fb49a3;
+  --pink-hover: #e93a93;
+  --pink-soft: #ffe9f3;
+  --pink-ring: rgba(251, 73, 163, 0.25);
 
-  --bg-app: #f6f6f7;
-  --bg-secondary: #f2f3f5;
-  --bg-surface: #ffffff;
+  --slate: #2b3038;
 
-  --text-primary: #202124;
-  --text-secondary: #5f6368;
-  --text-muted: #9aa0a6;
-  --text-disabled: #bdc1c6;
-  --text-white: #ffffff;
+  --ink: #1c2128;
+  --ink-2: #5c6470;
+  --ink-3: #8a929c;
+  --ink-4: #c3c8cf;
 
-  --border-light: #e8eaed;
-  --border-medium: #dadce0;
-  --border-divider: #eceff1;
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #f0f1f4;
+  --line: rgba(28, 33, 40, 0.08);
+  --line-strong: rgba(28, 33, 40, 0.14);
 
-  --color-success: #2e9e44;
-  --color-warning: #f5a623;
-  --color-error: #d93025;
-  --color-info: #2f80ed;
+  --warning: #b56a06;
+  --error: #d1384a;
+  --success: #17855b;
+  --warning-bg: #fdf2df;
+  --error-bg: #fdeaec;
+  --success-bg: #e6f5ee;
 
-  --radius-card: 8px;
-  --radius-control: 6px;
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
 
-  /* Height of the sidebar's logo/title row. Shared with .main's top padding
-     below so the canvas preview heading lines up with the first sidebar
-     panel's top edge instead of the logo row. */
-  --sidebar-header-height: 24px;
+  --shadow-card: 0 1px 2px rgba(28, 33, 40, 0.04), 0 8px 24px -12px rgba(28, 33, 40, 0.12);
+  --shadow-sheet: 0 1px 2px rgba(28, 33, 40, 0.05), 0 24px 48px -24px rgba(28, 33, 40, 0.2);
+  --shadow-pop: 0 4px 8px -4px rgba(28, 33, 40, 0.1), 0 20px 48px -16px rgba(28, 33, 40, 0.3);
 
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  --space-16: 64px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 20px;
+
+  /* MOTION: the whole vocabulary. Every transition, animation and JS timeout
+     is built from these (rules in assets/js/ui/motion.js).
+       --ease-out     entering things and small UI
+       --ease-in-out  things moving from one place to another
+       --ease-panel   large surfaces: sections, popovers
+     Reduced motion zeroes the shift/scale tokens, so fades stay and only
+     movement goes. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-panel: cubic-bezier(0.32, 0.72, 0, 1);
+  --fast: 120ms;
+  --base: 180ms;
+  --slow: 240ms;
+  --slower: 320ms;
+  --motion-shift: 4px;      /* travel of an entering/leaving element */
+  --motion-scale: 0.97;     /* its scale, and the press scale */
+  --motion-origin: center;  /* overridden per surface (toasts: top right) */
+
+  --topbar: 60px;
+  --rail: 72px;
+  --gutter: 16px;
+  --sidebar: 300px;
 }
 
 /* ----------------------------------------------------
-   RESET
+   BASE
 -----------------------------------------------------*/
 *,
 *::before,
@@ -55,260 +81,1221 @@
   box-sizing: border-box;
 }
 
+/* The desktop shell is a fixed-height flex column. The top bar is a real row
+   and .main is the only thing that scrolls, so the root never gets a scrollbar
+   and the chrome reaches the window edge. (A root `scrollbar-gutter: stable`
+   once kept .main's clientWidth steady for the auto-fit canvas, but it inset
+   every sticky/fixed element by the gutter width.) Below the stacked
+   breakpoint the page does scroll, so the gutter is re-reserved there (see
+   the max-width: 900px block). */
+html,
 body {
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   margin: 0;
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg-app);
-  color: var(--text-primary);
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: var(--fs-md);
+  line-height: 1.45;
+  font-feature-settings: "tnum" 1;
+  color: var(--ink);
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
 
-/* ----------------------------------------------------
-   LAYOUT
------------------------------------------------------*/
-.app {
-  display: flex;
-  min-height: 100vh;
-  align-items: flex-start;
-}
-
-/* ----------------------------------------------------
-   SIDEBAR
------------------------------------------------------*/
-.sidebar {
-  width: 300px;
-  flex-shrink: 0;
-  background: var(--bg-app);
-  color: var(--text-primary);
-  padding: var(--space-6) var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
-
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-}
-
-.brand-logo {
-  height: var(--sidebar-header-height);
-  width: auto;
-  flex-shrink: 0;
-  object-fit: contain;
-}
-
-.brand-text h1 {
+h1, h2, h3, p {
   margin: 0;
-  font-size: 16px;
-  line-height: var(--sidebar-header-height);
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-  white-space: nowrap;
 }
 
-.sidebar-panels {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
+h2, h3 {
+  line-height: 1.2;
+}
+
+svg {
+  display: block;
+}
+
+::selection {
+  background: var(--pink-soft);
+}
+
+.hidden {
+  display: none !important;
 }
 
 /* ----------------------------------------------------
-   PANELS (unified card style)
+   MOTION PRIMITIVES — two ways for a thing to appear
+   or go, shared by everything in the app.
+
+   m-in / m-out       one keyframe pair for every entrance and exit.
+                      Exits are quicker: a leaving thing has nothing to say.
+   .m-enter/.m-leave  the pair as classes, for nodes JS creates or destroys
+                      (motion.js leave() waits for the exit before removing).
+   .m-reveal          entrance for elements toggled out of display:none
+                      (.hidden, [hidden], :empty). Opacity only: they sit in
+                      flow, and a moving button would wobble its row.
+   .icon-swap         an icon replaced inside a button pops in.
+   .m-flash           a soft halo for a state change on a thing that stays put.
 -----------------------------------------------------*/
-.panel {
-  position: relative;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-card);
-  padding: var(--space-6);
-  font-size: 14px;
-  box-shadow: var(--shadow-card);
+@keyframes m-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-shift)) scale(var(--motion-scale));
+  }
 }
 
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-3);
+@keyframes m-out {
+  to {
+    opacity: 0;
+    transform: translateY(var(--motion-shift)) scale(var(--motion-scale));
+  }
 }
 
-.info-trigger {
-  position: relative;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border-radius: 50%;
-  background: transparent;
-  border: 1px solid var(--border-medium);
-  color: var(--text-muted);
-  font-size: 11px;
-  font-style: italic;
-  font-weight: 700;
-  font-family: Georgia, "Times New Roman", serif;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: default;
-  transition: border-color 0.15s ease-out, color 0.15s ease-out, background 0.15s ease-out;
+.m-enter {
+  animation: m-in var(--base) var(--ease-out);
+  transform-origin: var(--motion-origin);
 }
 
-.info-trigger:hover,
-.info-trigger:focus-visible {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  outline: none;
-}
-
-.info-trigger .tooltip {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  background: var(--text-primary);
-  color: var(--text-white);
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  font-style: normal;
-  font-weight: 500;
-  font-size: 11px;
-  white-space: nowrap;
-  padding: var(--space-2) var(--space-3);
-  border-radius: 6px;
-  opacity: 0;
-  transform: translateY(-4px);
+.m-leave {
+  animation: m-out var(--fast) var(--ease-out) forwards;
+  transform-origin: var(--motion-origin);
   pointer-events: none;
-  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
-  z-index: 5;
 }
 
-.info-trigger:hover .tooltip,
-.info-trigger:focus-visible .tooltip {
-  opacity: 1;
-  transform: translateY(0);
+.m-reveal {
+  transition: opacity var(--base) ease;
+
+  @starting-style {
+    opacity: 0;
+  }
 }
 
-.panel h2 {
-  margin: 0 0 var(--space-3);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
+/* A revealed button keeps its hover/press transitions too. */
+button.m-reveal {
+  transition: background var(--fast) ease, color var(--fast) ease,
+    box-shadow var(--fast) ease, transform var(--fast) var(--ease-out),
+    opacity var(--base) ease;
 }
 
-.panel-header h2 {
-  margin: 0;
+.icon-swap > svg {
+  transition: opacity var(--fast) ease, transform var(--fast) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(var(--motion-scale));
+  }
 }
 
-.panel p {
-  margin: var(--space-2) 0;
-  line-height: 1.5;
-  font-size: 14px;
-  color: var(--text-secondary);
+/* A state change on something that stays put (a lock, a rename, an applied
+   value): a soft halo breathes over it. It is an overlay, so the element's
+   own selection ring and dashed lock are untouched. Quick attack (one --base,
+   eased out) answers the click. Long, eased-in release lets go without a step.
+   A hint, not an alarm. */
+@keyframes m-flash {
+  0% {
+    opacity: 0;
+    animation-timing-function: var(--ease-out);
+  }
+  15% {
+    opacity: 1;
+    animation-timing-function: ease-in;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
-.panel p strong {
-  display: inline-block;
-  width: 90px;
-  color: var(--text-primary);
-  font-weight: 500;
+.m-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(251, 73, 163, 0.05);
+  box-shadow: 0 0 0 5px var(--pink-ring);
+  pointer-events: none;
+  animation: m-flash calc(var(--slower) * 4);
 }
 
-.panel-section {
-  border-top: 1px solid var(--border-divider);
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
+/* Static elements need to host the overlay; positioned ones already do. */
+.m-flash:not(.canvas-element) {
+  position: relative;
 }
 
 /* ----------------------------------------------------
-   TEMPLATE SELECTOR (segmented control / chips)
+   BUTTONS — one base, three variants. Press feedback
+   on every pressable thing, including the page pills,
+   which are not <button>s.
 -----------------------------------------------------*/
-.template-selector {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
-}
-
-.template-option {
-  min-height: 38px;
-  border-radius: var(--radius-control);
-  border: 1px solid var(--border-medium);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
+button {
+  font: inherit;
   font-weight: 500;
-  font-size: 13px;
-  transition: background 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out;
+  color: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
 }
 
-.template-option:hover {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+button,
+[role="tab"] {
+  transition: background var(--fast) ease, color var(--fast) ease,
+    box-shadow var(--fast) ease, transform var(--fast) var(--ease-out);
 }
 
-.template-option:focus-visible {
-  outline: 2px solid var(--color-primary);
+button:focus-visible {
+  outline: 2px solid var(--pink);
   outline-offset: 2px;
 }
 
-.template-option.active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--text-white);
+button:disabled {
+  cursor: not-allowed;
 }
 
-/* ----------------------------------------------------
-   ROW LIMIT CONTROLS
------------------------------------------------------*/
-.row-limit-controls {
-  display: grid;
-  grid-template-columns: 1fr 68px;
+/* A pill being renamed holds a text input; clicking into it is not a press. */
+button:active:not(:disabled),
+[role="tab"]:active:not(.tab--editing) {
+  transform: scale(var(--motion-scale));
+}
+
+.btn {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-3);
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
 }
 
-.row-limit-controls label {
-  color: var(--text-secondary);
-  font-weight: 500;
-  font-size: 13px;
+.btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
-.row-limit-controls select {
+.btn-primary {
+  color: #fff;
+  font-weight: 600;
+  background: var(--pink);
+  box-shadow: 0 6px 16px -8px rgba(251, 73, 163, 0.7);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--pink-hover);
+}
+
+.btn-primary:disabled {
+  color: var(--ink-4);
+  background: var(--surface-2);
+  box-shadow: none;
+}
+
+.btn-secondary {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  color: var(--pink);
+  background: var(--pink-soft);
+  box-shadow: inset 0 0 0 1px var(--pink);
+}
+
+.btn-ghost {
+  color: var(--ink-2);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: var(--pink);
+  background: var(--pink-soft);
+}
+
+.btn-danger {
+  color: var(--error);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--error-bg);
+}
+
+/* .btn sets display, which would otherwise outrank the UA's [hidden]. */
+.btn[hidden] {
+  display: none;
+}
+
+.full-btn {
   width: 100%;
-  padding: var(--space-2) var(--space-2);
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-control);
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 13px;
-}
-
-.row-limit-controls select:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
 }
 
 /* ----------------------------------------------------
-   COLLAPSIBLE (smooth height animation instead of an
-   instant display:none/block jump). Works by animating
-   the grid row's fr size; the -inner wrapper clips the
-   content while collapsed. Keep code paths simple: any
-   block that toggles visibility uses this same pair of
-   classes instead of a one-off transition.
+   ICON BUTTONS — one way to put a glyph in a circle.
+
+   Every round icon button composes .icon-circle and sets only its two size
+   tokens plus colours. The glyph is always a sprite <use> (see the <defs>
+   block in index.html), never a text "+" or "×". Flex centring aligns a line
+   box, not the ink inside it, so a text glyph sits a pixel high and shifts
+   again when the webfont swaps in. An SVG is centred by geometry.
+-----------------------------------------------------*/
+.icon-circle {
+  --icon-size: 24px;
+  --icon-glyph: 12px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  border-radius: 50%;
+}
+
+.icon-circle svg {
+  width: var(--icon-glyph);
+  height: var(--icon-glyph);
+}
+
+/* ----------------------------------------------------
+   TOP BAR — brand, page tabs, the one pink action.
+-----------------------------------------------------*/
+.topbar {
+  /* Sticky does nothing in the locked desktop shell. It keeps the bar pinned in
+     the stacked layout, where the page scrolls. */
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: var(--topbar);
+  /* Right side on the gutter, so the bell ends on the same line as the sheet
+     and the theme editor card below. */
+  padding: 0 var(--gutter) 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  text-decoration: none;
+  border-radius: var(--r-sm);
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 4px;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  color: var(--slate);
+  transition: color var(--base) ease;
+}
+
+.brand:hover .brand-mark {
+  color: var(--pink);
+}
+
+.brand-name {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* Brand and undo / redo on the left, actions on the right. Both sides take an
+   equal share of the slack (flex-basis 0), so the subtitle lands in the true
+   centre of the bar whatever either side holds. */
+.topbar-start {
+  flex: 1 1 0;
+  min-width: max-content;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* A hairline between the brand and the first tool, so undo / redo reads as
+   the start of the toolbar, not part of the logo. */
+.topbar-start .history-buttons {
+  padding-left: 12px;
+  border-left: 1px solid var(--line-strong);
+}
+
+.topbar-subtitle {
+  flex-shrink: 0;
+  font-size: var(--fs-md);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.topbar-actions {
+  flex: 1 1 0;
+  min-width: max-content;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Labels holding every translation at once (data-i18n-stable, filled by
+   i18n.js) share one grid cell. The box is as wide as the longest language,
+   so a switch changes only which one shows and nothing beside it moves.
+   Hidden ones still take up their space. */
+[data-i18n-stable] {
+  display: inline-grid;
+}
+
+[data-i18n-stable] > span {
+  grid-area: 1 / 1;
+}
+
+[data-i18n-stable] > span[aria-hidden="true"] {
+  visibility: hidden;
+}
+
+/* The shorter language sits centred in the button's reserved width, not
+   pushed to one side. The centred subtitle too. */
+.btn [data-i18n-stable],
+.topbar-subtitle[data-i18n-stable] {
+  justify-items: center;
+}
+
+/* The CS / EN switch: the sidebar's segmented pill, sized down so it reads as
+   a setting, not a second action beside the export button. Its slate pill
+   slides between the two (.has-thumb, ui/thumb.js). */
+.lang-switch {
+  flex-shrink: 0;
+}
+
+.lang-switch .template-option {
+  height: 26px;
+  min-width: 34px;
+  padding: 0 8px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+
+/* ----------------------------------------------------
+   PAGE TABS — in a row above the sheet (see MAIN below), or
+   on the top bar's own row in the stacked layout, where
+   ui/tabs.js moves the strip.
+
+   Only .tab-viewport shrinks. The arrows and the + sit outside it at their
+   natural size, so they are never squashed and the + never scrolls away.
+-----------------------------------------------------*/
+.tab-strip {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Registered so the mask edges can transition. An unregistered custom
+   property isn't animatable, so the fade would snap. */
+@property --fade-l {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.tab-viewport {
+  --fade-l: 0px;
+  --fade-r: 0px;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  /* Horizontal overscroll here would trigger the browser's back gesture. */
+  overscroll-behavior-x: contain;
+  /* No bar inside a 60px chrome row: the fade and arrows are the cue (as with
+     the .sidebar-panels). */
+  scrollbar-width: none;
+  /* Only the side with hidden tabs gets a fade. ui/tabs.js toggles the classes
+     from the scroll position. */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  transition: --fade-l var(--base) ease, --fade-r var(--base) ease;
+}
+
+.tab-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-viewport.can-scroll-prev {
+  --fade-l: 20px;
+}
+
+.tab-viewport.can-scroll-next {
+  --fade-r: 20px;
+}
+
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* Without this the flex items would squeeze to fit instead of overflowing,
+     and nothing would scroll. */
+  width: max-content;
+  /* Room for the focus ring and an entering pill's --motion-shift, which a
+     scroll container would clip. */
+  padding: 3px 2px;
+}
+
+.tab-scroll {
+  --icon-size: 26px;
+  --icon-glyph: 16px;
+  color: var(--ink-3);
+  transition: color var(--fast) ease, background var(--fast) ease, opacity var(--fast) ease;
+}
+
+/* A class-level `display` outranks the UA's `[hidden] { display: none }`, so
+   honour the attribute explicitly or a hidden arrow still paints. */
+.tab-scroll[hidden] {
+  display: none;
+}
+
+/* Dimmed, not removed, at the ends. The pair keeps its footprint, so reaching
+   the end doesn't resize the scroller under the cursor. */
+.tab-scroll:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tab-scroll--next svg {
+  transform: rotate(180deg);
+}
+
+.tab-scroll:hover {
+  color: var(--pink);
+  background: var(--pink-soft);
+}
+
+.tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  /* padding: the active pill gives up room for its ×. A switch mustn't jump that
+     width while everything else eases. */
+  transition: color var(--fast) ease, background var(--fast) ease, box-shadow var(--fast) ease,
+    padding var(--fast) ease, transform var(--fast) var(--ease-out);
+}
+
+/* Only a pill that shows its × gives up the right padding. A lone page has no
+   ×, so its text stays centred. */
+.tab--active.tab--closable {
+  padding-right: 8px;
+}
+
+.tab-label {
+  position: relative;
+}
+
+/* A page still named "Page N" reads as a placeholder. Colour only: a lighter
+   weight would change the width as soon as it gets named. */
+.tab--untitled:not(.tab--editing) .tab-label {
+  color: var(--ink-3);
+}
+
+.tab--untitled.tab--active:not(.tab--editing) .tab-label {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 2px;
+}
+
+.tab:hover {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.tab--active,
+.tab--active:hover {
+  color: #fff;
+  font-weight: 600;
+  background: var(--slate);
+  box-shadow: none;
+}
+
+.tab-close {
+  --icon-size: 20px;
+  --icon-glyph: 10px;
+  color: rgba(255, 255, 255, 0.65);
+  opacity: 0;
+  /* Invisible must also mean unclickable. Without this, the right 20px of every
+     inactive tab silently closes it instead of selecting it. */
+  pointer-events: none;
+  transition: opacity var(--fast) ease, background var(--fast) ease, color var(--fast) ease;
+}
+
+.tab:hover .tab-close,
+.tab--active .tab-close,
+.tab-close:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tab-close:hover {
+  color: #fff;
+  background: var(--pink);
+}
+
+/* Editing keeps the pill's shape. The label still sizes it (invisible, with
+   the typed text mirrored in by ui/tabs.js) and the input lies over it, so only
+   the ring changes. */
+.tab--editing,
+.tab--active.tab--editing {
+  box-shadow: inset 0 0 0 2px var(--pink);
+}
+
+.tab--editing .tab-label {
+  visibility: hidden;
+}
+
+/* Outranks the hover/active reveal above: the cursor is on the pill right
+   after a double-click. */
+.tab.tab--editing .tab-close {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tab-rename-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  visibility: visible;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  caret-color: currentColor;
+  outline: none;
+  user-select: text;   /* the pill itself is user-select: none */
+}
+
+.tab-rename-input::selection {
+  color: #fff;
+  background: var(--pink);
+}
+
+.tab-add {
+  --icon-size: 34px;
+  --icon-glyph: 16px;
+  color: var(--ink-2);
+  background: var(--surface-2);
+}
+
+.tab-add:hover:not(:disabled) {
+  color: var(--pink);
+  background: var(--pink-soft);
+}
+
+.tab-add:disabled {
+  opacity: 0.4;
+}
+
+/* ----------------------------------------------------
+   LAYOUT — rail | inspector | workspace
+-----------------------------------------------------*/
+/* Fills whatever the top bar leaves, however tall the bar is. The old
+   calc(100vh - var(--topbar)) assumed a 60px bar and overshot once the bar
+   wrapped to two rows on narrow windows. */
+.app {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+/* ----------------------------------------------------
+   RAIL — three sections, one lit.
+-----------------------------------------------------*/
+.rail {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: var(--rail);
+  overflow-y: auto;
+  padding: 12px 6px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  /* The chrome eases between breakpoints. The sheet re-fits every frame to
+     follow it (app.js initCanvasRefit). */
+  transition: width var(--slow) var(--ease-in-out);
+}
+
+.rail-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 58px;
+  border-radius: var(--r-md);
+  color: var(--ink-2);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  text-align: center;
+}
+
+.rail-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.rail-btn:hover {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+/* Help and About open modals, not sections. Pinned to the foot of the rail,
+   away from the three sections they'd otherwise read as part of. The first of
+   the pair takes the free space. */
+.rail-btn--help {
+  margin-top: auto;
+}
+
+/* A dot on a rail item: something there needs attention (Customize Elements:
+   unsaved edits). */
+.rail-btn {
+  position: relative;
+}
+
+.rail-btn::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: calc(50% - 16px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pink);
+  box-shadow: 0 0 0 2px var(--surface);
+  opacity: 0;
+  scale: 0.3;
+  transition: opacity var(--base) ease, scale var(--base) var(--ease-out);
+  pointer-events: none;
+}
+
+.rail-btn.has-dot::after {
+  opacity: 1;
+  scale: 1;
+}
+
+.rail-btn.is-active,
+.rail-btn.is-active:hover {
+  color: var(--pink);
+  background: var(--pink-soft);
+}
+
+/* ----------------------------------------------------
+   SIDEBAR — the inspector card.
+-----------------------------------------------------*/
+.sidebar {
+  flex-shrink: 0;
+  display: flex;
+  width: var(--sidebar);
+  min-height: 0;
+  padding: var(--gutter) 0 var(--gutter) var(--gutter);
+  transition: width var(--slow) var(--ease-in-out), opacity var(--base) ease;
+}
+
+.sidebar-panels {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  /* Scrolls on short viewports (a selected element makes the column ~1050px
+     tall). A slim, muted bar appears only then, so the "Přidat" section below
+     the fold has a hint. The gutter is reserved even while the bar is hidden.
+     Otherwise its arrival narrowed the panels, text rewrapped, the height
+     changed again and the bar could toggle back: a placement switch near the
+     threshold flickered. */
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--line-strong) transparent;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
+}
+
+.panel {
+  padding: 18px 20px;
+}
+
+.panel + .panel {
+  padding-top: 2px;
+}
+
+/* The reserved scrollbar gutter (~8–11px) stands in for the rest of the right
+   padding, so content keeps its width. The 260px tier has none to spare for
+   the three-way placement switch. */
+.sidebar-panels > .panel {
+  padding-right: 10px;
+}
+
+.panel h2 {
+  margin: 0 0 12px;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Icon + title, on the first panel only. The whole head is the toggle that
+   folds the panel (ui/templatePanel.js). The h2 around it only carries the
+   heading role. */
+.panel .panel-head-title {
+  margin: 0;
+  font: inherit;
+  letter-spacing: normal;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border-radius: var(--r-sm);
+}
+
+.panel-head:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--line);
+}
+
+/* The icons overhang the title's 18px line by a pixel each way instead of
+   making the head taller. The stacked layout's columns are tuned to it. */
+.panel-head svg {
+  width: 20px;
+  height: 20px;
+  margin: -1px 0;
+  flex-shrink: 0;
+  color: var(--ink-2);
+}
+
+.panel-head-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-lg);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* The subtitle opens the body, lined up under the title, so it folds away with
+   the controls it introduces. Its 2px + the 16px under it are the gap the head
+   used to carry. */
+.panel-sub {
+  margin: 2px 0 0 32px;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
+  color: var(--ink-3);
+}
+
+.panel-sub + .panel-field,
+#reset-layout {
+  margin-top: 16px;
+}
+
+/* The sprite's chevron points left: turned down while open, right while folded. */
+.panel-head .panel-head-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--ink-3);
+  transform: rotate(-90deg);
+  transition: transform var(--slower) var(--ease-panel), color var(--fast) ease;
+}
+
+.panel-head:hover .panel-head-chevron {
+  color: var(--pink);
+}
+
+.panel-template.is-collapsed .panel-head-chevron {
+  transform: rotate(-180deg);
+}
+
+/* The folded panel's spec sheet: what the controls are set to, as a quiet
+   inset card. It is part of the toggle's target, so clicking it opens the panel. */
+.spec-sheet {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 16px;
+  row-gap: 6px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px transparent;
+  cursor: pointer;
+  transition: box-shadow var(--fast) ease;
+}
+
+.spec-sheet:hover {
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.spec-row {
+  display: contents;
+}
+
+.spec-sheet dt {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
+  line-height: 20px;
+  color: var(--ink-3);
+}
+
+.spec-sheet dd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A long custom theme name gives way before the canvas size does. */
+#sum-res {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.spec-muted {
+  flex-shrink: 0;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+/* Where the slicers sit, drawn: the sheet with its slicer strip filled. */
+.spec-glyph {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--ink-2);
+}
+
+.spec-glyph svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---- The fold. The controls and the spec sheet are two layers in one place.
+   The one that is in sits in the flow and sets the height. The one going out
+   lies over it and fades. Both start fading together, the outgoing one quicker
+   (R2), so the panel never passes through empty and neither pushes the other.
+   The height between them is eased by ui/templatePanel.js from where it really
+   is, so a toggle caught mid-way turns around smoothly. */
+.template-fold {
+  position: relative;
+}
+
+/* Only while the height moves. At rest, nothing clips the focus rings. */
+.template-fold.is-animating {
+  overflow: hidden;
+}
+
+/* flow-root keeps each layer's first margin inside it, so the height the fold
+   measures is the height it shows. */
+.fold-layer {
+  display: flow-root;
+}
+
+.fold-layer.is-in {
+  opacity: 1;
+  transition: opacity var(--base) var(--ease-out);
+}
+
+.fold-layer.is-out {
+  position: absolute;
+  inset: 0 0 auto 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--fast) var(--ease-out),
+    visibility 0s linear var(--fast);
+}
+
+/* The state a page loads with is not a change; it just is. */
+.panel-template.is-instant,
+.panel-template.is-instant * {
+  transition: none !important;
+}
+
+.field-label {
+  margin: 0 0 8px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+}
+
+.panel-field + .panel-field {
+  margin-top: 16px;
+}
+
+.panel-section {
+  margin-top: 12px;
+}
+
+.empty-hint {
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+
+.field-note {
+  margin: 8px 0 0;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.field-note:empty {
+  display: none;
+}
+
+/* ----------------------------------------------------
+   SEGMENTED CONTROL — light track, slate active pill.
+-----------------------------------------------------*/
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+}
+
+.segmented--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.template-option {
+  height: 30px;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.template-option:hover:not(:disabled):not(.active) {
+  color: var(--pink);
+}
+
+.template-option:disabled {
+  color: var(--ink-4);
+}
+
+.template-option.active {
+  color: #fff;
+  font-weight: 600;
+  background: var(--slate);
+}
+
+/* SLIDING THUMB (ui/thumb.js), on every switcher: one slate pill slides to the
+   chosen option instead of each option lighting its own background. Columns
+   are equal, so one step is a column plus the gap. --thumb-count and
+   --thumb-step come from the helper. It only transitions once data-ready is
+   set, a frame after it first lands, so nothing slides in on load. */
+.has-thumb {
+  --thumb-gap: 2px;   /* = .segmented's and .theme-toggle's gap */
+  position: relative;
+  isolation: isolate;
+}
+
+.has-thumb::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px - (var(--thumb-count, 2) - 1) * var(--thumb-gap)) / var(--thumb-count, 2));
+  border-radius: var(--r-pill);
+  background: var(--slate);
+  transform: translateX(calc(var(--thumb-step, 0) * (100% + var(--thumb-gap))));
+}
+
+.has-thumb[data-ready]::before {
+  transition: transform var(--slow) var(--ease-out);
+}
+
+/* The thumb is the background. The option only changes its ink, easing in
+   step with the thumb arriving under it. */
+.has-thumb > .active {
+  background: none;
+}
+
+.has-thumb > button {
+  transition: color var(--slow) ease, transform var(--fast) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .has-thumb[data-ready]::before {
+    transition: none;
+  }
+}
+
+/* ----------------------------------------------------
+   SWITCH — the one on/off control (ui/switch.js):
+   a pill whose thumb slides across, pink when on.
+-----------------------------------------------------*/
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  border-radius: var(--r-pill);
+  background: var(--ink-4);
+  transition: background var(--fast) ease;
+}
+
+.switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(28, 33, 40, 0.3);
+  transition: transform var(--base) var(--ease-out);
+}
+
+.switch:hover:not([aria-checked="true"]) {
+  background: var(--ink-3);
+}
+
+.switch[aria-checked="true"] {
+  background: var(--pink);
+}
+
+.switch[aria-checked="true"]:hover {
+  background: var(--pink-hover);
+}
+
+.switch[aria-checked="true"] .switch__thumb {
+  transform: translateX(14px);
+}
+
+.switch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pink-ring);
+}
+
+/* ----------------------------------------------------
+   PANEL ROWS (label left, control right)
+-----------------------------------------------------*/
+.panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.panel-row label {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+select {
+  font: inherit;
+  font-feature-settings: inherit;
+}
+
+.panel-row select,
+.el-select {
+  width: 72px;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 0 26px 0 12px;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%235c6470' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 8px center / 14px;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: box-shadow var(--fast) ease;
+}
+
+.panel-row select:hover:not(:disabled),
+.el-select:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1px var(--pink);
+}
+
+.panel-row select:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--slate), 0 0 0 3px var(--line);
+}
+
+.panel-row select:disabled {
+  color: var(--ink-4);
+  cursor: not-allowed;
+}
+
+/* ----------------------------------------------------
+   COLLAPSIBLE — animates the grid row's fr size; the
+   -inner wrapper clips the content while collapsed.
 -----------------------------------------------------*/
 .collapsible {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.22s ease-out;
+  transition: grid-template-rows var(--slow) var(--ease-in-out);
 }
 
 .collapsible.expanded {
   grid-template-rows: 1fr;
+}
+
+/* Every reveal in the sidebar uses the fold's timing. A canvas click folds
+   Šablona and opens the selection details at once. On two curves, the panels
+   under both would lurch up, then back down. */
+.sidebar .collapsible {
+  transition: grid-template-rows var(--slower) var(--ease-panel);
 }
 
 .collapsible-inner {
@@ -316,391 +1303,1840 @@ body {
   min-height: 0;
 }
 
+/* ----------------------------------------------------
+   ADD ELEMENTS
+-----------------------------------------------------*/
+/* Three across in the full-width column. Two plus one when narrower (the 260px
+   tier), instead of clipping "Graf" off the end. */
+.add-elements .button-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: 8px;
+}
+
+.add-elements .button-group .btn {
+  justify-content: flex-start;
+  padding-left: 12px;
+}
+
+.add-elements .btn svg,
+.band2-btn svg {
+  color: var(--ink-3);
+  transition: color var(--fast) ease;
+}
+
+.add-elements .btn:hover svg,
+.band2-btn:hover svg {
+  color: var(--pink);
+}
+
+#add-kpi-bands:not(:empty) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Extra KPI band buttons, built in app.js. Same look as the buttons above,
+   restated because `.btn-secondary` isn't on them. */
+.band2-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.band2-btn::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  color: var(--ink-3);
+  -webkit-mask: var(--glyph-kpi) center / contain no-repeat;
+  mask: var(--glyph-kpi) center / contain no-repeat;
+  transition: color var(--fast) ease;
+}
+
+.band2-btn:hover {
+  color: var(--pink);
+  background: var(--pink-soft);
+  box-shadow: inset 0 0 0 1px var(--pink);
+}
+
+.band2-btn:hover::before {
+  color: var(--pink);
+}
+
+/* ----------------------------------------------------
+   SELECTION — property rows with copy-to-clipboard and
+   double-click-to-edit width/height
+-----------------------------------------------------*/
 #selection-details > .collapsible-inner {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
 }
 
-/* ----------------------------------------------------
-   EDIT FIELDS
------------------------------------------------------*/
-.edit-field .collapsible-inner {
+.sel-row {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding-top: var(--space-4);
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
 }
 
-.edit-field input {
-  width: 100%;
-  padding: var(--space-3);
-  border-radius: var(--radius-control);
-  border: 1px solid var(--border-medium);
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  font-size: 14px;
-}
-
-.edit-field input:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-  border-color: var(--color-primary);
-}
-
-.edit-field button {
-  align-self: flex-start;
-}
-
-/* ----------------------------------------------------
-   BUTTONS (global)
------------------------------------------------------*/
-button {
-  font-family: inherit;
-  font-size: 14px;
+.sel-row strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 52px;
+  flex-shrink: 0;
+  font-size: var(--fs-sm);
   font-weight: 500;
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-control);
-  border: 1px solid transparent;
-  background: var(--color-primary);
-  color: var(--text-white);
+  letter-spacing: 0.01em;
+  color: var(--ink-3);
+}
+
+.sel-value {
+  font-weight: 500;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  color: var(--ink-3);
+}
+
+/* First button of a row's trailing icon cluster. The auto margin lives here
+   so the pencil + copy pair stays pinned together at the right edge. */
+.push-right {
+  margin-left: auto;
+}
+
+.copy-btn:hover {
+  color: var(--pink);
+  background: var(--pink-soft);
+}
+
+.copy-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.copy-btn.copy-btn-success {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+.editable-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
+.editable-value .unit {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.editable-value.is-editable {
   cursor: pointer;
-  transition: background 0.18s ease-out, border-color 0.18s ease-out;
 }
 
-button:hover {
-  background: var(--color-primary-hover);
+.editable-value.is-editable span:first-child {
+  border-bottom: 1.5px dotted var(--ink-4);
+  transition: color var(--fast) ease, border-color var(--fast) ease;
 }
 
-button:active {
-  background: var(--color-primary-active);
+.editable-value.is-editable:hover span:first-child {
+  color: var(--pink);
+  border-bottom-color: var(--pink);
 }
 
-button:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+/* Visible only once JS marks it .is-editable. visibility (not display) keeps
+   the cluster aligned across rows. */
+.edit-pencil-btn {
+  visibility: hidden;
 }
 
-.hidden {
-  display: none;
+.edit-pencil-btn.is-editable {
+  visibility: visible;
+}
+
+.inline-edit-input {
+  width: 76px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  box-shadow: inset 0 0 0 1px var(--slate), 0 0 0 3px var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  outline: none;
+}
+
+#apply-selection {
+  margin-top: 10px;
 }
 
 /* ----------------------------------------------------
-   MAIN AREA
+   MAIN — the workspace. Page tabs in a row at the top, the sheet under them
+   on the centre line. Only horizontal centring: a vertical one would move
+   the wrapper top that computeEffectiveScale() measures.
 -----------------------------------------------------*/
+/* The one scroll container in the desktop shell. No reserved scrollbar
+   gutter: the sheet is fitted to width and height, so nothing overflows short
+   of the 0.12 scale floor, and a reserved track only pushed the sheet further
+   from the window edge than in other sections. Horizontal overflow is clipped,
+   so edge controls poking past the sheet can't raise a scrollbar and change
+   the width the fit measures. */
 .main {
   flex: 1;
   min-width: 0;
-  /* Top padding = sidebar padding-top + header row height + gap before the
-     first panel, so this heading lines up with the "Šablona layoutu" panel
-     rather than the logo row above it. */
-  padding-top: calc(var(--space-6) + var(--sidebar-header-height) + var(--space-6));
-  padding-right: var(--space-10);
-  padding-bottom: var(--space-8);
-  padding-left: var(--space-10);
-  background: var(--bg-app);
+  min-height: 0;
+  overflow: hidden auto;
+  padding: var(--gutter);
 }
 
-.main h2 {
-  margin: 0 0 var(--space-2);
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.hint {
-  margin-top: 0;
-  margin-bottom: var(--space-4);
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-/* ----------------------------------------------------
-   CANVAS WRAPPER
------------------------------------------------------*/
 #canvas-wrapper {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-card);
-  padding: var(--space-6);
-  box-shadow: var(--shadow-card);
-  display: inline-block;
+  position: relative;
+  display: block;
+  width: fit-content;
   max-width: 100%;
-  overflow-x: auto;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+}
+
+/* The page tabs sit in a row above the sheet, not tied to its size. Pages on
+   different templates have differently sized sheets, and a switch mustn't
+   move the tab just clicked. The sheet hangs below this row, so it doesn't
+   move either. computeEffectiveScale() counts the row through the wrapper's
+   top offset. The padding is the gap to the sheet. */
+.main > .tab-strip {
+  padding-bottom: 12px;
 }
 
 #canvas {
   position: relative;
-  background: var(--bg-secondary);
-  border-radius: 10px;
+  border-radius: 6px;
+  /* The dot grid on the page grey marks the sheet as an artboard, not another
+     white panel beside the sidebar's card (the Elements stage's look). Cards
+     keep a solid surface over it. */
+  background: var(--sheet-dots), var(--bg);
+  box-shadow: inset 0 0 0 1px var(--line), var(--shadow-sheet);
   overflow: visible;
-  transition: width 0.25s ease-out, height 0.25s ease-out;
+  /* No width/height transition: the scale is measured from this box on every
+     render, so a mid-transition size would feed a wrong scale into the next.
+     On resize the chrome around it eases (.rail, .sidebar) and the sheet
+     re-fits every frame to follow. */
 }
 
 /* ----------------------------------------------------
-   CANVAS ELEMENTS
+   CANVAS ELEMENTS — white cards, a grey glyph naming
+   the kind, pink only on hover / selection.
 -----------------------------------------------------*/
+:root {
+  --sheet-dots: radial-gradient(circle, var(--line-strong) 0.8px, transparent 1px) 0 0 / 6px 6px;
+  --glyph-slicer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M4 5h16l-6 7v6l-4 2v-8L4 5z'/%3E%3C/svg%3E");
+  --glyph-kpi: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 17l5-6 4 4 7-8M15 7h5v5'/%3E%3C/svg%3E");
+  --glyph-lock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-0.5 0 25 25' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='9.3' width='18' height='13' rx='4'/%3E%3Cpath d='M17 9.3V7.3a5 5 0 0 0-10 0v2'/%3E%3C/svg%3E");
+  --glyph-chart: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M5 20V10M12 20V4M19 20v-7'/%3E%3C/svg%3E");
+}
+
 .canvas-element {
   position: absolute;
   border-radius: 6px;
-  box-sizing: border-box;
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
   cursor: pointer;
-  transition: box-shadow 0.15s ease-out, transform 0.15s ease-out;
+  transition: box-shadow var(--fast) ease, background var(--fast) ease, opacity var(--base) ease;
+}
+
+/* The canvas is rebuilt on every change (see renderLayout), so motion.js
+   replays what happened to each card by id: a survivor glides from its old
+   box to its new one, a newcomer fades in, a removed card stays as a ghost
+   and fades out. Geometry is eased directly, not via a transform, which would
+   lift the card into its own stacking context above its handles and squash
+   the glyph and rings. */
+.canvas-element.is-moving {
+  transition: box-shadow var(--fast) ease, background var(--fast) ease, opacity var(--base) ease,
+    left var(--base) var(--ease-in-out), top var(--base) var(--ease-in-out),
+    width var(--base) var(--ease-in-out), height var(--base) var(--ease-in-out);
+}
+
+/* transition: none so the start state lands without itself easing.
+   Otherwise removing the class would reverse a fade that had barely begun. */
+.canvas-element.m-enter--fade {
+  opacity: 0;
+  transition: none;
+}
+
+.canvas-element.is-ghost {
+  pointer-events: none;
+}
+
+/* The kind glyph: left of the label on bars, large and centred on charts.
+   Sized from --label-font-size so it scales with the canvas. */
+.canvas-element::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--label-font-size, 10px) * 0.8);
+  top: 50%;
+  width: calc(var(--label-font-size, 10px) * 1.6);
+  height: calc(var(--label-font-size, 10px) * 1.6);
+  transform: translateY(-50%);
+  background: var(--ink-3);
+  -webkit-mask: var(--glyph) center / contain no-repeat;
+  mask: var(--glyph) center / contain no-repeat;
+  pointer-events: none;
+}
+
+/* The project's element styles (Customize Elements), drawn lightly: corners,
+   fill, border and shadow, set per card by renderLayout.js styleCard().
+   Hover and selection rings, declared below, still win. */
+.canvas-element.slicer,
+.canvas-element.kpi,
+.canvas-element.chart {
+  border-radius: var(--el-radius, 6px);
+  background: var(--el-bg, var(--surface));
+  box-shadow: var(--el-shadow,) var(--el-ring, inset 0 0 0 1px var(--line-strong));
 }
 
 .canvas-element.slicer {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
+  --glyph: var(--glyph-slicer);
+}
+
+.canvas-element.kpi {
+  --glyph: var(--glyph-kpi);
 }
 
 .canvas-element.chart {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
+  --glyph: var(--glyph-chart);
   overflow: visible;
   position: absolute;
 }
 
-.canvas-element.kpi {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-}
-
-.chart-resize-handle {
-  position: absolute;
-  top: 0;
-  right: -3px;
-  width: 6px;
-  height: 100%;
-  cursor: ew-resize;
-  background: transparent;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.12s ease-out, background 0.12s ease-out;
-}
-
-.canvas-element.chart:hover .chart-resize-handle {
-  opacity: 1;
-  pointer-events: auto;
-  background: rgba(32, 33, 36, 0.06);
-}
-
-.chart-resize-handle::before,
-.chart-resize-handle::after {
-  content: "";
-  position: absolute;
-  top: 50%;
+.canvas-element.chart::before {
   left: 50%;
+  width: calc(var(--label-font-size, 10px) * 4);
+  height: calc(var(--label-font-size, 10px) * 4);
   transform: translate(-50%, -50%);
-  width: 2px;
-  height: 14px;
-  background: rgba(32, 33, 36, 0.4);
-  border-radius: 1px;
-}
-
-.chart-resize-handle::after {
-  transform: translate(-50%, -50%) translateX(4px);
-}
-
-.canvas-element.title {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1.5px solid var(--border-medium);
-  display: flex;
-  align-items: center;
-  padding-left: var(--space-2);
-  font-weight: 500;
-}
-
-.canvas-element.selected {
-  box-shadow: 0 0 0 2px var(--color-primary);
-}
-
-.element-controls {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.15s ease-out;
-}
-
-.canvas-element:hover .element-controls {
-  opacity: 1;
-}
-
-.element-controls button {
-  padding: 2px 6px;
-  font-size: 10px;
-  line-height: 16px;
-  border-radius: 4px;
-  border: none;
-  background: rgba(214, 0, 50, 0.92);
-  color: var(--text-white);
-}
-
-.element-controls button:hover {
-  background: var(--color-primary);
+  background: var(--ink-4);
 }
 
 .canvas-element-label {
   position: absolute;
-  bottom: 4px;
-  left: 6px;
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  opacity: 0.85;
-}
-
-.canvas-element.title .canvas-element-label {
-  color: var(--text-primary);
-}
-
-/* ----------------------------------------------------
-   ADD ELEMENTS PANEL
------------------------------------------------------*/
-.add-elements .button-group {
-  display: flex;
-  gap: var(--space-3);
-}
-
-.add-elements button {
-  flex: 1;
-}
-
-/* ----------------------------------------------------
-   RESET LAYOUT BUTTON
------------------------------------------------------*/
-.reset-layout-wrapper {
-  display: flex;
-  justify-content: center;
-}
-
-.reset-layout-wrapper button {
-  width: 100%;
-  background: var(--bg-surface);
-  color: var(--color-primary);
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-control);
-  padding: var(--space-3) var(--space-4);
+  left: calc(var(--label-font-size, 10px) * 3);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--label-font-size, 10px);
   font-weight: 600;
-}
-
-.reset-layout-wrapper button:hover {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-}
-
-/* ----------------------------------------------------
-   TOASTS
------------------------------------------------------*/
-.toast-container {
-  position: fixed;
-  top: var(--space-4);
-  right: var(--space-4);
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  max-width: 360px;
+  white-space: nowrap;
+  color: currentColor;
   pointer-events: none;
 }
 
-.toast {
+.canvas-element.chart .canvas-element-label {
+  top: auto;
+  bottom: calc(var(--label-font-size, 10px) * 0.6);
+  left: calc(var(--label-font-size, 10px) * 0.8);
+  transform: none;
+}
+
+/* The report header is the one solid block on the sheet. */
+.canvas-element.title {
+  display: flex;
+  align-items: center;
+  padding-left: calc(var(--label-font-size, 10px) * 0.8);
+  overflow: hidden;
+  color: #fff;
+  background: var(--slate);
+  box-shadow: none;
+}
+
+.canvas-element.title::before {
+  display: none;
+}
+
+.canvas-element.title .canvas-element-label {
+  position: static;
+  transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.canvas-element:hover {
+  box-shadow: inset 0 0 0 1px var(--pink);
+}
+
+/* Locked elements: a dashed pink outline marks what auto-redistribution
+   leaves alone... */
+.canvas-element.width-locked,
+.canvas-element.height-locked {
+  outline: 1.5px dashed var(--pink);
+  outline-offset: -1.5px;
+}
+
+/* ...and its own lock button stays put to say what it means (see
+   `.element-controls .icon-btn.is-on` below). */
+
+/* The inspector names the locked dimension next to its label. */
+.sel-row.is-locked strong::after {
+  content: "";
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  background: var(--pink);
+  mask: var(--glyph-lock) center / contain no-repeat;
+  -webkit-mask: var(--glyph-lock) center / contain no-repeat;
+}
+
+/* Previews which chart the sidebar "Graf" split button will act on. */
+.canvas-element.chart.split-target-highlight {
+  background: var(--pink-soft);
+}
+
+.canvas-element.selected,
+.canvas-element.selected:hover {
+  z-index: 1;
+  box-shadow: 0 0 0 2px var(--pink), 0 0 0 6px var(--pink-ring);
+}
+
+/* ----------------------------------------------------
+   RESIZE HANDLES — invisible hitboxes that reveal a
+   two-line pink grip on hover.
+-----------------------------------------------------*/
+.chart-resize-handle,
+.row-resize-handle,
+.stack-resize-handle {
+  position: absolute;
+  z-index: 40;
+  border-radius: 4px;
+  transition: background var(--fast) ease;
+}
+
+.chart-resize-handle {
+  width: 16px;
+  transform: translateX(-50%);
+  cursor: ew-resize;
+}
+
+.row-resize-handle {
+  height: 16px;
+  transform: translateY(-50%);
+  cursor: ns-resize;
+}
+
+.stack-resize-handle {
+  height: 14px;
+  transform: translateY(-50%);
+  cursor: ns-resize;
+}
+
+.chart-resize-handle:hover,
+.row-resize-handle:hover,
+.stack-resize-handle:hover {
+  background: var(--pink-soft);
+}
+
+.chart-resize-handle::before,
+.chart-resize-handle::after,
+.row-resize-handle::before,
+.row-resize-handle::after,
+.stack-resize-handle::before,
+.stack-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 1px;
+  background: var(--pink);
+  opacity: 0;
+  transition: opacity var(--fast) ease;
+}
+
+.chart-resize-handle::before,
+.chart-resize-handle::after {
+  width: 2px;
+  height: 16px;
+  transform: translate(calc(-50% - 2px), -50%);
+}
+
+.chart-resize-handle::after {
+  transform: translate(calc(-50% + 2px), -50%);
+}
+
+.row-resize-handle::before,
+.row-resize-handle::after,
+.stack-resize-handle::before,
+.stack-resize-handle::after {
+  width: 16px;
+  height: 2px;
+  transform: translate(-50%, calc(-50% - 2px));
+}
+
+.row-resize-handle::after,
+.stack-resize-handle::after {
+  transform: translate(-50%, calc(-50% + 2px));
+}
+
+.chart-resize-handle:hover::before,
+.chart-resize-handle:hover::after,
+.row-resize-handle:hover::before,
+.row-resize-handle:hover::after,
+.stack-resize-handle:hover::before,
+.stack-resize-handle:hover::after {
+  opacity: 1;
+}
+
+/* ----------------------------------------------------
+   HOVER "+" ADD CONTROLS — zone + button + scope trio,
+   appended to #canvas in that DOM order so the sibling
+   selectors below can reveal them in two stages.
+-----------------------------------------------------*/
+.canvas-add-zone {
+  position: absolute;
+  z-index: 39;
+}
+
+.canvas-add-btn {
+  --icon-size: 22px;
+  --icon-glyph: 12px;
+  position: absolute;
+  z-index: 45;
+  color: #fff;
+  background: var(--pink);
+  box-shadow: 0 0 0 2px var(--surface), 0 4px 10px -2px rgba(251, 73, 163, 0.5);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  /* Un-revealing is instant so the "×" cluster can take over the same pixels.
+     Only the reveal below fades. */
+  transition: none;
+}
+
+.canvas-add-zone:hover + .canvas-add-btn,
+.chart-resize-handle:hover + .canvas-add-btn,
+.row-resize-handle:hover + .canvas-add-btn,
+.stack-resize-handle:hover + .canvas-add-btn,
+.canvas-add-btn:hover {
+  opacity: 1;
   pointer-events: auto;
+  transition: opacity var(--fast) var(--ease-out);
+}
+
+.canvas-add-btn:hover {
+  background: var(--pink-hover);
+}
+
+/* Outranks the generic button:active press rule, which would drop the
+   centring translate and shift the button out from under the pointer. */
+.canvas-add-btn:active:not(:disabled) {
+  transform: translate(-50%, -50%) scale(0.92);
+}
+
+/* Insertion scope preview: a solid bar along the edge the new element will
+   appear on. The rect itself is invisible. */
+.canvas-add-scope {
+  position: absolute;
+  z-index: 38;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--fast) ease;
+}
+
+.canvas-add-btn:hover + .canvas-add-scope {
+  opacity: 1;
+}
+
+.canvas-add-scope--bottom {
+  box-shadow: inset 0 -3px 0 var(--pink);
+}
+
+.canvas-add-scope--right {
+  box-shadow: inset -3px 0 0 var(--pink);
+}
+
+.canvas-add-scope--left {
+  box-shadow: inset 3px 0 0 var(--pink);
+}
+
+body.is-resizing-chart .canvas-add-zone,
+body.is-resizing-chart .canvas-add-btn,
+body.is-resizing-chart .canvas-add-scope,
+body.is-resizing-chart .element-controls {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Alignment guide while a chart-width drag is snapped to a slicer/KPI edge. */
+.chart-snap-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 50;
+  width: 1px;
+  background: repeating-linear-gradient(to bottom, var(--pink) 0 3px, transparent 3px 6px);
+  pointer-events: none;
+}
+
+/* ----------------------------------------------------
+   ELEMENT CONTROLS — hover cluster (lock / remove):
+   slate at rest, pink under the pointer.
+-----------------------------------------------------*/
+.element-controls {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 46;
+  display: flex;
+}
+
+/* A card too short for a corner (renderLayout's placeControls) centres the
+   cluster, so it never looks pinned to a thin bar's edge. */
+.canvas-element.is-compact .element-controls {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Mutual exclusion with the "+" controls, which overlap this cluster. */
+#canvas:has(.canvas-add-zone:hover) .element-controls,
+#canvas:has(.chart-resize-handle:hover) .element-controls,
+#canvas:has(.row-resize-handle:hover) .element-controls,
+#canvas:has(.stack-resize-handle:hover) .element-controls,
+#canvas:has(.canvas-add-btn:hover) .element-controls {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The square sibling of .icon-circle: same tokens and centring, but a corner
+   radius, so the cluster reads as a toolbar. */
+.element-controls button {
+  --icon-size: 22px;
+  --icon-glyph: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  border-radius: 6px;
+  color: #fff;
+  background: var(--slate);
+  box-shadow: 0 2px 6px -1px rgba(28, 33, 40, 0.35);
+  opacity: 0;
+  /* Spacing is a margin, not the cluster's gap, so it can fold with the ×. */
+  transition: background var(--fast) ease, transform var(--fast) var(--ease-out),
+    opacity var(--fast) ease, width var(--base) var(--ease-out), margin-left var(--base) var(--ease-out);
+}
+
+.element-controls button + button {
+  margin-left: 3px;
+}
+
+.canvas-element:hover .element-controls button {
+  opacity: 1;
+}
+
+/* An engaged lock is the card's lock mark, so it never hides. Slate, not pink:
+   pink means "you can act here", and this is a state. Hovering goes pink like
+   any button and previews the unlock. */
+.element-controls .icon-btn.is-on {
+  opacity: 1;
+}
+
+/* At rest the × folds away so the lock sits alone in the corner. Hovering the
+   card unfolds it, sliding the lock aside. */
+.canvas-element.is-locked:not(:hover) .element-controls .is-on ~ button {
+  width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.element-controls button:hover {
+  background: var(--pink);
+}
+
+.element-controls button svg {
+  width: var(--icon-glyph);
+  height: var(--icon-glyph);
+}
+
+.icon-btn .icon-default,
+.icon-btn .icon-hover {
+  display: flex;
+}
+
+.icon-btn .icon-hover,
+.icon-btn:hover .icon-default,
+.icon-btn.suppress-hover:hover .icon-hover {
+  display: none;
+}
+
+.icon-btn:hover .icon-hover,
+.icon-btn.suppress-hover:hover .icon-default {
+  display: flex;
+}
+
+/* ----------------------------------------------------
+   NOTIFICATIONS — bell in the top bar, panel below it,
+   toasts stacked under the bell.
+-----------------------------------------------------*/
+/* Anchor for the panel and toasts, so both follow the bell wherever the bar
+   puts it, not a fixed --topbar offset. */
+.bell-wrap {
+  position: relative;
+  display: flex;
+}
+
+.notification-bell {
+  --icon-size: 36px;
+  --icon-glyph: 20px;
+  position: relative;
+  color: var(--ink-2);
+}
+
+.notification-bell:hover,
+.notification-bell:focus-visible,
+.notification-bell.menu-open {
+  color: var(--pink);
+  background: var(--pink-soft);
+  outline: none;
+}
+
+/* Filled while a toast is on screen, in the colour of the most serious one
+   (renderBell() in warnings.js sets data-severity). */
+.notification-bell.pulse-active {
+  color: #fff;
+  background: var(--slate);
+}
+
+.notification-bell.pulse-active[data-severity="warning"] {
+  background: var(--warning);
+}
+
+.notification-bell.pulse-active[data-severity="error"] {
+  background: var(--error);
+}
+
+/* One swing when a toast surfaces, hinged at the top of the bell. */
+.notification-bell.ringing svg {
+  animation: bell-ring 600ms var(--ease-out);
+  transform-origin: 50% 15%;
+}
+
+@keyframes bell-ring {
+  15% { transform: rotate(16deg); }
+  35% { transform: rotate(-13deg); }
+  55% { transform: rotate(8deg); }
+  75% { transform: rotate(-4deg); }
+}
+
+/* How many notifications the panel holds, coloured by the most serious. */
+.notification-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  background: var(--slate);
+  box-shadow: 0 0 0 2px var(--surface);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--fast) ease, transform var(--fast) var(--ease-out), background var(--fast) ease;
+}
+
+.notification-badge[data-severity="warning"] {
+  background: var(--warning);
+}
+
+.notification-badge[data-severity="error"] {
+  background: var(--error);
+}
+
+.notification-bell.has-notifications .notification-badge {
+  opacity: 1;
+  transform: none;
+}
+
+.notification-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1099;
+  width: 340px;
+  /* 100vw includes the scrollbar, hence the extra slack over 2 * --gutter. */
+  max-width: calc(100vw - 40px);
+  max-height: min(420px, 70vh);
+  overflow-y: auto;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-pop);
+  --motion-shift: -4px;   /* hangs from the bell, so it arrives from above */
+  opacity: 0;
+  transform: translateY(var(--motion-shift)) scale(var(--motion-scale));
+  transform-origin: top right;
+  pointer-events: none;
+  transition: opacity var(--slow) var(--ease-panel), transform var(--slow) var(--ease-panel);
+}
+
+.notification-panel.open {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.notification-panel-header {
+  padding: 12px 16px 8px;
+}
+
+/* ----------------------------------------------------
+   PROJECT MENU — save / open a .kvapka.json file.
+   Hangs from its button the way the bell's panel does.
+-----------------------------------------------------*/
+.project-wrap {
+  position: relative;
+  display: flex;
+}
+
+/* Undo / redo: two icon buttons, greyed out while there is nothing to step to. */
+.history-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.history-btn {
+  width: 36px;
+  padding: 0;
+}
+
+.history-btn:disabled {
+  color: var(--ink-4);
+  cursor: default;
+}
+
+.project-menu-btn.menu-open {
+  color: var(--pink);
+  background: var(--pink-soft);
+}
+
+.project-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1099;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  max-width: calc(100vw - 40px);
+  padding: 6px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-pop);
+  --motion-shift: -4px;
+  opacity: 0;
+  /* Hidden, not just transparent, so a closed menu's items leave the tab order.
+     visibility flips at the end of the fade-out. */
+  visibility: hidden;
+  transform: translateY(var(--motion-shift)) scale(var(--motion-scale));
+  transform-origin: top right;
+  pointer-events: none;
+  transition: opacity var(--slow) var(--ease-panel), transform var(--slow) var(--ease-panel), visibility 0s linear var(--slow);
+}
+
+.project-menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+  transition: opacity var(--slow) var(--ease-panel), transform var(--slow) var(--ease-panel);
+}
+
+.project-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  font-size: var(--fs-md);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.project-menu-item svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--ink-3);
+}
+
+.project-menu-item:hover:not(:disabled),
+.project-menu-item:focus-visible {
+  color: var(--pink);
+  background: var(--pink-soft);
+  outline: none;
+}
+
+.project-menu-item:hover:not(:disabled) svg,
+.project-menu-item:focus-visible svg {
+  color: currentColor;
+}
+
+.project-menu-item:disabled {
+  color: var(--ink-4);
+}
+
+.project-menu-item:disabled svg {
+  color: var(--ink-4);
+}
+
+.notification-panel-header h3 {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0 6px 6px;
+}
+
+.notification-empty {
+  padding: 16px 10px 20px;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+/* Tinted like the toasts, so an error still reads as one after moving in
+   here. --tone is the type's colour, --tint its background. */
+.notification-list {
+  gap: 4px;
+}
+
+.notification-item {
+  --tone: var(--slate);
+  --tint: var(--surface-2);
   display: flex;
   align-items: flex-start;
-  gap: var(--space-3);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-left: 3px solid var(--color-warning);
-  border-radius: var(--radius-control);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-3) var(--space-4);
-  animation: toast-in 0.2s ease-out;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  background: var(--tint);
+}
+
+.notification-item:hover {
+  background: color-mix(in srgb, var(--tint), var(--tone) 6%);
+}
+
+.notification-warning {
+  --tone: var(--warning);
+  --tint: var(--warning-bg);
+}
+
+.notification-error {
+  --tone: var(--error);
+  --tint: var(--error-bg);
+}
+
+.notification-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notification-message {
+  line-height: 1.5;
+}
+
+.notification-item .notification-icon {
+  color: var(--tone);
+}
+
+.toast-container {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  width: max-content;
+  max-width: min(420px, calc(100vw - 40px));
+  pointer-events: none;
+}
+
+/* A card in the type's colours: tinted face, ring in the type colour, icon on
+   a filled disc, the type named above the message. Most toasts are errors
+   about the layout just attempted, so they must hold the eye over the canvas,
+   not blend into the chrome. --tone is the type's colour, --tint its
+   background. */
+.toast {
+  --tone: var(--slate);
+  --tint: var(--surface);
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 360px;
+  max-width: 100%;
+  padding: 10px 14px 12px 14px;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  background: var(--tint);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tone) 35%, transparent), var(--shadow-pop);
+  pointer-events: auto;
+  /* Enters from the bell: the shared entrance, aimed downward. */
+  --motion-shift: -6px;
+  --motion-origin: top right;
+  transform-origin: var(--motion-origin);
+}
+
+.toast-warning {
+  --tone: var(--warning);
+  --tint: var(--warning-bg);
+}
+
+.toast-error {
+  --tone: var(--error);
+  --tint: var(--error-bg);
+}
+
+/* :not(.m-leave) so the exit class can take the animation over. */
+.toast:not(.m-leave) {
+  animation: m-in var(--slow) var(--ease-out);
+}
+
+/* An error gives one short shake once it has landed. */
+.toast-error:not(.m-leave) {
+  animation:
+    m-in var(--slow) var(--ease-out),
+    toast-shake 360ms ease-in-out var(--slow);
+}
+
+@keyframes toast-shake {
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+.toast-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--tone);
+  color: #fff;
 }
 
 .toast-icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  margin-top: 1px;
-  color: var(--color-warning);
+  width: 14px;
+  height: 14px;
+}
+
+.toast-body {
+  flex: 1;
+  min-width: 0;
+  /* Centres a one-line message on the 24px disc. */
+  padding-top: 1px;
+}
+
+.toast-label {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  color: var(--tone);
 }
 
 .toast-message {
-  font-size: 13px;
+  margin-top: 1px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* Runs down over the toast's time on screen. When empty, the toast moves into
+   the bell. --toast-elapsed (negative) resumes a toast rebuilt part-way
+   through its time. */
+.toast-countdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--tone) 55%, transparent);
+  transform-origin: left;
+  animation: toast-countdown var(--toast-life, 5s) linear var(--toast-elapsed, 0ms) forwards;
+}
+
+@keyframes toast-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* ----------------------------------------------------
+   CONFIRM DIALOG — the app's own confirm() (ui/dialog.js).
+   A native <dialog> shown modally, so it sits in the top layer above every
+   z-index. The <dialog> box is bare: the card inside is what you see, and a
+   click on the box itself is a click on the backdrop.
+-----------------------------------------------------*/
+.app-dialog {
+  width: min(420px, calc(100vw - 2 * var(--gutter)));
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-lg);
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-pop);
+}
+
+.app-dialog::backdrop {
+  background: rgba(28, 33, 40, 0.32);
+}
+
+.app-dialog__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+}
+
+.app-dialog__title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.app-dialog__message {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-md);
   line-height: 1.5;
-  color: var(--text-primary);
 }
 
-.toast-leaving {
-  animation: toast-out 0.18s ease-in forwards;
+.app-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
 }
 
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* The About modal (ui/about.js): version and copyright, then the links. */
+.about__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
 }
 
-@keyframes toast-out {
-  to {
-    opacity: 0;
-    transform: translateX(12px);
-  }
+/* The GitHub panel: the mark beside the repo, then the two ways to write in.
+   The buttons are <a>s (new tab), so the <button> base is restated. */
+.about__github {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  column-gap: 12px;
+  row-gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 14px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
 }
 
+.about__github-mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-sm);
+  color: #fff;
+  background: var(--ink);
+}
+
+.about__github-mark svg {
+  width: 24px;
+  height: 24px;
+}
+
+.about__github-head {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.about__github-title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.about__github-repo {
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.about__github-repo:hover,
+.about__github-repo:focus-visible {
+  color: var(--pink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.about__github-text {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+}
+
+.about__github-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.about__github-btn {
+  height: 32px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background var(--fast) ease, color var(--fast) ease,
+    box-shadow var(--fast) ease;
+}
+
+.about__github-btn:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 2px;
+}
+
+.about__links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-md);
+}
+
+.about__links a,
+.legal-doc a {
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.about__links a:hover,
+.about__links a:focus-visible,
+.legal-doc a:hover,
+.legal-doc a:focus-visible {
+  color: var(--pink);
+}
+
+/* The Privacy / Terms modal (ui/legalDialog.js) and the standalone pages
+   (privacy.html, terms.html) share .legal-doc, so the text looks the same. */
+.app-dialog--doc {
+  width: min(640px, calc(100vw - 2 * var(--gutter)));
+}
+
+.legal-card {
+  max-height: min(80vh, 720px);
+}
+
+.legal-doc {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 8px -20px 0;
+  padding: 0 20px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.legal-card__back {
+  margin-right: auto;
+}
+
+.legal-doc h2 {
+  margin: 16px 0 4px;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.legal-doc p,
+.legal-doc ul {
+  margin: 0 0 8px;
+}
+
+.legal-doc ul {
+  padding-left: 18px;
+}
+
+.legal-doc code {
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+  /* A key or file name is one token: never split the pill across lines. */
+  white-space: nowrap;
+}
+
+/* Keys in Help's shortcut table (ui/help.js): the code pill, with a key's
+   bottom edge. */
+.legal-doc kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  border-bottom: 2px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.help-combo {
+  white-space: nowrap;
+}
+
+.help-keys {
+  line-height: 1.9;
+}
+
+/* The three steps of Help and the first-run welcome: a numbered list, each
+   step a bold title over what to do. */
+.help-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: help-step;
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.help-steps li {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  column-gap: 10px;
+  counter-increment: help-step;
+}
+
+.help-steps li::before {
+  content: counter(help-step);
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--pink-soft);
+  color: var(--pink);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.help-steps strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.help-steps code {
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+.help-note {
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+
+.welcome-card {
+  max-width: 480px;
+}
+
+.legal-table {
+  overflow-x: auto;
+  margin: 0 0 8px;
+}
+
+.legal-doc table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.legal-doc th,
+.legal-doc td {
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+
+.legal-doc th {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Standalone pages: undo the fixed-height app shell, then one card under the
+   app's top bar. Both languages are in the page and #en in the URL shows
+   English. No script, so it works with JS off. */
+html.legal-page,
+html.legal-page body {
+  height: auto;
+}
+
+html.legal-page body {
+  display: block;
+  overflow: auto;
+}
+
+.legal-page main {
+  width: min(640px, calc(100% - 2 * var(--gutter)));
+  margin: 32px auto;
+  padding: 20px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
+}
+
+.legal-page article > h1 {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.legal-page .legal-meta {
+  margin: 4px 0 0;
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+
+.legal-page .legal-doc {
+  margin: 8px 0 0;
+  padding: 0;
+  overflow: visible;
+  border-bottom: 0;
+}
+
+.legal-page .template-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+/* Oversized scroll margin: the jump to #en/#cs clamps at the page top. */
+.legal-page #cs,
+.legal-page #en {
+  scroll-margin-top: 100vh;
+}
+
+.legal-page #en {
+  display: none;
+}
+
+.legal-page:has(#en:target) #en {
+  display: block;
+}
+
+.legal-page:has(#en:target) #cs {
+  display: none;
+}
+
+.legal-page:has(#en:target) .lang-switch::before {
+  transform: translateX(calc(100% + var(--thumb-gap)));
+}
+
+.legal-page:not(:has(#en:target)) .lang-switch a[href="#cs"],
+.legal-page:has(#en:target) .lang-switch a[href="#en"] {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* A destructive confirm reads as the weightier of the two buttons. */
+.app-dialog__danger {
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--error);
+}
+
+/* ----------------------------------------------------
+   REDUCED MOTION — keep fades, drop movement. Every entrance and exit is
+   built from the two tokens, so zeroing them is the whole story. motion.js
+   skips the canvas glide itself.
+-----------------------------------------------------*/
 @media (prefers-reduced-motion: reduce) {
-  .toast,
-  .toast-leaving,
-  .canvas-element,
-  .template-option,
-  .collapsible,
-  #canvas,
-  button {
-    animation: none !important;
-    transition: none !important;
+  :root {
+    --motion-shift: 0px;
+    --motion-scale: 1;
+  }
+
+  .notification-panel,
+  .project-menu,
+  .toast {
+    --motion-shift: 0px;
+  }
+
+  /* The shake and the bell's swing are pure movement. The error colours still
+     carry the weight without them. */
+  .toast-error:not(.m-leave) {
+    animation: m-in var(--slow) var(--ease-out);
+  }
+
+  .notification-bell.ringing svg {
+    animation: none;
   }
 }
 
 /* ----------------------------------------------------
-   RESPONSIVE
+   RESPONSIVE — rail becomes a row, panels stack above
+   the canvas, tabs drop under the brand.
 -----------------------------------------------------*/
+/* Narrow desktops: give the canvas back the chrome it can spare before
+   stacking. 72 + 300 of fixed rail + sidebar used to hold down to 900px,
+   leaving under 500px for the sheet. */
+@media (max-width: 1200px) {
+  :root {
+    --rail: 64px;
+    --sidebar: 260px;
+  }
+
+  /* The icon still says "export"; the label is what doesn't fit. */
+  .topbar-actions .btn-primary span {
+    display: none;
+  }
+
+  .topbar-actions .btn-primary {
+    width: 36px;
+    padding: 0;
+  }
+
+  .project-menu-btn > span {
+    display: none;
+  }
+
+  .project-menu-btn {
+    width: 36px;
+    padding: 0;
+  }
+}
+
+/* Stack. 260px is the sidebar's floor (the three-way placement control needs
+   ~204px of content width), so below 900px columns become rows instead of
+   squeezing further. Everything here is about that, not widths. */
 @media (max-width: 900px) {
+  .topbar-subtitle {
+    display: none;
+  }
+
+  /* The stacked layout is the one place the page itself scrolls, so the root
+     unlocks here and reserves the scrollbar gutter, which computeFitScale()'s
+     stacked branch measures against. */
+  html {
+    scrollbar-gutter: stable;
+    /* Scroll anchoring picks its own anchor, often a panel in the pinned sidebar,
+       which the Šablona fold moves to another grid cell. The browser then scrolls
+       to follow it and jolts the sheet. ui/stackedCover.js keeps the sheet steady
+       itself. */
+    overflow-anchor: none;
+  }
+
+  html,
+  body {
+    height: auto;
+  }
+
+  body {
+    display: block;
+    overflow: visible;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 10px var(--gutter);
+    row-gap: 8px;
+  }
+
+  /* Natural width again, so the actions wrap up beside the brand and the strip
+     (moved here by ui/tabs.js) takes a row of its own. */
+  .topbar-start,
+  .topbar-actions {
+    flex: 0 0 auto;
+  }
+
+  .topbar-actions {
+    margin-left: auto;
+  }
+
+  .tab-strip {
+    order: 3;
+    flex-basis: 100%;
+  }
+
   .app {
     flex-direction: column;
   }
 
+  .rail,
   .sidebar {
     width: 100%;
+    overflow: visible;
+    /* A change of layout, not a move: the panels go from beside the sheet to above
+       it. Only the reveal fade stays. */
+    transition: opacity var(--base) ease;
   }
 
-  .sidebar-panels {
+  .rail {
     flex-direction: row;
-    align-items: stretch;
-    overflow-x: auto;
-    padding-bottom: var(--space-1);
+    padding: 6px var(--gutter);
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
   }
 
-  .sidebar-panels .panel {
-    flex: 1 1 220px;
-    min-width: 220px;
+  .rail-btn {
+    flex: 1;
+    height: 52px;
+  }
+
+  .rail-btn--help {
+    margin-top: 0;
+  }
+
+  .sidebar {
+    padding: var(--gutter);
+  }
+
+  /* The cover: the panels pin under the top bar and the sheet scrolls up over
+     them at the page's own speed. The browser does the moving, so it is smooth,
+     exactly reversible and unmoved by the page changing height (adding an
+     element). --topbar-h / --sidebar-h come from ui/stackedCover.js. */
+  .app {
+    position: relative;
+  }
+
+  .sidebar {
+    position: sticky;
+    /* One gutter under the bar (its own padding supplies it). A sidebar taller
+       than the viewport pins by its bottom edge instead, so its last panel stays
+       reachable. */
+    top: min(var(--topbar-h, 60px), calc(100vh - var(--sidebar-h, 0px)));
+    z-index: 0;
   }
 
   .main {
-    padding: var(--space-6) var(--space-4) var(--space-10);
+    overflow: visible;
+    scrollbar-gutter: auto;
+    /* Paints over the pinned panels; the top bar (z-index 1000) still
+       covers it. */
+    position: relative;
+    z-index: 1;
+    /* Enough page below the sheet for it to reach the bar even when the sheet is
+       shorter than the viewport. */
+    min-height: calc(100vh - var(--topbar-h, 60px));
+    /* That box also lies over the pinned panels, and its empty part mustn't shield
+       them. Only the sheet itself is a target, so whatever peeks out under it
+       stays clickable. */
+    pointer-events: none;
   }
 
+  #canvas-wrapper {
+    pointer-events: auto;
+  }
+
+  /* The covered panels recede (a fade, nothing that changes their size) over the
+     last stretch of the cover, driven by the sheet's own position: fully in
+     view to its top meeting the bar. Scroll-linked, so it reverses exactly.
+     Only while ui/stackedCover.js says that stretch is long enough to be
+     gradual (a sheet nearly as tall as the scrollport would collapse it into
+     one step). Browsers without scroll-driven animations get the plain cover. */
+  @supports (animation-timeline: view()) {
+    .app {
+      timeline-scope: --sheet;
+    }
+
+    /* The sheet itself is the subject. .main is a viewport-tall box, so its
+       contain range would be empty. */
+    #canvas-wrapper {
+      view-timeline: --sheet block;
+      view-timeline-inset: var(--topbar-h, 60px) 0;
+    }
+
+    .cover-recede .sidebar {
+      animation: panels-recede linear both;
+      animation-timeline: --sheet;
+      animation-range: contain 0% contain 100%;
+    }
+  }
+
+  /* Two columns: Šablona takes the whole left one, and the selection and add
+     panels auto-place into the right. Folded, Šablona is a slim bar across both
+     and the other two sit side by side under it. Never a horizontal scroll. */
+  .sidebar-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    overflow: visible;
+  }
+
+  /* Nothing scrolls here, so no gutter: the full right padding comes back. */
+  .sidebar-panels > .panel {
+    padding-right: 20px;
+  }
+
+  .sidebar-panels > .panel-template {
+    grid-row: 1 / 3;
+  }
+
+  .sidebar-panels > .panel-template.is-collapsed {
+    grid-row: auto;
+    grid-column: 1 / -1;
+  }
+
+  .sidebar-panels .panel + .panel {
+    padding-top: 18px;
+  }
+
+  /* The right column is tuned to sit on the left one's rows. With nothing
+     selected, the add buttons line up with "Vlastní šablona…". With a selection,
+     "Použít změny" lines up with the scope switch and the add buttons with the
+     placement switch. The offsets hold while neither column wraps text, i.e.
+     down to 600px with a one-line scope note. */
+  .sidebar-panels .panel + .add-elements {
+    padding-top: 14px;
+  }
+
+  /* Side by side under the folded bar there is no left column to line up with,
+     so both panels start level. */
+  .sidebar-panels .panel-template.is-collapsed ~ .add-elements {
+    padding-top: 18px;
+  }
+
+  .sidebar-panels .add-elements {
+    transition: padding-top var(--slower) var(--ease-panel);
+  }
+
+  /* Folded, the bar spans the full width. The spec sheet lays its four entries
+     side by side, label over value, so the bar stays short. */
+  .spec-sheet {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-flow: column;
+    grid-template-rows: auto auto;
+    row-gap: 0;
+  }
+
+  /* The unselected state needs 14px more. The hint carries them and gives them
+     up when it collapses. */
+  .empty-hint {
+    margin-bottom: 14px;
+  }
+
+  .sel-row {
+    min-height: 30px;
+  }
+
+  #apply-selection {
+    margin-top: 9px;
+  }
+
+  /* The panel still hangs off the bell, but toasts break out to the bottom edge.
+     A two-row bar pushes them down onto the rail, and the bottom is the
+     reachable corner on a phone anyway. */
   .toast-container {
-    left: var(--space-4);
-    right: var(--space-4);
+    position: fixed;
+    top: auto;
+    bottom: var(--gutter);
+    left: var(--gutter);
+    right: var(--gutter);
+    width: auto;
     max-width: none;
+  }
+}
+
+@keyframes panels-recede {
+  to {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    animation: none;
+  }
+}
+
+/* Phones: one column. Below 600px a half-width column is under 275px and the
+   hint and panel subtitle start wrapping, which breaks the alignment. */
+@media (max-width: 600px) {
+  .sidebar-panels {
+    grid-template-columns: 1fr;
+  }
+
+  /* Four across doesn't fit a phone: two by two, still label over value. */
+  .spec-sheet {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(4, auto);
+  }
+
+  /* Air between the two pairs stacked in each column. */
+  .spec-row:nth-child(odd) dd {
+    margin-bottom: 6px;
   }
 }

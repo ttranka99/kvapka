@@ -1,0 +1,1080 @@
+/* ====================================================
+   kvapka — theme picker (sidebar) + theme editor section
+   Tokens come from style.css.
+==================================================== */
+
+/* ----------------------------------------------------
+   THEME PICKER — pill chips; custom ones carry an edit
+   affordance, built-ins are read-only baselines.
+-----------------------------------------------------*/
+.theme-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.theme-chip {
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: background var(--fast) ease, box-shadow var(--fast) ease;
+}
+
+/* 34px: the same "pick one, slate when chosen" pill as .tab. */
+.theme-chip__label {
+  height: 34px;
+  padding: 0 14px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.theme-chip:hover:not(.active) {
+  box-shadow: inset 0 0 0 1px var(--pink);
+}
+
+.theme-chip:hover:not(.active) .theme-chip__label {
+  color: var(--pink);
+}
+
+.theme-chip.active {
+  background: var(--slate);
+  box-shadow: none;
+}
+
+.theme-chip.active .theme-chip__label {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* A deleted layout a page still holds by value. */
+.theme-chip--orphaned .theme-chip__label {
+  font-style: italic;
+}
+
+.theme-chip__edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  padding-right: 4px;
+  color: var(--ink-3);
+}
+
+.theme-chip__edit svg {
+  width: 13px;
+  height: 13px;
+}
+
+.theme-chip__edit:hover {
+  color: var(--pink);
+}
+
+.theme-chip.active .theme-chip__edit {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.theme-chip.active .theme-chip__edit:hover {
+  color: var(--pink);
+}
+
+/* ----------------------------------------------------
+   THEME EDITOR — a section of its own, filling the
+   space right of the rail and below the top bar. It is
+   a parallel panel, not a modal: no scrim, fade only,
+   and it sits under the bell and toasts.
+-----------------------------------------------------*/
+body.theme-editor-dragging,
+body.theme-editor-reordering {
+  cursor: grabbing;
+  user-select: none;
+}
+
+/* A resize edge must not hijack a reorder gesture. */
+body.theme-editor-reordering .theme-handle {
+  pointer-events: none;
+}
+
+/* A section of .app, not an overlay. Like #section-prvky it takes the
+   sidebar + canvas's place beside the rail, so it needs no --topbar / --rail
+   offsets and the rail stays clickable at every width. */
+.theme-editor {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  padding: var(--gutter);
+  background: var(--bg);
+}
+
+.theme-editor[hidden] {
+  display: none;
+}
+
+body.theme-editor-open .sidebar,
+body.theme-editor-open .main {
+  display: none;
+}
+
+.theme-editor__dialog {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-card);
+}
+
+/* Top-aligned: the name input and buttons are both 36px, so they share a
+   line. When the actions wrap, they stack below instead of centring.
+   20px sides, like every pane below. */
+.theme-editor__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 20px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* The floor makes the head wrap instead of starving the name field. With
+   min-width: 0 the row always "fits" by shrinking this to nothing. */
+.theme-editor__identity {
+  flex: 1 1 220px;
+  min-width: 220px;
+}
+
+/* The visible field: a bordered box holding the name and the pencil.
+   The border shows where the editable area starts and stops. */
+.theme-editor__name-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  cursor: text;
+  transition: border-color var(--fast) ease, box-shadow var(--fast) ease, background var(--fast) ease;
+}
+
+.theme-editor__name-box:hover {
+  background: var(--surface-2);
+}
+
+.theme-editor__name-box:has(.theme-editor__name:focus-visible) {
+  border-color: var(--slate);
+  box-shadow: 0 0 0 3px var(--line);
+}
+
+.theme-editor__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  background: transparent;
+}
+
+.theme-editor__name:focus-visible {
+  outline: none;
+}
+
+.theme-editor__name-box svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+  transition: color var(--fast) ease;
+}
+
+.theme-editor__name-box:hover svg,
+.theme-editor__name:focus-visible + svg {
+  color: var(--ink);
+}
+
+.theme-editor__head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  /* May shrink and wrap; five nowrap buttons would run off a phone. */
+  min-width: 0;
+}
+
+.theme-editor__file {
+  display: none;
+}
+
+.theme-editor__body {
+  flex: 1;
+  display: grid;
+  /* The controls column is as wide as the sidebar card (sidebar minus its left
+     gutter). So switching between Studio and this section keeps the left
+     column in place. */
+  grid-template-columns: calc(var(--sidebar) - var(--gutter)) minmax(0, 1fr);
+  min-height: 0;
+}
+
+/* ----------------------------------------------------
+   THEME EDITOR — controls pane
+-----------------------------------------------------*/
+.theme-editor__controls {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+  /* 20px sides, like .panel, so content edges line up with the sidebar's. */
+  padding: 16px 20px 20px;
+  border-right: 1px solid var(--line);
+}
+
+.theme-group + .theme-group {
+  margin-top: 28px;
+}
+
+/* The same role as .panel h2 in the sidebar. */
+.theme-group__title {
+  margin: 0 0 12px;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.theme-group__note {
+  margin: -4px 0 12px;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.theme-field {
+  padding: 8px 10px;
+  margin: 0 -10px;
+  border-radius: var(--r-md);
+  transition: background var(--fast) ease;
+}
+
+/* Room between rows, so two lit backgrounds never fuse into one block. */
+.theme-field + .theme-field {
+  margin-top: 4px;
+}
+
+.theme-field:hover,
+.theme-field:focus-within {
+  background: var(--surface-2);
+}
+
+/* A control added by a new placement fades in (themeEditor.js
+   syncControlsPane). .m-reveal's own transition would lose to the one above. */
+.theme-field.m-reveal {
+  transition: background var(--fast) ease, opacity var(--base) ease;
+}
+
+/* A control lit from its region on the preview. */
+.theme-field.is-linked {
+  background: var(--pink-soft);
+}
+
+.theme-field__label {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+}
+
+.theme-field__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.theme-field__range {
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  margin: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.theme-field__range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.theme-field__range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-2);
+}
+
+.theme-field__range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: var(--slate);
+  box-shadow: 0 0 0 2px var(--surface), 0 1px 3px rgba(28, 33, 40, 0.3);
+  transition: background var(--fast) ease, transform var(--fast) var(--ease-out);
+}
+
+.theme-field__range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--slate);
+  box-shadow: 0 0 0 2px var(--surface), 0 1px 3px rgba(28, 33, 40, 0.3);
+}
+
+.theme-field__range:hover::-webkit-slider-thumb,
+.theme-field__range:active::-webkit-slider-thumb {
+  background: var(--pink);
+  transform: scale(1.15);
+}
+
+.theme-field__range:hover::-moz-range-thumb {
+  background: var(--pink);
+}
+
+.theme-field__range:focus-visible {
+  outline: none;
+}
+
+.theme-field__number {
+  width: 72px;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  font: inherit;
+  font-feature-settings: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: box-shadow var(--fast) ease;
+}
+
+.theme-field__number:hover {
+  box-shadow: inset 0 0 0 1px var(--pink);
+}
+
+.theme-field__number:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--slate), 0 0 0 3px var(--line);
+}
+
+.theme-field__unit {
+  width: 20px;
+  flex-shrink: 0;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+/* One helper-note spec with .field-note in the sidebar. */
+.theme-field__hint {
+  margin: 8px 0 0;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+}
+
+/* 26px in a 3px track: the 32px inline size shared with .panel-row select
+   and .theme-field__number. */
+.theme-toggle__option {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+.theme-toggle__option:hover {
+  color: var(--pink);
+}
+
+.theme-toggle__option.is-active,
+.theme-toggle__option.is-active:hover {
+  color: #fff;
+  font-weight: 600;
+  background: var(--slate);
+}
+
+/* A thumbed toggle (ui/thumb.js): the sliding pill is the background. */
+.has-thumb > .theme-toggle__option.is-active,
+.has-thumb > .theme-toggle__option.is-active:hover {
+  background: none;
+}
+
+/* Where the slicers stand: the first row of the controls pane. Same
+   segmented control as the sidebar's "Slicery" switch. Disabled (all three
+   options) once the layout is saved. */
+.theme-editor__placement {
+  margin-bottom: 20px;
+}
+
+.theme-editor__placement .segmented {
+  margin-top: 6px;
+}
+
+/* The per-band KPI list: one card per `kpi` section. A title row, then
+   label-left / control-right rows in the sidebar's .panel-row rhythm. */
+.theme-kpi-bands {
+  margin-top: 8px;
+}
+
+.theme-kpi-bands__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.theme-kpi-band {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px 12px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: background var(--fast) ease, box-shadow var(--fast) ease;
+}
+
+.theme-kpi-band:hover {
+  background: var(--surface-2);
+}
+
+.theme-kpi-band.is-linked {
+  background: var(--pink-soft);
+  box-shadow: inset 0 0 0 1px var(--pink);
+}
+
+.theme-kpi-band__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  margin-bottom: 4px;
+}
+
+.theme-kpi-band__title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.theme-kpi-band__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+}
+
+.theme-kpi-band__row > span {
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.theme-kpi-band__row .theme-toggle {
+  flex-shrink: 0;
+}
+
+/* Three options don't fit beside their label in a 200px column. So the row
+   stacks: label above, toggle full width below. */
+.theme-kpi-band__row--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 4px 0 2px;
+}
+
+.theme-kpi-band__row--stack .theme-toggle {
+  display: flex;
+}
+
+.theme-kpi-band__row--stack .theme-toggle__option {
+  flex: 1;
+}
+
+.theme-kpi-band__remove {
+  --icon-size: 24px;
+  --icon-glyph: 12px;
+  color: var(--ink-3);
+}
+
+.theme-kpi-band__remove:hover {
+  color: #fff;
+  background: var(--pink);
+}
+
+#theme-kpi-band-add {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.theme-editor__reset {
+  width: 100%;
+  margin-top: 28px;
+}
+
+/* ----------------------------------------------------
+   THEME EDITOR — preview stage
+-----------------------------------------------------*/
+.theme-editor__stage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px 20px;
+}
+
+.theme-stage__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.theme-stage__toolbar-label {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+/* Label-left / control-right, in .panel-row's voice. */
+.theme-stage__rows {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.theme-stage__rows .theme-field__number {
+  width: 56px;
+}
+
+/* Fixed 16px padding: renderPreview() subtracts exactly 32px from this
+   frame's clientWidth/Height when sizing the preview. */
+.theme-stage__frame {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* A really short window scrolls the stage instead of crushing the preview
+     toward renderPreview()'s 120px floor. 260px of frame is about 0.21 scale
+     for a FULL HD canvas, where it stops being more than a thumbnail. */
+  min-height: 260px;
+  padding: 16px;
+  border-radius: var(--r-md);
+  background: var(--sheet-dots), var(--bg);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.theme-preview {
+  position: relative;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-sheet);
+  transition: box-shadow var(--fast) ease;
+}
+
+.theme-region {
+  position: absolute;
+  border-radius: 3px;
+  /* top/height animate during a reorder drag so the other bands glide. */
+  transition: box-shadow var(--fast) ease, opacity var(--base) ease,
+    top var(--base) var(--ease-in-out), height var(--base) var(--ease-in-out);
+}
+
+/* The preview is rebuilt on every render, so a discrete change is replayed
+   per region by data-key (motion.js playBoxes), as the Studio canvas does
+   with its cards. A survivor glides from its old box, a newcomer fades in,
+   a removed region fades out as a ghost. */
+.theme-region.is-moving {
+  transition: box-shadow var(--fast) ease, opacity var(--base) ease,
+    left var(--base) var(--ease-in-out), top var(--base) var(--ease-in-out),
+    width var(--base) var(--ease-in-out), height var(--base) var(--ease-in-out);
+}
+
+/* transition: none so the start state lands without itself easing. */
+.theme-region.m-enter--fade {
+  opacity: 0;
+  transition: none;
+}
+
+.theme-region.is-ghost {
+  pointer-events: none;
+}
+
+/* The lifted band follows the cursor via an inline transform written every
+   frame. Never animate it, or it lags the pointer. */
+.theme-region--dragging {
+  z-index: 30;
+  box-shadow: 0 16px 40px -8px rgba(28, 33, 40, 0.4), 0 0 0 1.5px var(--pink);
+  cursor: grabbing;
+  transition: none;
+}
+
+/* Only after a drop/abort may the lifted band's transform animate back. */
+.theme-region--returning {
+  transition: box-shadow var(--fast) ease, top var(--base) var(--ease-in-out), height var(--base) var(--ease-in-out), transform var(--base) var(--ease-out);
+}
+
+.theme-region.is-linked {
+  z-index: 6;
+  box-shadow: 0 0 0 2px var(--pink), 0 0 0 6px var(--pink-ring);
+}
+
+.theme-preview.is-linked {
+  box-shadow: 0 0 0 2px var(--pink), 0 0 0 6px var(--pink-ring), var(--shadow-sheet);
+}
+
+/* The usable area is context, not a component: a faint outline behind all. */
+.theme-region--usable {
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  pointer-events: none;
+}
+
+/* The four margin bands: a soft neutral tint. Real elements, so any inner
+   edge can be dragged. */
+.theme-region--margin {
+  border-radius: 0;
+  z-index: 3;
+  background: var(--surface-2);
+}
+
+.theme-region--margin.is-linked {
+  background: var(--pink-soft);
+  box-shadow: none;
+}
+
+.theme-margin__value,
+.theme-gap__value {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  font-size: 9px;
+  line-height: 1.5;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line);
+  pointer-events: none;
+}
+
+.theme-region--margin.is-linked .theme-margin__value,
+.theme-region--gap.is-linked .theme-gap__value {
+  color: var(--pink);
+}
+
+.theme-region--title {
+  background: var(--slate);
+}
+
+.theme-region--slicer,
+.theme-region--kpi,
+.theme-region--chart {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.theme-region--chart.is-too-small {
+  background: var(--error-bg);
+  box-shadow: inset 0 0 0 1px var(--error);
+}
+
+/* Gap rulers make the two spacing values visible. */
+.theme-region--gap {
+  z-index: 4;
+  background: repeating-linear-gradient(45deg, var(--line) 0 3px, transparent 3px 7px);
+}
+
+.theme-region--gap.is-linked {
+  background: var(--pink-soft);
+}
+
+/* The strip beside a slicer column is upright: its value reads along it. */
+.theme-region--gap-x .theme-gap__value {
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+
+/* Cell subdivisions: what turns a stripe into "the seven slicers". */
+.theme-cells {
+  position: absolute;
+  inset: 3px;
+  display: flex;
+  pointer-events: none;
+}
+
+.theme-cells--row { flex-direction: row; }
+.theme-cells--column { flex-direction: column; }
+
+.theme-cell {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 2px;
+  background: var(--surface-2);
+}
+
+.theme-region--title .theme-cell {
+  background: transparent;
+}
+
+/* Tags sit inside their region. */
+.theme-tag {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  z-index: 5;
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  font-size: 9px;
+  line-height: 1.6;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(28, 33, 40, 0.08);
+}
+
+.theme-tag--wrap {
+  white-space: normal;
+  max-width: calc(100% - 8px);
+}
+
+.theme-tag--usable {
+  left: auto;
+  right: 4px;
+  top: -9px;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+/* Drag strips on region edges. */
+.theme-handle {
+  position: absolute;
+  z-index: 7;
+}
+
+.theme-handle--y {
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 9px;
+  cursor: ns-resize;
+}
+
+.theme-handle--x {
+  top: 0;
+  bottom: 0;
+  right: -4px;
+  width: 9px;
+  cursor: ew-resize;
+}
+
+.theme-handle--left {
+  right: auto;
+  left: -4px;
+}
+
+.theme-handle--top {
+  bottom: auto;
+  top: -4px;
+}
+
+.theme-handle::after {
+  content: "";
+  position: absolute;
+  inset: 4px 0;
+  border-radius: 2px;
+  background: var(--pink);
+  opacity: 0;
+  transition: opacity var(--fast) ease;
+}
+
+.theme-handle--x::after {
+  inset: 0 4px;
+}
+
+.theme-handle:hover::after {
+  opacity: 1;
+}
+
+/* The reorder grip is the region's label chip with a dots glyph. */
+.theme-grip {
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 6px;
+  cursor: grab;
+  outline: none;
+  transition: background var(--fast) ease, color var(--fast) ease, box-shadow var(--fast) ease;
+}
+
+.theme-grip:hover {
+  color: var(--pink);
+  background: var(--pink-soft);
+  box-shadow: 0 0 0 1px var(--pink);
+}
+
+.theme-grip:focus-visible {
+  box-shadow: 0 0 0 2px var(--pink);
+}
+
+body.theme-editor-reordering .theme-grip {
+  cursor: grabbing;
+}
+
+.theme-grip__dots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.theme-grip__dot {
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+
+.theme-grip:hover .theme-grip__dot,
+.theme-grip:focus-visible .theme-grip__dot {
+  background: var(--pink);
+}
+
+.theme-grip.theme-tag--wrap {
+  align-items: flex-start;
+}
+
+.theme-grip.theme-tag--wrap .theme-grip__dots {
+  margin-top: 3px;
+}
+
+/* ----------------------------------------------------
+   THEME EDITOR — readout + issues
+-----------------------------------------------------*/
+.theme-stage__readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin-top: 14px;
+}
+
+.theme-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.theme-stat__label {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
+  color: var(--ink-3);
+}
+
+.theme-stat__value {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
+.theme-stage__status {
+  margin-top: 12px;
+}
+
+/* Summary line: "1 error · 2 warnings", or the quiet all-clear. */
+.theme-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+
+.theme-status__count {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.theme-status__note {
+  color: var(--error);
+}
+
+.theme-status--ok {
+  gap: 6px;
+  color: var(--ink-2);
+}
+
+.theme-status svg,
+.theme-issue svg,
+.theme-notice svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+.theme-status--ok svg {
+  color: var(--success);
+}
+
+.theme-issues {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 0;
+  /* Room for the cards' 1px ring, which the scroll box would clip. */
+  padding: 1px;
+  max-height: 160px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+/* A finding, styled like a notification toast (.toast in style.css): tinted
+   face, ring in the severity colour, icon on a filled disc, headline in that
+   colour, the fix beneath. No shadow or width: it sits in the page, not over
+   it. Only a newly appeared finding fades in (.m-reveal, opacity only), since
+   the list is rebuilt during drags. --tone is the severity colour, --tint its
+   background. */
+.theme-issue {
+  --tone: var(--warning);
+  --tint: var(--warning-bg);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px 12px;
+  border-radius: var(--r-md);
+  background: var(--tint);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tone) 35%, transparent);
+}
+
+.theme-issue--error {
+  --tone: var(--error);
+  --tint: var(--error-bg);
+}
+
+.theme-issue__badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--tone);
+  color: #fff;
+}
+
+.theme-issue__body {
+  flex: 1;
+  min-width: 0;
+  /* Centres a one-line headline on the 24px disc. */
+  padding-top: 1px;
+}
+
+.theme-issue__title {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  color: var(--tone);
+}
+
+.theme-issue__hint {
+  display: block;
+  margin-top: 1px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* Passing notices (imported, couldn't read): one line, then gone. */
+.theme-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.theme-notice--ok {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+.theme-notice--error {
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+.theme-editor__name-box.is-invalid {
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px var(--error-bg);
+}
+
+/* One column, at the breakpoint where the sidebar stacks above the canvas
+   (style.css). fit-content(35%) means as tall as the controls need, up to 35%.
+   It goes on the track, not as a max-height on the item: a percentage
+   max-height on a grid item is cyclic while the track is sized, so it is
+   ignored and the controls get the whole height. The preview gets the rest,
+   which for a 16:9 canvas is the difference between a picture and a
+   thumbnail. */
+@media (max-width: 900px) {
+  .theme-editor__body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: fit-content(35%) minmax(0, 1fr);
+  }
+
+  .theme-editor__controls {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
