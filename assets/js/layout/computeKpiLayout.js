@@ -188,6 +188,8 @@ function computeTwoRowLayout(v, bandId, top, cards) {
   if (row2Overflows) return [];
 
   const ordinal = state.kpiBandIds().indexOf(bandId);
+  // Every card in the band, both rows, shares one height.
+  const h = state.kpiBandHeight(bandId);
   const rows = [];
 
   if (row1.length > 0) {
@@ -196,7 +198,6 @@ function computeTwoRowLayout(v, bandId, top, cards) {
 
     const items = row1.map((k, i) => {
       const w = widths1[i];
-      const h = k.height ?? state.KPI_MIN_HEIGHT;
 
       const item = {
         x,
@@ -219,15 +220,10 @@ function computeTwoRowLayout(v, bandId, top, cards) {
   if (row2.length > 0) {
     let x = v.contentLeft;
 
-    const row1Height = row1.length
-      ? Math.max(...row1.map(k => k.height ?? state.KPI_MIN_HEIGHT))
-      : state.KPI_MIN_HEIGHT;
-
-    const y = top + row1Height + state.GAP_SMALL;
+    const y = top + h + state.GAP_SMALL;
 
     const items = row2.map((k, i) => {
       const w = widths2[i];
-      const h = k.height ?? state.KPI_MIN_HEIGHT;
 
       const item = {
         x,
@@ -272,6 +268,7 @@ function computeSingleRowLayout(v, bandId, top, cards) {
   if (!fits) return [];
 
   const ordinal = state.kpiBandIds().indexOf(bandId);
+  const height = state.kpiBandHeight(bandId);
   let x = v.contentLeft;
   const items = row.map((k, i) => {
     const w = solved.widths[i];
@@ -279,7 +276,7 @@ function computeSingleRowLayout(v, bandId, top, cards) {
       x,
       y: top,
       width: w,
-      height: k.height ?? state.KPI_MIN_HEIGHT,
+      height,
       index: i,
       band: ordinal,
       bandId,

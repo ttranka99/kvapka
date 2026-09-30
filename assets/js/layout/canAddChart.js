@@ -13,16 +13,11 @@ export function canAddChart(simulatedChartRows) {
 
   state.setWarnings([]);
   const vLayout = computeVerticalLayout();
-  const heights = computeChartRowHeights(vLayout);
+  const fits = chartRowsFit(vLayout);
 
   state.setChartRows(original);
 
-  const n = simulatedChartRows.length;
-  const totalGaps = (vLayout.chartRowGapCount ?? n - 1) * state.GAP_SMALL;
-  const totalHeight = heights.reduce((s, h) => s + h, 0) + totalGaps;
-
-  if (heights.some((h, i) => h < rowEffectiveMinHeight(simulatedChartRows[i]))) return false;
-  if (totalHeight > vLayout.chartsHeight) return false;
+  if (!fits) return false;
 
   // Each row must fit the content box (narrower than USABLE_WIDTH when the
   // slicer column is on the left).
@@ -46,4 +41,20 @@ export function canAddChart(simulatedChartRows) {
   }
 
   return true;
+}
+
+// Whether the live chart rows still fit their vertical budget at their
+// minimum heights. Pure (no setWarnings), so a drag can call it on every
+// pointermove. Used by anything that takes height from the chart region,
+// like the horizontal slicer band.
+export function chartRowsFit(vLayout = computeVerticalLayout()) {
+  const rows = state.chartRows;
+  const heights = computeChartRowHeights(vLayout);
+
+  const n = rows.length;
+  const totalGaps = (vLayout.chartRowGapCount ?? n - 1) * state.GAP_SMALL;
+  const totalHeight = heights.reduce((s, h) => s + h, 0) + totalGaps;
+
+  if (heights.some((h, i) => h < rowEffectiveMinHeight(rows[i]))) return false;
+  return totalHeight <= vLayout.chartsHeight;
 }

@@ -78,7 +78,7 @@ export function computeSlicersLayout(v) {
                 x,
                 y: v.slicersTop,
                 width: w,
-                height: state.SLICER_HEIGHT,
+                height: state.SLICER_ROW_HEIGHT,
                 stateRef: s
             };
             x += w + state.GAP_SMALL;
@@ -96,9 +96,9 @@ export function computeSlicersLayout(v) {
                 type: "slicer",
                 globalIndex,
                 x,
-                y: v.slicersTop + state.SLICER_HEIGHT + state.GAP_SMALL,
+                y: v.slicersTop + state.SLICER_ROW_HEIGHT + state.GAP_SMALL,
                 width: w,
-                height: state.SLICER_HEIGHT,
+                height: state.SLICER_ROW_HEIGHT,
                 stateRef: s
             };
             x += w + state.GAP_SMALL;

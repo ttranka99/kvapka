@@ -5,6 +5,7 @@ import { renderLayout } from "../ui/renderLayout.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeKpiLayoutForBand } from "../layout/computeKpiLayout.js";
 import { flash } from "../ui/motion.js";
+import { chartRowsFit } from "../layout/canAddChart.js";
 import { t, isFrom } from "../i18n/i18n.js";
 
 // All KPI bands share these handlers, addressed by the id of the `kpi`
@@ -22,14 +23,29 @@ export function kpiBandCapacity(bandId) {
 }
 
 export function canAddKpi(bandId) {
-  if (!sectionFor(bandId)) return false;
-  return state.getKpiBand(bandId).length < kpiBandCapacity(bandId);
+  const section = sectionFor(bandId);
+  if (!section) return false;
+  const cards = state.getKpiBand(bandId);
+  if (cards.length >= kpiBandCapacity(bandId)) return false;
+
+  // The card that opens a second row adds a whole row of band height, so the
+  // charts must still fit it (the band can be taller than the theme's
+  // minimum). Mirrors canAddSlicer in slicerEvents.js.
+  if (section.allowSecondRow && cards.length === state.MAX_KPIS) {
+    state.setKpiBand(bandId, [...cards, { height: null, locked: false }]);
+    const fits = chartRowsFit();
+    state.setKpiBand(bandId, cards);
+    return fits;
+  }
+  return true;
 }
 
 export function kpiLimitMessage(bandId) {
   const section = sectionFor(bandId);
-  return section && !section.allowSecondRow
-    ? t("warnings.kpi.bandFull", { band: bandId })
+  if (section && !section.allowSecondRow) return t("warnings.kpi.bandFull", { band: bandId });
+  // Below the count cap, only the second-row fit check can refuse.
+  return state.getKpiBand(bandId).length < kpiBandCapacity(bandId)
+    ? t("warnings.kpi.secondRowNoFit")
     : t("warnings.kpi.limit");
 }
 
@@ -72,8 +88,9 @@ export function handleRemoveKpi(index, bandId) {
 }
 
 // Freezes (or releases) a KPI's width at the solver's current value, so
-// add/remove doesn't redistribute it. One flag covers width and height (Apply
-// locks the same way), so releasing it frees both.
+// add/remove doesn't redistribute it. Height isn't a card's own: the whole
+// band shares it (state.kpiBandHeights). A card's `height` is only read to
+// migrate old files (sanitizeSnapshot in state/tabs.js).
 export function handleToggleKpiLock(index, bandId) {
   const k = state.getKpiBand(bandId)[index];
   if (!k) return;
@@ -113,7 +130,9 @@ export function handleSelectKpi(item, domId, opts = {}) {
     width: item.width,
     height: item.height,
     domId,
-    stateRef: item.stateRef
+    stateRef: item.stateRef,
+    // The height Apply changes is this band's.
+    bandId: item.bandId
   }, opts);
 }
 

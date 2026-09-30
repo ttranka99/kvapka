@@ -400,6 +400,8 @@ export default {
   "warnings.slicer.minHeight": "Minimální výška sliceru je {min}px.",
   "warnings.slicer.heightNoFit": "Zadaná výška se do sloupce nevejde, upravte hodnotu.",
   "warnings.slicer.columnWidthMax": "Šířku sloupce nelze dále zvětšit, odemkněte některé grafy nebo KPI.",
+  "warnings.slicer.rowHeightNoFit": "Slicery nemohou být takto vysoké, grafy pod nimi by se nevešly.",
+  "warnings.slicer.secondRowNoFit": "Druhá řada slicerů se nevejde, grafy pod nimi potřebují místo. Nejprve snižte výšku slicerů.",
 
   // --- Notifications: KPI -----------------------------------------------
   "warnings.kpi.limit": "Bylo dosaženo maximálního počtu KPI.",
@@ -414,6 +416,8 @@ export default {
   "warnings.kpi.bandOverflow": "KPI v pásu „{band}“ se nevejdou do dostupné šířky, upravte šířku nebo odeberte KPI.",
   "warnings.kpi.bandLimit": "KPI v pásu „{band}“ překračují vybraný limit na řádek.",
   "warnings.kpi.minHeight": "Minimální výška KPI je {min}px.",
+  "warnings.kpi.bandHeightNoFit": "KPI nemohou být takto vysoké, grafy pod nimi by se nevešly.",
+  "warnings.kpi.secondRowNoFit": "Druhá řada KPI se nevejde, grafy pod nimi potřebují místo. Nejprve snižte výšku KPI.",
   "warnings.kpi.cardsDropped": "Šablona bez pásu KPI - {count} KPIs z odstraněného pásu bylo zahozeno.",
 
   // --- Notifications: charts --------------------------------------------
@@ -591,7 +595,7 @@ export default {
   "themeField.gapKpiToCharts.hint": "Širší mezera oddělující logické bloky: slicery od obsahu, KPI od grafů.",
   "themeField.titleHeight.label": "Výška hlavičky",
   "themeField.slicerHeight.label": "Výška sliceru",
-  "themeField.slicerHeight.hint": "Pevná výška slicerů ve vodorovném pásu.",
+  "themeField.slicerHeight.hint": "Minimální (a výchozí) výška slicerů ve vodorovném pásu. Stránka může pás zvýšit.",
   "themeField.slicerHeight.verticalLabel": "Min. výška sliceru",
   "themeField.slicerHeight.verticalHint": "Minimální (a výchozí) výška jednoho sliceru ve sloupci, od které se odvíjí počet dostupných slicerů.",
   "themeField.minSlicerWidth.label": "Min. šířka sliceru",

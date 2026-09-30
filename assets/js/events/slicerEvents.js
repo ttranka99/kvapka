@@ -9,6 +9,7 @@ import {
   computeSlicerColumnHeights,
   slicerColumnFits
 } from "../layout/computeSlicerColumnHeights.js";
+import { chartRowsFit } from "../layout/canAddChart.js";
 import { t, isFrom } from "../i18n/i18n.js";
 
 // Whether one more slicer can be added. In vertical mode there is no count
@@ -22,12 +23,26 @@ export function canAddSlicer() {
       v.slicerColumnHeight
     );
   }
-  return state.slicers.length < state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS;
+  if (state.slicers.length >= state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS) return false;
+
+  // The slicer that opens a second row adds a whole row of band height, so
+  // the charts below must still fit it (the band can be taller than the
+  // theme's default, see SLICER_ROW_HEIGHT).
+  if (state.slicers.length === state.MAX_SLICERS) {
+    const original = state.slicers;
+    state.setSlicers([...original, { width: null, height: null, locked: false }]);
+    const fits = chartRowsFit();
+    state.setSlicers(original);
+    return fits;
+  }
+  return true;
 }
 
 export function slicerLimitMessage() {
-  return state.isVerticalSlicers()
-    ? t("warnings.slicer.columnFull")
+  if (state.isVerticalSlicers()) return t("warnings.slicer.columnFull");
+  // Below the count cap, only the second-row fit check can refuse.
+  return state.slicers.length < state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS
+    ? t("warnings.slicer.secondRowNoFit")
     : t("warnings.slicer.limit");
 }
 

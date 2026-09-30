@@ -16,7 +16,7 @@ import {
   sideOfPlacement
 } from "../theme/themeModel.js";
 import { getTheme } from "../theme/themeStore.js";
-import { setStep } from "../layout/sizeStep.js";
+import { setStep, snapToStep } from "../layout/sizeStep.js";
 import { addWarning } from "../ui/warnings.js";
 import { t } from "../i18n/i18n.js";
 
@@ -30,6 +30,9 @@ export let TITLE_HEIGHT = activeTheme.titleHeight;
 export let GAP_SMALL = activeTheme.gapSmall;
 export let GAP_KPI_TO_CHARTS = activeTheme.gapKpiToCharts;
 export let SLICER_HEIGHT = activeTheme.slicerHeight;
+// Horizontal band: the height every slicer in the band shares (both rows).
+// A page value like SLICER_COLUMN_WIDTH, never below SLICER_HEIGHT.
+export let SLICER_ROW_HEIGHT = activeTheme.slicerHeight;
 // Vertical-slicer mode: slicers stack in one fixed-width column instead of a
 // horizontal band under the title. SLICER_HEIGHT is still the per-slicer
 // *minimum* (and default) height.
@@ -74,6 +77,10 @@ export let slicers = [];
 // themes with different band counts is handled by applyTheme() (see
 // reconcileKpiBands below).
 export let kpiBands = {};
+// Each KPI band's shared card height (both rows of a two-row band), keyed
+// like kpiBands. A page value like SLICER_ROW_HEIGHT; a missing entry means
+// KPI_MIN_HEIGHT.
+export let kpiBandHeights = {};
 export let chartRows = [];
 export let selectedElement = null;
 export let warnings = [];
@@ -98,6 +105,31 @@ export function setSlicerColumnWidth(v) {
     MAX_SLICER_COLUMN_WIDTH,
     Math.max(MIN_SLICER_COLUMN_WIDTH, v)
   );
+}
+
+export function setSlicerRowHeight(v) {
+  SLICER_ROW_HEIGHT = Number.isFinite(v) ? Math.max(SLICER_HEIGHT, snapToStep(v)) : SLICER_HEIGHT;
+}
+
+export function kpiBandHeight(id) {
+  return kpiBandHeights[id] ?? KPI_MIN_HEIGHT;
+}
+
+// Never below KPI_MIN_HEIGHT. A non-number drops the entry (the default).
+export function setKpiBandHeight(id, v) {
+  const next = { ...kpiBandHeights };
+  if (Number.isFinite(v)) next[id] = Math.max(KPI_MIN_HEIGHT, snapToStep(v));
+  else delete next[id];
+  kpiBandHeights = next;
+}
+
+// Loads a page's heights. Only the active theme's KPI bands are kept.
+export function setKpiBandHeights(map) {
+  kpiBandHeights = {};
+  if (!map || typeof map !== "object") return;
+  kpiBandIds().forEach(id => {
+    if (Object.prototype.hasOwnProperty.call(map, id)) setKpiBandHeight(id, map[id]);
+  });
 }
 
 function clampComponentsPerRow(v) {
@@ -148,6 +180,9 @@ export function applyTheme(theme) {
   // theme: 290px is over a fifth of the HD canvas, and the min/max bounds
   // change with the theme.
   SLICER_COLUMN_WIDTH = t.slicerColumnWidth;
+  // Same for the band heights: their minimums come from the theme.
+  SLICER_ROW_HEIGHT = t.slicerHeight;
+  kpiBandHeights = {};
   SLICER_FILL_THRESHOLD = t.slicerFillThreshold;
   KPI_MIN_HEIGHT = t.kpiMinHeight;
   MIN_CHART_ROW_HEIGHT = t.minChartRowHeight;

@@ -34,6 +34,8 @@ export function computeVerticalLayout() {
     orientation: vertical ? "vertical" : "horizontal",
     slicerSide: state.SLICER_SIDE,
     columnWidth: state.SLICER_COLUMN_WIDTH,
+    slicerRowHeight: state.SLICER_ROW_HEIGHT,
+    kpiBandHeights: state.kpiBandHeights,
     rowHeightSolver: v => computeChartRowHeights(v)
   });
 }

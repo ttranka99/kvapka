@@ -4,7 +4,7 @@ import { flash, flashAll } from "../ui/motion.js";
 import { renderWarnings, addWarning } from "../ui/warnings.js";
 import { computeVerticalLayout } from "../layout/computeVerticalLayout.js";
 import { computeChartRowHeights } from "../layout/computeChartRowHeights.js";
-import { canAddChart } from "../layout/canAddChart.js";
+import { canAddChart, chartRowsFit } from "../layout/canAddChart.js";
 import { rowEffectiveMinHeight } from "../layout/computeStackHeights.js";
 import { snapToStep } from "../layout/sizeStep.js";
 import { slicerColumnFits } from "../layout/computeSlicerColumnHeights.js";
@@ -24,9 +24,10 @@ function isWidthEditable(kind) {
   return kind === "kpi" || kind === "chartRow";
 }
 
+// A slicer's height is its own in a vertical column and the band's shared
+// height in a horizontal row. A KPI's is always its band's.
 function isHeightEditable(kind) {
-  if (kind === "slicer") return state.isVerticalSlicers();
-  return kind === "chartRow" || kind === "stackChart";
+  return kind === "slicer" || kind === "kpi" || kind === "chartRow" || kind === "stackChart";
 }
 
 // Validates and applies a new width for the selected element `info`.
@@ -110,6 +111,21 @@ function applyHeightValue(info, val) {
       return;
     }
 
+    // Horizontal: every slicer in the band shares the height, and a taller
+    // band takes it from the charts below, so they must still fit.
+    if (!state.isVerticalSlicers()) {
+      const originalRowHeight = state.SLICER_ROW_HEIGHT;
+      state.setSlicerRowHeight(val);
+      if (val > originalRowHeight && !chartRowsFit()) {
+        state.setSlicerRowHeight(originalRowHeight);
+        addWarning(t("warnings.slicer.rowHeightNoFit"), "error");
+        renderWarnings();
+        return;
+      }
+      renderLayout();
+      return;
+    }
+
     // The other slicers share the remaining height, so this only holds if
     // they all still meet their minimum.
     const s = info.stateRef;
@@ -138,9 +154,16 @@ function applyHeightValue(info, val) {
       return;
     }
 
-    const k = info.stateRef;
-    k.height = val;
-    k.locked = true;
+    // Every card in the band shares the height, and a taller band takes it
+    // from the charts, so they must still fit (as for the slicer band).
+    const originalHeight = state.kpiBandHeight(info.bandId);
+    state.setKpiBandHeight(info.bandId, val);
+    if (val > originalHeight && !chartRowsFit()) {
+      state.setKpiBandHeight(info.bandId, originalHeight);
+      addWarning(t("warnings.kpi.bandHeightNoFit"), "error");
+      renderWarnings();
+      return;
+    }
 
     renderLayout();
     return;

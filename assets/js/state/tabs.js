@@ -40,14 +40,17 @@ export function captureSnapshot() {
     // Orientation and side are not stored: they come from the theme's
     // placement, and the theme is stored above.
     slicerColumnWidth: state.SLICER_COLUMN_WIDTH,
+    slicerRowHeight: state.SLICER_ROW_HEIGHT,
+    kpiBandHeights: clone(state.kpiBandHeights),
   };
 }
 
 export function loadSnapshot(snap) {
-  // applyTheme resets the column width and per-row limits to the theme's
-  // defaults, so restore the page's own values after it.
+  // applyTheme resets the column width, band height and per-row limits to the
+  // theme's defaults, so restore the page's own values after it.
   state.applyTheme(snap.theme ?? getTheme(snap.activeTemplate) ?? normalizeTheme({}));
   state.setSlicerColumnWidth(snap.slicerColumnWidth);
+  state.setSlicerRowHeight(snap.slicerRowHeight);
   state.setMaxSlicers(snap.maxSlicers);
   state.setMaxKpis(snap.maxKpis);
   state.setSlicers(clone(snap.slicers));
@@ -56,6 +59,7 @@ export function loadSnapshot(snap) {
   // `kpiBands`. A snapshot without them can only be an old in-memory one, so
   // keeping what applyTheme() seeded is just defensive.
   if (snap.kpiBands) state.setKpiBands(clone(snap.kpiBands));
+  state.setKpiBandHeights(snap.kpiBandHeights);
 
   state.setChartRows(clone(snap.chartRows));
   state.setWarnings(clone(snap.warnings));
@@ -262,9 +266,21 @@ function sanitizeSnapshot(snap) {
       if (Object.prototype.hasOwnProperty.call(bands, s.id)) kpiBands[s.id] = list(bands[s.id], sized);
     });
 
+  // One height per band. Files from before it existed may still have
+  // per-card heights (the row took the tallest), so that becomes the band's.
+  const kpiBandHeights = {};
+  const storedHeights = isObject(snap.kpiBandHeights) ? snap.kpiBandHeights : {};
+  Object.keys(kpiBands).forEach(id => {
+    const stored = Object.prototype.hasOwnProperty.call(storedHeights, id) ? size(storedHeights[id]) : null;
+    const legacy = kpiBands[id].map(k => k.height).filter(h => h !== null && h !== undefined);
+    const height = stored ?? (legacy.length ? Math.max(...legacy) : null);
+    if (height !== null) kpiBandHeights[id] = height;
+  });
+
   return {
     slicers: list(snap.slicers, sized),
     kpiBands,
+    kpiBandHeights,
     chartRows: list(snap.chartRows, row => ({
       height: size(row?.height),
       locked: row?.locked === true,
@@ -276,7 +292,9 @@ function sanitizeSnapshot(snap) {
     theme,
     maxSlicers: snap.maxSlicers,
     maxKpis: snap.maxKpis,
-    slicerColumnWidth: size(snap.slicerColumnWidth) ?? theme.slicerColumnWidth
+    slicerColumnWidth: size(snap.slicerColumnWidth) ?? theme.slicerColumnWidth,
+    // Missing in files saved before the band height could change.
+    slicerRowHeight: size(snap.slicerRowHeight) ?? theme.slicerHeight
   };
 }
 

@@ -14,9 +14,11 @@ function isWidthEditable(kind) {
   return kind === "kpi" || kind === "chartRow";
 }
 
+// Slicer height: its own in a vertical column, the band's shared one in a
+// horizontal row. KPI height: always its band's (see applyHeightValue in
+// resizeEvents.js).
 function isHeightEditable(kind) {
-  if (kind === "slicer") return state.isVerticalSlicers();
-  return kind === "chartRow" || kind === "stackChart";
+  return kind === "slicer" || kind === "kpi" || kind === "chartRow" || kind === "stackChart";
 }
 
 export function getPendingWidth() {

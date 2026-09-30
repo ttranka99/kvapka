@@ -30,6 +30,11 @@ import { attachRowResizeHandle } from "../events/rowResizeEvents.js";
 import { attachStackResizeHandle } from "../events/stackResizeEvents.js";
 import { snapshotCanvas, playCanvas } from "./motion.js";
 import { attachSlicerColumnResizeHandle } from "../events/slicerColumnResizeEvents.js";
+import {
+  attachSlicerBandResizeHandle,
+  attachSlicerHeightResizeHandle,
+  attachKpiBandResizeHandle
+} from "../events/bandHeightResizeEvents.js";
 import { setSelected, syncSelectionLockState } from "../ui/selection.js";
 import { renderWarnings } from "../ui/warnings.js";
 import { icon } from "../ui/icon.js";
@@ -348,16 +353,23 @@ export function renderLayout(opts) {
       // Must run after the button is in the document (see the helper).
       if (slicerLockBtn) suppressHoverIfCursorOver(slicerLockBtn);
 
+      // In a vertical column, each slicer's bottom edge drags its own height.
+      // The handle also triggers the "+" below (it must come right before it).
+      if (verticalSlicers) {
+        const heightHandle = document.createElement("div");
+        heightHandle.className = "row-resize-handle";
+        heightHandle.style.left = scale(item.x) + "px";
+        heightHandle.style.width = scale(item.width) + "px";
+        heightHandle.style.top = scale(item.y + item.height) + "px";
+        attachSlicerHeightResizeHandle(heightHandle, item.globalIndex, renderLayout);
+        canvas.appendChild(heightHandle);
+      }
+
       // Hover "+" is the only way to add another slicer. It sits on the edge
       // the slicers grow toward: right in a row, bottom in a vertical column.
       appendEdgeAddControl({
         zone: verticalSlicers
-          ? {
-              left: scale(item.x),
-              top: scale(item.y + item.height) - 8,
-              width: scale(item.width),
-              height: 16
-            }
+          ? null
           : {
               left: scale(item.x + item.width) - 8,
               top: scale(item.y),
@@ -379,6 +391,20 @@ export function renderLayout(opts) {
       });
     });
   });
+
+  // Horizontal band: one handle along its bottom edge. Every slicer shares
+  // the height, so the handle spans the band, not a single slicer.
+  const lastSlicerRow = slicerRowsLayout[slicerRowsLayout.length - 1];
+  if (!verticalSlicers && lastSlicerRow && lastSlicerRow.length) {
+    const bottom = lastSlicerRow[0].y + lastSlicerRow[0].height;
+    const bandHandle = document.createElement("div");
+    bandHandle.className = "row-resize-handle";
+    bandHandle.style.left = scale(state.MARGIN) + "px";
+    bandHandle.style.width = scale(state.USABLE_WIDTH) + "px";
+    bandHandle.style.top = scale(bottom) + "px";
+    attachSlicerBandResizeHandle(bandHandle, renderLayout);
+    canvas.appendChild(bandHandle);
+  }
 
   // Every KPI band renders in the same pass. Bands past the first differ only
   // in position (typically inside the chart area) and in their item list,
@@ -404,8 +430,8 @@ export function renderLayout(opts) {
       // Numbering restarts at 1 in each band.
       label.textContent = t("canvas.kpi", { n: item.index + 1 });
       el.appendChild(label);
-      // One flag covers both values. Which values are set says what is locked.
-      markLocked(el, item.stateRef.locked && item.stateRef.width != null, item.stateRef.locked && item.stateRef.height != null);
+      // A KPI locks only its width. The height is its band's (kpiBandHeights).
+      markLocked(el, item.stateRef.locked, false);
       el.dataset.kpi = `${item.bandId}:${item.index}`;
 
       const controls = document.createElement("div");
@@ -458,6 +484,26 @@ export function renderLayout(opts) {
         title: t("canvas.addKpi")
       });
     });
+  });
+
+  // One handle along each KPI band's bottom edge, like the slicer band's:
+  // every card in a band shares its height. It spans the content box, so it
+  // stops beside a vertical slicer column.
+  const kpiRowsByBand = new Map();
+  kpiRows.forEach(row => {
+    if (!row.length) return;
+    const id = row[0].bandId;
+    kpiRowsByBand.set(id, [...(kpiRowsByBand.get(id) || []), row]);
+  });
+  kpiRowsByBand.forEach((rows, bandId) => {
+    const last = rows[rows.length - 1][0];
+    const bandHandle = document.createElement("div");
+    bandHandle.className = "row-resize-handle";
+    bandHandle.style.left = scale(v.contentLeft) + "px";
+    bandHandle.style.width = scale(v.contentWidth) + "px";
+    bandHandle.style.top = scale(last.y + last.height) + "px";
+    attachKpiBandResizeHandle(bandHandle, bandId, rows.length, renderLayout);
+    canvas.appendChild(bandHandle);
   });
 
   const chartsLayout = computeChartsLayout(v);

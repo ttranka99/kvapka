@@ -401,6 +401,8 @@ export default {
   "warnings.slicer.minHeight": "Minimum slicer height is {min}px.",
   "warnings.slicer.heightNoFit": "The specified height won't fit in the column; adjust the value.",
   "warnings.slicer.columnWidthMax": "Column width cannot be increased further; unlock some charts or KPIs.",
+  "warnings.slicer.rowHeightNoFit": "Slicers can't be this tall; the charts below wouldn't fit.",
+  "warnings.slicer.secondRowNoFit": "A second slicer row won't fit; the charts below need the space. Lower the slicer height first.",
 
   // --- Notifications: KPI -----------------------------------------------
   "warnings.kpi.limit": "Maximum number of KPIs reached.",
@@ -415,6 +417,8 @@ export default {
   "warnings.kpi.bandOverflow": "KPIs in band “{band}” won't fit in available width; adjust width or remove a KPI.",
   "warnings.kpi.bandLimit": "KPIs in band “{band}” exceed the selected per-row limit.",
   "warnings.kpi.minHeight": "Minimum KPI height is {min}px.",
+  "warnings.kpi.bandHeightNoFit": "KPIs can't be this tall; the charts below wouldn't fit.",
+  "warnings.kpi.secondRowNoFit": "A second KPI row won't fit; the charts below need the space. Lower the KPI height first.",
   "warnings.kpi.cardsDropped": "Template without KPI band - {count} KPIs from the removed band were dropped.",
 
   // --- Notifications: charts --------------------------------------------
@@ -584,7 +588,7 @@ export default {
   "themeField.gapKpiToCharts.hint": "Wider gap separating logical blocks: slicers from content, KPI from charts.",
   "themeField.titleHeight.label": "Header Height",
   "themeField.slicerHeight.label": "Slicer Height",
-  "themeField.slicerHeight.hint": "Fixed height of slicers in a horizontal band.",
+  "themeField.slicerHeight.hint": "Minimum (and default) height of slicers in a horizontal band. A page can make the band taller.",
   "themeField.slicerHeight.verticalLabel": "Min. Slicer Height",
   "themeField.slicerHeight.verticalHint": "Minimum (and default) height of a single slicer in a column, from which the available slicer count is derived.",
   "themeField.minSlicerWidth.label": "Min. Slicer Width",

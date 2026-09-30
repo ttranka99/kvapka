@@ -38,21 +38,13 @@ function boundaryGap(theme, stack, i, vertical) {
   return entry.type === "charts" ? theme.gapKpiToCharts : theme.gapSmall;
 }
 
-// A KPI band's height. Up to two rows (capped by kpisPerRow and
-// secondRowMaxItems) when allowSecondRow is set, as for the header band.
-// Otherwise one row, as for the "second" band that interrupts the charts.
-function measureKpiHeight(theme, kpisPerRow, cards, allowSecondRow) {
+// A KPI band's height. Every card in the band shares `rowHeight`. Up to two
+// rows when allowSecondRow is set, as for the header band. Otherwise one
+// row, as for the "second" band that interrupts the charts.
+function measureKpiHeight(theme, kpisPerRow, cards, allowSecondRow, rowHeight) {
   if (cards.length === 0) return 0;
-  if (!allowSecondRow) {
-    return Math.max(...cards.map(k => k.height ?? theme.kpiMinHeight));
-  }
-  const row1 = cards.slice(0, kpisPerRow);
-  const row2 = cards.length > kpisPerRow
-    ? cards.slice(kpisPerRow, kpisPerRow + theme.secondRowMaxItems)
-    : [];
-  const row1Height = row1.length ? Math.max(...row1.map(k => k.height ?? theme.kpiMinHeight)) : 0;
-  const row2Height = row2.length ? Math.max(...row2.map(k => k.height ?? theme.kpiMinHeight)) : 0;
-  return row1Height + (row2Height > 0 ? theme.gapSmall + row2Height : 0);
+  const hasRow2 = allowSecondRow && cards.length > kpisPerRow;
+  return hasRow2 ? rowHeight * 2 + theme.gapSmall : rowHeight;
 }
 
 // Walks a slice of `sections`, dropping those that take no space and adding
@@ -60,7 +52,7 @@ function measureKpiHeight(theme, kpisPerRow, cards, allowSecondRow) {
 // is built once in walkSections() so row assignment is consistent across the
 // two slices this is called on (prefix and chart region).
 function buildEffectiveStack(theme, sectionsSlice, ctx) {
-  const { vertical, slicerCount, hasRow2, kpisPerRow, kpiCardsBySectionId, chartGroupBySectionId } = ctx;
+  const { vertical, slicerCount, hasRow2, slicerRowHeight, kpisPerRow, kpiCardsBySectionId, kpiBandHeights, chartGroupBySectionId } = ctx;
   const out = [];
   sectionsSlice.forEach(s => {
     if (s.type === "title") {
@@ -69,14 +61,15 @@ function buildEffectiveStack(theme, sectionsSlice, ctx) {
     }
     if (s.type === "slicers") {
       if (vertical || slicerCount === 0) return;
-      const height = hasRow2 ? theme.slicerHeight * 2 + theme.gapSmall : theme.slicerHeight;
+      const height = hasRow2 ? slicerRowHeight * 2 + theme.gapSmall : slicerRowHeight;
       out.push({ ...s, height });
       return;
     }
     if (s.type === "kpi") {
       const cards = kpiCardsBySectionId.get(s.id) || [];
       if (cards.length === 0) return;
-      out.push({ ...s, height: measureKpiHeight(theme, kpisPerRow, cards, s.allowSecondRow), cards });
+      const rowHeight = kpiBandHeights[s.id] ?? theme.kpiMinHeight;
+      out.push({ ...s, height: measureKpiHeight(theme, kpisPerRow, cards, s.allowSecondRow, rowHeight), cards });
       return;
     }
     if (s.type === "charts") {
@@ -141,6 +134,10 @@ function placeStack(theme, effectiveStack, startY, vertical, rowHeights, rowTops
  * @param {"horizontal"|"vertical"} content.orientation
  * @param {"left"|"right"} content.slicerSide
  * @param {number} content.columnWidth - the vertical slicer column's width.
+ * @param {number} [content.slicerRowHeight] - the horizontal band's shared
+ *   slicer height. Defaults to the theme's slicerHeight (the editor preview).
+ * @param {Object<string, number>} [content.kpiBandHeights] - a `kpi`
+ *   section's id -> its cards' shared height. A missing id gets kpiMinHeight.
  * @param {(v: {chartsHeight:number, chartRowGapCount:number}) => number[]} content.rowHeightSolver
  */
 export function walkSections(theme, content) {
@@ -179,6 +176,7 @@ export function walkSections(theme, content) {
     : TITLE_Y + theme.titleHeight + theme.gapSmall;
 
   const hasRow2 = !vertical && slicerCount > slicersPerRow;
+  const slicerRowHeight = content.slicerRowHeight ?? theme.slicerHeight;
 
   // The column reserves width only while slicers exist, so an empty page
   // doesn't lose ~320px to nothing.
@@ -204,7 +202,8 @@ export function walkSections(theme, content) {
   // (computeVerticalLayout or the preview) already has it.
   const chartGroupBySectionId = new Map(content.chartGroups.map(g => [g.sectionId, g]));
 
-  const ctx = { vertical, slicerCount, hasRow2, kpisPerRow, kpiCardsBySectionId, chartGroupBySectionId };
+  const kpiBandHeights = content.kpiBandHeights ?? {};
+  const ctx = { vertical, slicerCount, hasRow2, slicerRowHeight, kpisPerRow, kpiCardsBySectionId, kpiBandHeights, chartGroupBySectionId };
 
   // The stack splits at the first charts section (normalizeSections()
   // guarantees one). Above it is the prefix (title, slicers, header KPI),
