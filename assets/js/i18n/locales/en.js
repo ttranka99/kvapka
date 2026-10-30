@@ -444,7 +444,7 @@ export default {
   "warnings.chart.rowUnlockOther": "Cannot adjust row height; unlock at least one chart row first.",
 
   // --- Notifications: typed sizes (selected element panel) --------------
-  "warnings.size.minWidth": "Minimum width is 50px.",
+  "warnings.size.minWidth": "Minimum width is {min}px.",
   "warnings.size.widthNoFit": "The specified width won't fit in the space; choose another value.",
   "warnings.size.heightNoFit": "The specified height won't fit in the space; choose another value.",
   "warnings.size.invalidNumber": "Enter a valid number.",

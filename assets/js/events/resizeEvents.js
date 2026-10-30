@@ -8,6 +8,7 @@ import { canAddChart, chartRowsFit } from "../layout/canAddChart.js";
 import { rowEffectiveMinHeight } from "../layout/computeStackHeights.js";
 import { snapToStep } from "../layout/sizeStep.js";
 import { slicerColumnFits } from "../layout/computeSlicerColumnHeights.js";
+import { rowFitsMin, kpiRowsOf } from "../layout/rowFit.js";
 import { setSelected, getPendingWidth, getPendingHeight } from "../ui/selection.js";
 import { initState } from "../state/initState.js";
 import { refreshSelectedChartAfterResize, lockedChartCardIds } from "./chartEvents.js";
@@ -35,8 +36,12 @@ function applyWidthValue(info, val) {
   // Typed values land on the same 5px grid the layout solvers use.
   if (!isNaN(val)) val = snapToStep(val);
 
-  if (isNaN(val) || val < 50) {
-    addWarning(t("warnings.size.minWidth"), "error");
+  // Chart rows check their own MIN_CHART_WIDTH below.
+  const minWidth = info.kind === "slicer" ? state.MIN_SLICER_WIDTH
+    : info.kind === "kpi" ? state.MIN_KPI_WIDTH
+    : 50;
+  if (isNaN(val) || val < minWidth) {
+    addWarning(t("warnings.size.minWidth", { min: minWidth }), "error");
     renderWarnings();
     return;
   }
@@ -46,16 +51,47 @@ function applyWidthValue(info, val) {
     if (state.isVerticalSlicers()) return;
 
     const s = info.stateRef;
+    const originalWidth = s.width;
+    const originalLocked = s.locked;
     s.width = val;
     s.locked = true;
+
+    // The rest of the row must still get its minimum width (rows split as in
+    // computeSlicersLayout.js).
+    const i = state.slicers.indexOf(s);
+    const row = i < state.MAX_SLICERS
+      ? state.slicers.slice(0, state.MAX_SLICERS)
+      : state.slicers.slice(state.MAX_SLICERS, state.MAX_SLICERS + state.SECOND_ROW_MAX_ITEMS);
+
+    if (!rowFitsMin(row, state.MIN_SLICER_WIDTH, state.USABLE_WIDTH)) {
+      s.width = originalWidth;
+      s.locked = originalLocked;
+      addWarning(t("warnings.size.widthNoFit"), "error");
+      renderWarnings();
+      return;
+    }
+
     renderLayout();
     return;
   }
 
   if (info.kind === "kpi") {
     const k = info.stateRef;
+    const originalWidth = k.width;
+    const originalLocked = k.locked;
     k.width = val;
     k.locked = true;
+
+    // A row that doesn't fit renders nothing, so reject the value instead.
+    const row = kpiRowsOf(info.bandId).find(r => r.includes(k)) ?? [k];
+    if (!rowFitsMin(row, state.MIN_KPI_WIDTH, computeVerticalLayout().contentWidth)) {
+      k.width = originalWidth;
+      k.locked = originalLocked;
+      addWarning(t("warnings.size.widthNoFit"), "error");
+      renderWarnings();
+      return;
+    }
+
     renderLayout();
     return;
   }

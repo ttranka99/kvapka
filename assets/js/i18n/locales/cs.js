@@ -443,7 +443,7 @@ export default {
   "warnings.chart.rowUnlockOther": "Nelze upravit výšku řady, nejprve odemkněte alespoň jednu řadu grafů.",
 
   // --- Notifications: typed sizes (selected element panel) --------------
-  "warnings.size.minWidth": "Minimální šířka je 50px.",
+  "warnings.size.minWidth": "Minimální šířka je {min}px.",
   "warnings.size.widthNoFit": "Zadaná šířka se nevejde do prostoru, zvolte jinou hodnotu.",
   "warnings.size.heightNoFit": "Zadaná výška se nevejde do prostoru, zvolte jinou hodnotu.",
   "warnings.size.invalidNumber": "Zadejte platné číslo.",
