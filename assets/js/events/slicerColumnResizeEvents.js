@@ -1,6 +1,7 @@
 import * as state from "../state/state.js";
 import { computeVerticalLayout, contentBoxFor } from "../layout/computeVerticalLayout.js";
 import { snapToStep } from "../layout/sizeStep.js";
+import { rowFitsMin, kpiRowsOf } from "../layout/rowFit.js";
 import { addWarning } from "../ui/warnings.js";
 import { refreshSelectedSlicerAfterEdit } from "./slicerEvents.js";
 import { t } from "../i18n/i18n.js";
@@ -10,10 +11,6 @@ import { t } from "../i18n/i18n.js";
 // box, so it only applies while the unlocked visuals there can absorb it.
 
 let activeResize = null;
-
-// KPIs have no MIN_KPI_WIDTH constant in state, so use the 50px floor that
-// the Apply button enforces.
-const MIN_KPI_WIDTH = 50;
 
 // Whether the content box still fits at `contentWidth`. Mirrors canAddChart's
 // horizontal test (a stored width is reserved even if unlocked) as plain
@@ -29,32 +26,10 @@ function contentFits(contentWidth) {
     if (fixedSum + freeCount * state.MIN_CHART_WIDTH + gaps > contentWidth) return false;
   }
 
-  // Every KPI band must fit. A band with allowSecondRow splits at MAX_KPIS,
-  // as in computeKpiLayout; any other band is one row.
-  const kpiRows = [];
-  for (const id of state.kpiBandIds()) {
-    const cards = state.getKpiBand(id);
-    if (cards.length === 0) continue;
-    const section = state.activeTheme.sections.find(s => s.id === id);
-    if (section && section.allowSecondRow) {
-      kpiRows.push(cards.slice(0, state.MAX_KPIS));
-      kpiRows.push(cards.slice(state.MAX_KPIS, state.MAX_KPIS + state.SECOND_ROW_MAX_ITEMS));
-    } else {
-      kpiRows.push(cards);
-    }
-  }
-
-  for (const row of kpiRows) {
-    if (row.length === 0) continue;
-    const gaps = (row.length - 1) * state.GAP_SMALL;
-    const lockedSum = row
-      .filter(k => k.locked)
-      .reduce((sum, k) => sum + (k.width ?? 0), 0);
-    const freeCount = row.filter(k => !k.locked).length;
-    if (lockedSum + freeCount * MIN_KPI_WIDTH + gaps > contentWidth) return false;
-  }
-
-  return true;
+  // Every KPI band must fit.
+  return state.kpiBandIds().every(id =>
+    kpiRowsOf(id).every(row => row.length === 0 || rowFitsMin(row, state.MIN_KPI_WIDTH, contentWidth))
+  );
 }
 
 function finishResize() {

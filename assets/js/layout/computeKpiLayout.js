@@ -1,6 +1,7 @@
 import * as state from "../state/state.js";
 import { addWarning } from "../ui/warnings.js";
 import { distributeInSteps } from "./sizeStep.js";
+import { COMPACT_ROW_SHARE } from "./rowFit.js";
 import { t } from "../i18n/i18n.js";
 
 const MAX_PER_ROW_INFO = () => t("warnings.kpi.maxPerRow");
@@ -62,13 +63,17 @@ function widthsWithLocked(row, remaining) {
   return row.map(k => (k.locked ? k.width : shares[next++]));
 }
 
+const COMPACT_KPI_WIDTH = 250;
+
 // Width rule for one row of KPI cards, used for every band's first row (and
 // the only row of a single-row band). Cases, in order:
-//   0) three or fewer, none locked: fixed 250px cards, so a sparse row
-//      doesn't become a few huge slabs;
-//   1) any locked: widthsWithLocked(). A negative remainder is fatal, so the
+//   0) three or fewer, none locked: fixed COMPACT_KPI_WIDTH cards, so a
+//      sparse row doesn't become a few huge slabs;
+//   1) two cards, one locked: the other stays compact while the row fits in
+//      COMPACT_ROW_SHARE of the width (as for slicers), else case 2;
+//   2) any locked: widthsWithLocked(). A negative remainder is fatal, so the
 //      row renders nothing and warns instead of showing squeezed cards;
-//   2) otherwise: even, symmetric split of the usable width.
+//   3) otherwise: even, symmetric split of the usable width.
 function kpiRowWidths(row, availableWidth) {
   const n = row.length;
   const totalGaps = (n - 1) * state.GAP_SMALL;
@@ -76,7 +81,15 @@ function kpiRowWidths(row, availableWidth) {
   const anyLocked = row.some(k => k.locked);
 
   if (!anyLocked && n <= 3) {
-    return { widths: Array(n).fill(250), manualSumExceeded: false };
+    return { widths: Array(n).fill(COMPACT_KPI_WIDTH), manualSumExceeded: false };
+  }
+
+  if (anyLocked && n === 2) {
+    const compact = row.map(k => (k.locked ? k.width : COMPACT_KPI_WIDTH));
+    const compactTotal = compact.reduce((s, w) => s + w, 0) + totalGaps;
+    if (compactTotal <= COMPACT_ROW_SHARE * availableWidth) {
+      return { widths: compact, manualSumExceeded: false };
+    }
   }
 
   if (anyLocked) {

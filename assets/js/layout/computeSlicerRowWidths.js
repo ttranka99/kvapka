@@ -1,10 +1,13 @@
 import * as state from "../state/state.js";
 import { addWarning } from "../ui/warnings.js";
 import { distributeInSteps } from "./sizeStep.js";
+import { COMPACT_ROW_SHARE } from "./rowFit.js";
 import { t } from "../i18n/i18n.js";
 
 const MANUAL_WIDTH_SUM_ERROR = () => t("warnings.slicer.manualWidthSum");
 const TIGHT_FIT_WARNING = () => t("warnings.slicer.tightFit");
+
+const COMPACT_SLICER_WIDTH = 350;
 
 // Conditions already reported, tracked apart from the toast's 5s timeout.
 // Same as in computeKpiLayout.js / computeSlicersLayout.js.
@@ -28,9 +31,22 @@ export function computeSlicerRowWidths(rowSlicers) {
   const n = rowSlicers.length;
   if (n === 0) return [];
 
-  if (n <= 3) return rowSlicers.map(s => s.locked ? s.width : 350);
-
   const totalGaps = (n - 1) * state.GAP_SMALL;
+
+  // Up to 3 slicers stay compact. Once one has a hand-set width, only while
+  // the row fits in COMPACT_ROW_SHARE of the width; past that, the unlocked
+  // ones fill the row like longer rows do.
+  if (n <= 3) {
+    const compact = rowSlicers.map(s => s.locked ? s.width : COMPACT_SLICER_WIDTH);
+    const compactTotal = compact.reduce((sum, w) => sum + w, 0) + totalGaps;
+    const anyLocked = rowSlicers.some(s => s.locked);
+    if (!anyLocked || compactTotal <= COMPACT_ROW_SHARE * state.USABLE_WIDTH) {
+      syncWarning(false, MANUAL_WIDTH_SUM_ERROR(), "error");
+      syncWarning(false, TIGHT_FIT_WARNING(), "warning");
+      return compact;
+    }
+  }
+
   const lockedSum = rowSlicers
     .filter(s => s.locked)
     .reduce((sum, s) => sum + (s.width ?? 0), 0);

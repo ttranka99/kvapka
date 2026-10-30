@@ -45,6 +45,8 @@ export let MAX_SLICER_COLUMN_WIDTH = activeTheme.maxSlicerColumnWidth;
 export let SLICER_FILL_THRESHOLD = activeTheme.slicerFillThreshold;
 export let KPI_MIN_HEIGHT = activeTheme.kpiMinHeight;
 export let MIN_SLICER_WIDTH = activeTheme.minSlicerWidth;
+// KPIs have no theme minimum, so a fixed floor.
+export const MIN_KPI_WIDTH = 50;
 export let MIN_CHART_ROW_HEIGHT = activeTheme.minChartRowHeight;
 export let MIN_CHART_WIDTH = activeTheme.minChartWidth;
 // Absolute floor for a chart row or stacked cell when the usual minimums
